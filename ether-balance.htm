@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,13 +108,13 @@
 
         <div class="border-t pt-4">
           <h2 class="text-xl font-semibold text-gray-900 mb-2">Balance Total</h2>
-        <div class="text-xs text-gray-500 mb-2"></h2>
           <p class="text-3xl font-bold text-blue-600" id="total-balance"></p>
         </div>
 
         <div class="text-xs text-gray-500 space-y-2">
-          <p>Address: <span id="address"></span></p>
-          <p id="generated-time"></p>
+        
+          <p><span class="font-medium">Address</span>: <span id="address"></span></p>
+          <p><span class="font-medium">Report generated</span>: <span id="generated-time"></span></p>
           <p class="font-medium">Data sources</p>
           <ul class="list-disc pl-5 space-y-1">
             <li>Unstaked Balance: beaconcha.in/api/v1/validator public API</li>
@@ -132,7 +131,7 @@
         this.addressInput = document.getElementById('addressInput');
         this.runReportButton = document.getElementById('runReportButton');
         this.resultsDiv = document.getElementById('results');
-        
+
         this.setupEventListeners();
         this.prefillAddress();
       }
@@ -211,7 +210,7 @@
         clone.querySelector('#staked-balance').textContent = `${data.stakedBalance.toFixed(10)} ETH`;
         clone.querySelector('#total-balance').textContent = `${(data.stakedBalance + data.balanceEth).toFixed(10)} ETH`;
         clone.querySelector('#address').textContent = data.address;
-        
+
         // Set validators section
         const validatorsSection = clone.querySelector('#validators-section');
         if (data.validatorBalances.length === 0) {
@@ -234,7 +233,7 @@
 
         // Set timestamp
         const nowUtc = new Date();
-        clone.querySelector('#generated-time').textContent = `Report generated ${nowUtc.toString()}`;
+        clone.querySelector('#generated-time').textContent = nowUtc.toString();
 
         this.resultsDiv.innerHTML = '';
         this.resultsDiv.appendChild(clone);
