@@ -4,15 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Medication Tracker</title>
-  <!-- Tailwind CSS from CDN -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-  <!-- React and ReactDOM from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <!-- Babel for JSX support -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.21.2/babel.min.js"></script>
   <style>
-    /* Additional CSS if needed */
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     }
@@ -21,12 +17,11 @@
 <body>
   <div id="root"></div>
 
-  <!-- Simple implementation of Lucide icons since we can't import them directly -->
   <script type="text/babel">
-    // Define Lucide-style icons
-    const LucideIcons = {
-      CalendarDays: ({ size = 24, className = "" }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    // Create reusable Icon component
+    const Icon = ({ type, size = 24, className = "" }) => {
+      const icons = {
+        CalendarDays: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
           <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
           <line x1="16" x2="16" y1="2" y2="6"></line>
           <line x1="8" x2="8" y1="2" y2="6"></line>
@@ -37,197 +32,158 @@
           <path d="M8 18h.01"></path>
           <path d="M12 18h.01"></path>
           <path d="M16 18h.01"></path>
-        </svg>
-      ),
-      Clock: ({ size = 24, className = "" }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        </svg>,
+        Clock: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-      ),
-      Check: ({ size = 24, className = "" }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        </svg>,
+        Check: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
           <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      ),
-      X: ({ size = 24, className = "" }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        </svg>,
+        X: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      ),
-      AlertTriangle: ({ size = 24, className = "" }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        </svg>,
+        AlertTriangle: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
           <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
           <path d="M12 9v4"></path>
           <path d="M12 17h.01"></path>
         </svg>
-      )
+      };
+      
+      return icons[type] || null;
     };
 
-    const { useState, useEffect } = React;
-    const { CalendarDays, Clock, Check, X, AlertTriangle } = LucideIcons;
+    // Create reusable modal component
+    const Modal = ({ title, children, onClose, actions }) => (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <h2 className="text-xl font-bold mb-4">{title}</h2>
+          {children}
+          <div className="flex justify-end space-x-2 mt-4">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+            {actions}
+          </div>
+        </div>
+      </div>
+    );
+
+    // Create reusable Card component
+    const Card = ({ title, children, className = "", action }) => (
+      <div className={`bg-white p-4 rounded-lg shadow-sm ${className}`}>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          {action}
+        </div>
+        {children}
+      </div>
+    );
+
+    const { useState, useEffect, useRef } = React;
 
     const MedicationTracker = () => {
-      // Basic state
-      const [doses, setDoses] = useState([]);
-      const [nextDoseTime, setNextDoseTime] = useState(null);
-      const [currentTime, setCurrentTime] = useState(new Date());
-      const [showAddModal, setShowAddModal] = useState(false);
-      const [newDoseTime, setNewDoseTime] = useState(new Date());
-      const [showResetConfirm, setShowResetConfirm] = useState(false);
+      // Common constants
+      const STORAGE_KEYS = {
+        DOSES: 'medicationDoses',
+        INTERVAL: 'medicationInterval'
+      };
       
-      // Dosage interval options
-      const intervalOptions = [
+      const INTERVAL_OPTIONS = [
         { label: "ED (Every 24 hours)", value: 24 * 60 },
         { label: "EOD (Every 48 hours)", value: 48 * 60 },
         { label: "3x per Week (Every 56 hours)", value: 56 * 60 },
         { label: "2x per Week (Every 84 hours)", value: 84 * 60 }
       ];
       
-      // Default to 2x per Week if no setting exists
-      const [intervalMinutes, setIntervalMinutes] = useState(84 * 60);
+      const STATUS_COLORS = {
+        perfect: 'bg-green-500',
+        excellent: 'bg-green-500',
+        good: 'bg-blue-500',
+        fair: 'bg-yellow-500',
+        'needs-improvement': 'bg-red-500'
+      };
       
-      // Load saved doses and interval setting on initial mount
-      useEffect(() => {
-        // Load interval setting
-        const savedInterval = localStorage.getItem('medicationInterval');
-        if (savedInterval) {
-          try {
-            const parsedInterval = JSON.parse(savedInterval);
-            setIntervalMinutes(parsedInterval);
-          } catch (e) {
-            console.error('Error parsing saved interval', e);
-            // Use default if there's an error
-            setIntervalMinutes(84 * 60); // Default to 2x per Week
-          }
-        } else {
-          // No saved interval, use default
-          setIntervalMinutes(84 * 60); // Default to 2x per Week
-        }
-        
-        // Load saved doses
-        const savedDoses = localStorage.getItem('medicationDoses');
-        if (savedDoses) {
-          try {
-            const parsedDoses = JSON.parse(savedDoses);
-            setDoses(parsedDoses);
-            
-            // Only calculate next dose time if we have at least one dose
-            if (parsedDoses.length > 0) {
-              calculateAndSetNextDoseTime(parsedDoses);
-            } else {
-              // No doses, so no schedule yet
-              setNextDoseTime(null);
-            }
-          } catch (e) {
-            console.error('Error parsing saved doses', e);
-          }
-        } else {
-          // No saved doses, so no schedule yet
-          setNextDoseTime(null);
-        }
-      }, []);
-      
-      // Update current time every half second
-      useEffect(() => {
-        const timer = setInterval(() => {
-          const now = new Date();
-          setCurrentTime(now);
-          
-          // Also update the default dose time to keep it current
-          setNewDoseTime(now);
-        }, 500);
-        
-        return () => clearInterval(timer);
-      }, []);
-      
-      // Save doses to localStorage whenever they change
-      useEffect(() => {
-        localStorage.setItem('medicationDoses', JSON.stringify(doses));
-      }, [doses]);
-      
-      // Save interval to localStorage whenever it changes
-      useEffect(() => {
-        localStorage.setItem('medicationInterval', JSON.stringify(intervalMinutes));
-        
-        // If we have doses, recalculate the next dose time based on the new interval
-        if (doses.length > 0) {
-          calculateAndSetNextDoseTime(doses);
-        }
-      }, [intervalMinutes]);
+      const ADHERENCE_COLORS = {
+        excellent: 'text-green-600',
+        good: 'text-blue-600',
+        fair: 'text-yellow-600',
+        poor: 'text-red-600'
+      };
 
-      // Calculate the next dose time based on maintaining a consistent interval from the first dose
+      // State
+      const [doses, setDoses] = useState([]);
+      const [nextDoseTime, setNextDoseTime] = useState(null);
+      const [currentTime, setCurrentTime] = useState(new Date());
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [showResetConfirm, setShowResetConfirm] = useState(false);
+      const [intervalMinutes, setIntervalMinutes] = useState(84 * 60); // Default: 2x per Week
+      
+      // Reference for the datetime input field
+      const dateTimeInputRef = useRef(null);
+
+      // Utility functions
+      const formatTimeDifference = (milliseconds) => {
+        const ms = Math.max(0, milliseconds);
+        const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+        
+        if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+        if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+        return `${minutes}m ${seconds}s`;
+      };
+      
+      const formatDateTime = (dateString) => {
+        const date = new Date(dateString);
+        const dayOfWeek = date.toLocaleString(undefined, { weekday: 'short' });
+        const month = date.toLocaleString(undefined, { month: 'short' });
+        const day = date.getDate();
+        const year = date.getFullYear();
+        
+        let hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        
+        hours = hours % 12 || 12;
+        const timeZone = date.toLocaleString(undefined, { timeZoneName: 'short' }).split(' ').pop();
+        
+        return `${dayOfWeek}, ${month} ${day}, ${year}, ${hours}:${minutes} ${ampm} ${timeZone}`;
+      };
+      
+      const formatDateTimeWithDayOfWeek = (dateString) => {
+        const date = new Date(dateString);
+        const dayOfWeek = date.toLocaleString(undefined, { weekday: 'long' });
+        
+        let hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        
+        hours = hours % 12 || 12;
+        const timeOfDay = `${hours}:${minutes} ${ampm}`;
+        const timeZone = date.toLocaleString(undefined, { timeZoneName: 'short' }).split(' ').pop();
+        const dateOnly = date.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        
+        return { dayOfWeek, timeOfDay, timeZone, dateOnly };
+      };
+      
+      // Core logic functions
       const calculateAndSetNextDoseTime = (dosesArray = doses) => {
         if (dosesArray.length === 0) {
           setNextDoseTime(null);
           return;
         }
         
-        // The first dose establishes the baseline schedule
         const firstDose = new Date(dosesArray[0].time);
-        
-        // Calculate when the next dose should be (first dose time + number of doses × interval)
-        // This maintains the rhythm even if individual doses are early or late
         const nextDose = new Date(firstDose.getTime() + (dosesArray.length * intervalMinutes * 60 * 1000));
-        
         setNextDoseTime(nextDose);
       };
       
-      // Handle adding a new dose
-      const handleAddDose = () => {
-        // Always use the current time when recording a dose, not the potentially stale newDoseTime
-        const currentDoseTime = new Date();
-        
-        const newDose = { 
-          time: currentDoseTime.toISOString(), 
-          id: Date.now() 
-        };
-        
-        const newDoses = [...doses, newDose];
-        setDoses(newDoses);
-        
-        // If this is the first dose, set the next dose time to exactly the interval later
-        if (doses.length === 0) {
-          // Always exactly the interval after the current time for the first dose
-          setNextDoseTime(new Date(currentDoseTime.getTime() + intervalMinutes * 60 * 1000));
-        } else {
-          // Recalculate the next dose time based on the updated history
-          calculateAndSetNextDoseTime(newDoses);
-        }
-        
-        setShowAddModal(false);
-      };
-      
-      // Handle deleting a dose
-      const handleDeleteDose = (id) => {
-        const updatedDoses = doses.filter(dose => dose.id !== id);
-        setDoses(updatedDoses);
-        
-        // Recalculate next dose time after deletion
-        if (updatedDoses.length === 0) {
-          setNextDoseTime(null);
-        } else {
-          calculateAndSetNextDoseTime(updatedDoses);
-        }
-      };
-      
-      // Handle interval change
-      const handleIntervalChange = (e) => {
-        const newInterval = parseInt(e.target.value);
-        setIntervalMinutes(newInterval);
-      };
-
-      // Handle complete reset
-      const handleReset = () => {
-        localStorage.removeItem('medicationDoses');
-        setDoses([]);
-        // No doses after reset, so no schedule
-        setNextDoseTime(null);
-        setShowResetConfirm(false);
-      };
-      
-      // Calculate adherence to the consistent interval schedule, including current overdue status
       const calculateAdherence = () => {
         if (doses.length === 0) return { percentage: 100, status: 'perfect' };
         
@@ -235,27 +191,19 @@
         let maxDeviation = 0;
         const firstDose = new Date(doses[0].time);
         
-        // Calculate deviations for all past doses
         for (let i = 1; i < doses.length; i++) {
-          // When this dose should have been taken (based on consistent intervals from first dose)
           const expectedTime = new Date(firstDose.getTime() + (i * intervalMinutes * 60 * 1000));
-          
-          // When it was actually taken
           const actualTime = new Date(doses[i].time);
-          
-          // Calculate deviation in minutes
           const deviation = Math.abs(actualTime - expectedTime) / (1000 * 60);
           
           totalDeviations += deviation;
           maxDeviation = Math.max(maxDeviation, deviation);
         }
         
-        // Include the current overdue status if there's a pending next dose
-        let totalIntervals = doses.length - 1; // Number of completed intervals
+        let totalIntervals = doses.length - 1;
         if (nextDoseTime) {
-          totalIntervals += 1; // Add the current pending interval
+          totalIntervals += 1;
           
-          // Calculate how overdue we are for the next dose
           const now = new Date();
           if (now > nextDoseTime) {
             const overdueMinutes = (now - nextDoseTime) / (1000 * 60);
@@ -264,23 +212,14 @@
           }
         }
         
-        // Calculate average deviation (avoiding division by zero)
         const avgDeviation = totalIntervals > 0 ? totalDeviations / totalIntervals : 0;
-        
-        // Calculate adherence percentage based on total deviation divided by total time
-        // Total expected time = number of intervals * interval length
         const totalExpectedTime = totalIntervals * intervalMinutes;
         
-        // Avoid division by zero if there are no intervals yet
         if (totalExpectedTime === 0) return { percentage: 100, status: 'perfect', avgDeviation: 0 };
         
-        // Deviation as a percentage of total time
         const deviationPercentage = (totalDeviations / totalExpectedTime) * 100;
-        
-        // Convert to adherence percentage (100% - deviation percentage), with a floor of 0%
         const percentage = Math.max(0, Math.min(100, 100 - deviationPercentage));
         
-        // Determine adherence status based on percentage
         let status = 'perfect';
         if (percentage < 100) {
           if (percentage >= 95) status = 'excellent';
@@ -297,172 +236,169 @@
         };
       };
       
-      // Get time until next dose
       const getTimeUntilNextDose = () => {
         if (!nextDoseTime) return null;
         
         const diff = nextDoseTime - currentTime;
-        
-        // Calculate missed intervals
         let missedIntervals = 0;
-        if (diff <= 0) {
-          // How many full intervals have passed since the next dose time
-          missedIntervals = Math.floor(Math.abs(diff) / (intervalMinutes * 60 * 1000));
-        }
         
-        if (diff <= 0) return { 
-          overdue: true, 
-          time: formatTimeDifference(Math.abs(diff)),
-          missedIntervals: missedIntervals
-        };
+        if (diff <= 0) {
+          missedIntervals = Math.floor(Math.abs(diff) / (intervalMinutes * 60 * 1000));
+          return { 
+            overdue: true, 
+            time: formatTimeDifference(Math.abs(diff)),
+            missedIntervals
+          };
+        }
         
         return { overdue: false, time: formatTimeDifference(diff), missedIntervals: 0 };
       };
       
-      // Format a time difference in milliseconds to a string
-      const formatTimeDifference = (milliseconds) => {
-        const ms = Math.max(0, milliseconds);
-        
-        // For intervals longer than a day, show days, hours, and minutes
-        const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-        
-        if (days > 0) {
-          return `${days}d ${hours}h ${minutes}m`;
-        } else if (hours > 0) {
-          return `${hours}h ${minutes}m ${seconds}s`;
-        } else {
-          return `${minutes}m ${seconds}s`;
-        }
-      };
-      
-      // Format a date to a human-readable string
-      const formatDateTime = (dateString) => {
-        const date = new Date(dateString);
-        const dayOfWeek = date.toLocaleString(undefined, { weekday: 'short' });
-        
-        // Get month, day, year
-        const month = date.toLocaleString(undefined, { month: 'short' });
-        const day = date.getDate();
-        const year = date.getFullYear();
-        
-        // Format time with leading zeros for minutes but not for hours
-        let hours = date.getHours();
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        
-        // Convert to 12-hour format
-        hours = hours % 12;
-        hours = hours ? hours : 12; // the hour '0' should be '12'
-        
-        // Get timezone
-        const timeZone = date.toLocaleString(undefined, {
-          timeZoneName: 'short'
-        }).split(' ').pop(); // Extract just the timezone part
-        
-        return `${dayOfWeek}, ${month} ${day}, ${year}, ${hours}:${minutes} ${ampm} ${timeZone}`;
-      };
-      
-      // Format a date emphasizing the day of the week
-      const formatDateTimeWithDayOfWeek = (dateString) => {
-        const date = new Date(dateString);
-        const dayOfWeek = date.toLocaleString(undefined, { weekday: 'long' });
-        
-        // Format time without leading zeros
-        let hours = date.getHours();
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        
-        // Convert to 12-hour format
-        hours = hours % 12;
-        hours = hours ? hours : 12; // the hour '0' should be '12'
-        
-        const timeOfDay = `${hours}:${minutes} ${ampm}`;
-        
-        const timeZone = date.toLocaleString(undefined, {
-          timeZoneName: 'short'
-        }).split(' ').pop(); // Extract just the timezone part
-        
-        const dateOnly = date.toLocaleString(undefined, {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-        
-        return { 
-          dayOfWeek, 
-          timeOfDay, 
-          timeZone,
-          dateOnly 
-        };
-      };
-      
-      // Get adherence percentage for a dose compared to expected time
       const getDoseAdherence = (doseTime, doseIndex) => {
         const actualTime = new Date(doseTime);
         const firstDose = new Date(doses[0].time);
         const expectedTime = new Date(firstDose.getTime() + (doseIndex * intervalMinutes * 60 * 1000));
         const diffMinutes = Math.abs(actualTime - expectedTime) / (1000 * 60);
         
-        // Calculate how far off this dose was as a percentage of the interval
         const percentageOfInterval = (diffMinutes / intervalMinutes) * 100;
         const roundedPercentage = Math.round(percentageOfInterval);
-        
-        // Check if we've exceeded the cap
         const exceedsCap = roundedPercentage > 999;
+        
+        let category = 'excellent';
+        if (roundedPercentage > 50) category = 'poor';
+        else if (roundedPercentage > 25) category = 'fair';
+        else if (roundedPercentage > 10) category = 'good';
         
         return {
           adherencePercentage: exceedsCap ? 999 : roundedPercentage,
           exceedsCap,
           isEarly: actualTime < expectedTime,
-          isLate: actualTime > expectedTime
+          isLate: actualTime > expectedTime,
+          category
         };
       };
+      
+      // Handlers
+      const handleAddDose = () => {
+        // Get the selected datetime from the input field
+        const selectedDateTimeStr = dateTimeInputRef.current?.value;
+        const selectedDateTime = selectedDateTimeStr ? new Date(selectedDateTimeStr) : new Date();
+        
+        const newDose = { time: selectedDateTime.toISOString(), id: Date.now() };
+        const newDoses = [...doses, newDose];
+        
+        setDoses(newDoses);
+        
+        if (doses.length === 0) {
+          setNextDoseTime(new Date(selectedDateTime.getTime() + intervalMinutes * 60 * 1000));
+        } else {
+          calculateAndSetNextDoseTime(newDoses);
+        }
+        
+        setShowAddModal(false);
+      };
+      
+      const handleDeleteDose = (id) => {
+        const updatedDoses = doses.filter(dose => dose.id !== id);
+        setDoses(updatedDoses);
+        
+        if (updatedDoses.length === 0) {
+          setNextDoseTime(null);
+        } else {
+          calculateAndSetNextDoseTime(updatedDoses);
+        }
+      };
+      
+      const handleReset = () => {
+        localStorage.removeItem(STORAGE_KEYS.DOSES);
+        setDoses([]);
+        setNextDoseTime(null);
+        setShowResetConfirm(false);
+      };
 
+      const handleShowAddModal = () => {
+        setShowAddModal(true);
+      };
+      
+      // Effects
+      useEffect(() => {
+        // Load interval setting
+        try {
+          const savedInterval = localStorage.getItem(STORAGE_KEYS.INTERVAL);
+          if (savedInterval) setIntervalMinutes(JSON.parse(savedInterval));
+          
+          // Load saved doses
+          const savedDoses = localStorage.getItem(STORAGE_KEYS.DOSES);
+          if (savedDoses) {
+            const parsedDoses = JSON.parse(savedDoses);
+            setDoses(parsedDoses);
+            
+            if (parsedDoses.length > 0) calculateAndSetNextDoseTime(parsedDoses);
+            else setNextDoseTime(null);
+          }
+        } catch (e) {
+          console.error('Error loading saved data', e);
+        }
+      }, []);
+      
+      useEffect(() => {
+        const timer = setInterval(() => {
+          setCurrentTime(new Date());
+        }, 500);
+        
+        return () => clearInterval(timer);
+      }, []);
+      
+      useEffect(() => {
+        localStorage.setItem(STORAGE_KEYS.DOSES, JSON.stringify(doses));
+      }, [doses]);
+      
+      useEffect(() => {
+        localStorage.setItem(STORAGE_KEYS.INTERVAL, JSON.stringify(intervalMinutes));
+        if (doses.length > 0) calculateAndSetNextDoseTime();
+      }, [intervalMinutes]);
+      
+      // Computed values
       const adherence = calculateAdherence();
       const nextDoseInfo = getTimeUntilNextDose();
+      
+      // Get the current datetime in the format needed for the input field
+      const getCurrentDateTimeForInput = () => {
+        const now = new Date();
+        return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      };
       
       return (
         <div className="max-w-md mx-auto p-4 bg-gray-50 rounded-lg shadow-md">
           <h1 className="text-2xl font-bold mb-4 text-center">Medication Tracker</h1>
           
           {/* Interval Selection */}
-          <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-            <h2 className="text-lg font-semibold mb-2">Frequency</h2>
+          <Card title="Frequency" className="mb-4">
             <select
-              id="intervalSelect"
               value={intervalMinutes}
-              onChange={handleIntervalChange}
+              onChange={(e) => setIntervalMinutes(parseInt(e.target.value))}
               className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              {intervalOptions.map((option) => (
+              {INTERVAL_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
-          </div>
+          </Card>
           
           {/* Next Dose Card */}
-          <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-            <h2 className="text-lg font-semibold">Next Dose</h2>
+          <Card title="Next Dose" className="mb-4">
             {nextDoseTime && doses.length > 0 ? (
               <div className="mt-2">
-                {/* Emphasize the day of the week */}
                 {(() => {
-                  const { dayOfWeek, timeOfDay, timeZone, dateOnly } = formatDateTimeWithDayOfWeek(nextDoseTime);
+                  const { dayOfWeek, timeOfDay, timeZone } = formatDateTimeWithDayOfWeek(nextDoseTime);
                   return (
-                    <>
-                      <p className="text-2xl font-bold text-blue-500">{dayOfWeek} @ {timeOfDay} {timeZone}</p>
-                    </>
+                    <p className="text-2xl font-bold text-blue-500">{dayOfWeek} @ {timeOfDay} {timeZone}</p>
                   );
                 })()}
                 <div className="mt-2 flex items-center text-gray-700">
-                  {nextDoseInfo.overdue ? (
-                    <AlertTriangle size={16} className="mr-1 text-red-500" />
-                  ) : null}
+                  {nextDoseInfo.overdue && <Icon type="AlertTriangle" size={16} className="mr-1 text-red-500" />}
                   <span className="font-bold">
                     {nextDoseInfo.overdue 
                       ? nextDoseInfo.missedIntervals > 0 
@@ -476,43 +412,32 @@
             ) : (
               <p className="text-gray-500 mt-2">No doses recorded yet. Add your first dose to start tracking.</p>
             )}
-          </div>
+          </Card>
           
           {/* Adherence Card */}
           {(doses.length > 1 || (doses.length > 0 && nextDoseTime && currentTime > nextDoseTime)) && (
-            <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-              <h2 className="text-lg font-semibold mb-2">Adherence</h2>
+            <Card title="Adherence" className="mb-4">
               <div className="w-full bg-gray-200 rounded-full h-4">
                 <div 
-                  className={`h-4 rounded-full ${
-                    adherence.status === 'perfect' || adherence.status === 'excellent'
-                      ? 'bg-green-500'
-                      : adherence.status === 'good'
-                      ? 'bg-blue-500'
-                      : adherence.status === 'fair'
-                      ? 'bg-yellow-500'
-                      : 'bg-red-500'
-                  }`}
+                  className={`h-4 rounded-full ${STATUS_COLORS[adherence.status]}`}
                   style={{ width: `${adherence.percentage}%` }}
                 ></div>
               </div>
               <div className="flex justify-between mt-1">
                 <span className="text-sm text-gray-500">0%</span>
-                <span className="text-sm font-medium">
-                  {adherence.percentage}%
-                </span>
+                <span className="text-sm font-medium">{adherence.percentage}%</span>
                 <span className="text-sm text-gray-500">100%</span>
               </div>
               <p className="text-sm text-gray-600 mt-2">
                 Average deviation: {Math.round(adherence.avgDeviation * 10) / 10} minutes
               </p>
-            </div>
+            </Card>
           )}
           
           {/* Primary Action Button */}
           <div className="mb-4">
             <button 
-              onClick={() => setShowAddModal(true)} 
+              onClick={handleShowAddModal} 
               className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center"
             >
               Record Dose
@@ -520,21 +445,17 @@
           </div>
           
           {/* History */}
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold">
-                History
-              </h2>
-              {doses.length > 0 && (
-                <button 
-                  onClick={() => setShowResetConfirm(true)} 
-                  className="text-red-500 text-sm hover:text-red-700"
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-            
+          <Card 
+            title="History" 
+            action={doses.length > 0 && (
+              <button 
+                onClick={() => setShowResetConfirm(true)} 
+                className="text-red-500 text-sm hover:text-red-700"
+              >
+                <Icon type="X" size={16} />
+              </button>
+            )}
+          >
             {doses.length === 0 ? (
               <p className="text-gray-500 mt-2">No history yet</p>
             ) : (
@@ -542,24 +463,16 @@
                 {[...doses].reverse().map((dose, index) => {
                   const reversedIndex = doses.length - 1 - index;
                   const isFirstDose = reversedIndex === 0;
-                  let adherenceInfo = null;
-                  
-                  if (!isFirstDose) {
-                    adherenceInfo = getDoseAdherence(dose.time, reversedIndex);
-                  }
+                  const adherenceInfo = !isFirstDose ? getDoseAdherence(dose.time, reversedIndex) : null;
                   
                   return (
                     <li key={dose.id} className="py-2 flex justify-between items-center">
                       <div>
                         <p className="text-gray-700">{formatDateTime(dose.time)}</p>
                         {!isFirstDose && (
-                          <p className={`text-sm ${
-                            adherenceInfo.adherencePercentage <= 10 ? 'text-green-600' :
-                            adherenceInfo.adherencePercentage <= 25 ? 'text-blue-600' :
-                            adherenceInfo.adherencePercentage <= 50 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
-                            {adherenceInfo.exceedsCap ? '> 999' : adherenceInfo.adherencePercentage}% {adherenceInfo.isEarly ? 'early' : 'late'}
+                          <p className={ADHERENCE_COLORS[adherenceInfo.category]}>
+                            {adherenceInfo.exceedsCap ? '> 999' : adherenceInfo.adherencePercentage}% 
+                            {' '}{adherenceInfo.isEarly ? 'early' : 'late'}
                           </p>
                         )}
                       </div>
@@ -567,82 +480,68 @@
                         onClick={() => handleDeleteDose(dose.id)}
                         className="text-red-500 hover:text-red-700"
                       >
-                        <X size={16} />
+                        <Icon type="X" size={16} />
                       </button>
                     </li>
                   );
                 })}
               </ul>
             )}
-          </div>
+          </Card>
           
           {/* Add Dose Modal */}
           {showAddModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                <h2 className="text-xl font-bold mb-4">Record Medication Dose</h2>
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2">Date and Time:</label>
-                  <input
-                    type="datetime-local"
-                    className="w-full p-2 border border-gray-300 rounded"
-                    value={new Date(newDoseTime.getTime() - newDoseTime.getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                    onChange={(e) => setNewDoseTime(new Date(e.target.value))}
-                  />
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAddDose}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    Save
-                  </button>
-                </div>
+            <Modal 
+              title="Record Medication Dose"
+              onClose={() => setShowAddModal(false)}
+              actions={
+                <button
+                  onClick={handleAddDose}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Save
+                </button>
+              }
+            >
+              <div>
+                <label className="block text-gray-700 mb-2">Date and Time:</label>
+                <input
+                  type="datetime-local"
+                  className="w-full p-2 border border-gray-300 rounded"
+                  defaultValue={getCurrentDateTimeForInput()}
+                  ref={dateTimeInputRef}
+                />
               </div>
-            </div>
+            </Modal>
           )}
           
           {/* Reset Confirmation Modal */}
           {showResetConfirm && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                <h2 className="text-xl font-bold mb-4">Reset Medication History</h2>
-                <p className="mb-6">Are you sure you want to clear all dose history? This cannot be undone.</p>
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={() => setShowResetConfirm(false)}
-                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleReset}
-                    className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                  >
-                    Reset All Data
-                  </button>
-                </div>
-              </div>
-            </div>
+            <Modal
+              title="Reset Medication History"
+              onClose={() => setShowResetConfirm(false)}
+              actions={
+                <button
+                  onClick={handleReset}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                  Reset All Data
+                </button>
+              }
+            >
+              <p>Are you sure you want to clear all dose history? This cannot be undone.</p>
+            </Modal>
           )}
         </div>
       );
     };
 
-    // Wrapper component to render the tracker
-    const App = () => {
-      return (
-        <div className="min-h-screen bg-gray-100 py-8">
-          <MedicationTracker />
-        </div>
-      );
-    };
+    // Main App component
+    const App = () => (
+      <div className="min-h-screen bg-gray-100 py-8">
+        <MedicationTracker />
+      </div>
+    );
 
     // Render the app
     ReactDOM.render(<App />, document.getElementById('root'));
