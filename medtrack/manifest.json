@@ -1,6 +1,13 @@
 {
-    "name": "Medication Tracker",
-    "short_name": "MedTrack",
-    "start_url": "./",
-    "display": "standalone"
-  }
+  "name": "Medication Tracker",
+  "short_name": "MedTrack",
+  "start_url": "./",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "192x192",
+      "type": "svg+xml"
+    }
+  ]
+}
