@@ -18,7 +18,67 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    // Create reusable Icon component
+    const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext, useReducer } = React;
+
+    // Constants
+    const STORAGE_KEYS = {
+      DOSES: 'medicationDoses',
+      INTERVAL: 'medicationInterval'
+    };
+    
+    const INTERVAL_OPTIONS = [
+      { label: "ED (Every 24 hours)", value: 24 * 60 },
+      { label: "EOD (Every 48 hours)", value: 48 * 60 },
+      { label: "3x per Week (Every 56 hours)", value: 56 * 60 },
+      { label: "2x per Week (Every 84 hours)", value: 84 * 60 }
+    ];
+    
+    const STATUS_COLORS = {
+      perfect: 'bg-green-500',
+      excellent: 'bg-green-500',
+      good: 'bg-blue-500',
+      fair: 'bg-yellow-500',
+      'needs-improvement': 'bg-red-500'
+    };
+    
+    const ADHERENCE_COLORS = {
+      excellent: 'text-green-600',
+      good: 'text-blue-600',
+      fair: 'text-yellow-600',
+      poor: 'text-red-600'
+    };
+
+    // Create Context
+    const MedicationContext = createContext();
+
+    // Define reducer for state management
+    const medicationReducer = (state, action) => {
+      switch (action.type) {
+        case 'SET_DOSES':
+          return { ...state, doses: action.payload };
+        case 'ADD_DOSE':
+          return { ...state, doses: [...state.doses, action.payload] };
+        case 'UPDATE_DOSE':
+          return { 
+            ...state, 
+            doses: state.doses.map(dose => 
+              dose.id === action.payload.id ? { ...dose, time: action.payload.time } : dose
+            ).sort((a, b) => new Date(a.time) - new Date(b.time))
+          };
+        case 'DELETE_DOSE':
+          return { ...state, doses: state.doses.filter(dose => dose.id !== action.payload) };
+        case 'RESET_DOSES':
+          return { ...state, doses: [] };
+        case 'SET_INTERVAL':
+          return { ...state, intervalMinutes: action.payload };
+        case 'SET_NEXT_DOSE':
+          return { ...state, nextDoseTime: action.payload };
+        default:
+          return state;
+      }
+    };
+
+    // Icon Component
     const Icon = ({ type, size = 24, className = "" }) => {
       const icons = {
         CalendarDays: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -58,9 +118,9 @@
       return icons[type] || null;
     };
 
-    // Create reusable modal component
+    // Modal Component
     const Modal = ({ title, children, onClose, actions }) => (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-lg p-6 w-full max-w-md">
           <h2 className="text-xl font-bold mb-4">{title}</h2>
           {children}
@@ -77,7 +137,7 @@
       </div>
     );
 
-    // Create reusable Card component
+    // Card Component
     const Card = ({ title, children, className = "", action }) => (
       <div className={`bg-white p-4 rounded-lg shadow-sm ${className}`}>
         <div className="flex justify-between items-center mb-2">
@@ -88,55 +148,34 @@
       </div>
     );
 
-    const { useState, useEffect, useRef } = React;
+    // Utility hooks
+    const useLocalStorage = (key, initialValue) => {
+      const [storedValue, setStoredValue] = useState(() => {
+        try {
+          const item = localStorage.getItem(key);
+          return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+          console.error('Error loading from localStorage', error);
+          return initialValue;
+        }
+      });
 
-    const MedicationTracker = () => {
-      // Common constants
-      const STORAGE_KEYS = {
-        DOSES: 'medicationDoses',
-        INTERVAL: 'medicationInterval'
-      };
-      
-      const INTERVAL_OPTIONS = [
-        { label: "ED (Every 24 hours)", value: 24 * 60 },
-        { label: "EOD (Every 48 hours)", value: 48 * 60 },
-        { label: "3x per Week (Every 56 hours)", value: 56 * 60 },
-        { label: "2x per Week (Every 84 hours)", value: 84 * 60 }
-      ];
-      
-      const STATUS_COLORS = {
-        perfect: 'bg-green-500',
-        excellent: 'bg-green-500',
-        good: 'bg-blue-500',
-        fair: 'bg-yellow-500',
-        'needs-improvement': 'bg-red-500'
-      };
-      
-      const ADHERENCE_COLORS = {
-        excellent: 'text-green-600',
-        good: 'text-blue-600',
-        fair: 'text-yellow-600',
-        poor: 'text-red-600'
-      };
+      const setValue = useCallback((value) => {
+        try {
+          const valueToStore = value instanceof Function ? value(storedValue) : value;
+          setStoredValue(valueToStore);
+          localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch (error) {
+          console.error('Error saving to localStorage', error);
+        }
+      }, [key, storedValue]);
 
-      // State
-      const [doses, setDoses] = useState([]);
-      const [nextDoseTime, setNextDoseTime] = useState(null);
-      const [currentTime, setCurrentTime] = useState(new Date());
-      const [showAddModal, setShowAddModal] = useState(false);
-      const [showEditModal, setShowEditModal] = useState(false);
-      const [editingDose, setEditingDose] = useState(null);
-      const [showResetConfirm, setShowResetConfirm] = useState(false);
-      const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-      const [deletingDose, setDeletingDose] = useState(null);
-      const [intervalMinutes, setIntervalMinutes] = useState(84 * 60); // Default: 2x per Week
-      
-      // Reference for the datetime input fields
-      const dateTimeInputRef = useRef(null);
-      const editDateTimeInputRef = useRef(null);
+      return [storedValue, setValue];
+    };
 
-      // Utility functions
-      const formatTimeDifference = (milliseconds) => {
+    // Date formatting utilities
+    const dateUtils = {
+      formatTimeDifference: (milliseconds) => {
         const ms = Math.max(0, milliseconds);
         const days = Math.floor(ms / (1000 * 60 * 60 * 24));
         const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -146,9 +185,9 @@
         if (days > 0) return `${days}d ${hours}h ${minutes}m`;
         if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
         return `${minutes}m ${seconds}s`;
-      };
+      },
       
-      const formatDateTime = (dateString) => {
+      formatDateTime: (dateString) => {
         const date = new Date(dateString);
         const dayOfWeek = date.toLocaleString(undefined, { weekday: 'short' });
         const month = date.toLocaleString(undefined, { month: 'short' });
@@ -163,9 +202,9 @@
         const timeZone = date.toLocaleString(undefined, { timeZoneName: 'short' }).split(' ').pop();
         
         return `${dayOfWeek}, ${month} ${day}, ${year}, ${hours}:${minutes} ${ampm} ${timeZone}`;
-      };
+      },
       
-      const formatDateTimeWithDayOfWeek = (dateString) => {
+      formatDateTimeWithDayOfWeek: (dateString) => {
         const date = new Date(dateString);
         const dayOfWeek = date.toLocaleString(undefined, { weekday: 'long' });
         
@@ -179,50 +218,142 @@
         const dateOnly = date.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
         
         return { dayOfWeek, timeOfDay, timeZone, dateOnly };
-      };
+      },
       
-      // Core logic functions
-      const calculateAndSetNextDoseTime = (dosesArray = doses) => {
+      getCurrentDateTimeForInput: () => {
+        const now = new Date();
+        return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      },
+
+      getDateTimeForEditInput: (timeString) => {
+        const date = new Date(timeString);
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      }
+    };
+
+    // Provider component
+    const MedicationProvider = ({ children }) => {
+      const [storedDoses, setStoredDoses] = useLocalStorage(STORAGE_KEYS.DOSES, []);
+      const [storedInterval, setStoredInterval] = useLocalStorage(STORAGE_KEYS.INTERVAL, 84 * 60); // Default: 2x per Week
+      
+      const [state, dispatch] = useReducer(medicationReducer, {
+        doses: storedDoses,
+        intervalMinutes: storedInterval,
+        nextDoseTime: null
+      });
+      
+      const [currentTime, setCurrentTime] = useState(new Date());
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [showEditModal, setShowEditModal] = useState(false);
+      const [editingDose, setEditingDose] = useState(null);
+      const [showResetConfirm, setShowResetConfirm] = useState(false);
+      const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+      const [deletingDose, setDeletingDose] = useState(null);
+      
+      // Calculate next dose time
+      const calculateNextDoseTime = useCallback((dosesArray = state.doses) => {
         if (dosesArray.length === 0) {
-          setNextDoseTime(null);
+          dispatch({ type: 'SET_NEXT_DOSE', payload: null });
           return;
         }
         
         const firstDose = new Date(dosesArray[0].time);
-        const nextDose = new Date(firstDose.getTime() + (dosesArray.length * intervalMinutes * 60 * 1000));
-        setNextDoseTime(nextDose);
-      };
+        const nextDose = new Date(firstDose.getTime() + (dosesArray.length * state.intervalMinutes * 60 * 1000));
+        dispatch({ type: 'SET_NEXT_DOSE', payload: nextDose });
+      }, [state.doses, state.intervalMinutes]);
       
-      const calculateAdherence = () => {
-        if (doses.length === 0) return { percentage: 100, status: 'perfect' };
+      // Set up timer for current time
+      useEffect(() => {
+        const timer = setInterval(() => {
+          setCurrentTime(new Date());
+        }, 500);
+        
+        return () => clearInterval(timer);
+      }, []);
+      
+      // Save doses to localStorage when they change
+      useEffect(() => {
+        setStoredDoses(state.doses);
+      }, [state.doses, setStoredDoses]);
+      
+      // Save interval to localStorage when it changes
+      useEffect(() => {
+        setStoredInterval(state.intervalMinutes);
+        if (state.doses.length > 0) calculateNextDoseTime();
+      }, [state.intervalMinutes, calculateNextDoseTime, setStoredInterval, state.doses.length]);
+      
+      // Calculate initial next dose time when component mounts
+      useEffect(() => {
+        if (state.doses.length > 0) calculateNextDoseTime();
+        else dispatch({ type: 'SET_NEXT_DOSE', payload: null });
+      }, [calculateNextDoseTime, state.doses.length]);
+      
+      // Handler functions
+      const addDose = useCallback((time) => {
+        const newDose = { time: time.toISOString(), id: Date.now() };
+        dispatch({ type: 'ADD_DOSE', payload: newDose });
+        
+        if (state.doses.length === 0) {
+          const nextTime = new Date(time.getTime() + state.intervalMinutes * 60 * 1000);
+          dispatch({ type: 'SET_NEXT_DOSE', payload: nextTime });
+        } else {
+          calculateNextDoseTime([...state.doses, newDose]);
+        }
+      }, [state.doses, state.intervalMinutes, calculateNextDoseTime]);
+      
+      const updateDose = useCallback((id, time) => {
+        dispatch({ 
+          type: 'UPDATE_DOSE', 
+          payload: { id, time: time.toISOString() } 
+        });
+        // Next dose time will be recalculated via effect that watches doses
+      }, []);
+      
+      const deleteDose = useCallback((id) => {
+        dispatch({ type: 'DELETE_DOSE', payload: id });
+        // Next dose time will be recalculated via effect that watches doses
+      }, []);
+      
+      const resetDoses = useCallback(() => {
+        dispatch({ type: 'RESET_DOSES' });
+        dispatch({ type: 'SET_NEXT_DOSE', payload: null });
+      }, []);
+      
+      const setIntervalMinutes = useCallback((minutes) => {
+        dispatch({ type: 'SET_INTERVAL', payload: minutes });
+      }, []);
+      
+      // Calculate adherence
+      const calculateAdherence = useCallback(() => {
+        if (state.doses.length === 0) return { percentage: 100, status: 'perfect' };
         
         let totalDeviations = 0;
         let maxDeviation = 0;
-        const firstDose = new Date(doses[0].time);
+        const firstDose = new Date(state.doses[0].time);
         
-        for (let i = 1; i < doses.length; i++) {
-          const expectedTime = new Date(firstDose.getTime() + (i * intervalMinutes * 60 * 1000));
-          const actualTime = new Date(doses[i].time);
+        for (let i = 1; i < state.doses.length; i++) {
+          const expectedTime = new Date(firstDose.getTime() + (i * state.intervalMinutes * 60 * 1000));
+          const actualTime = new Date(state.doses[i].time);
           const deviation = Math.abs(actualTime - expectedTime) / (1000 * 60);
           
           totalDeviations += deviation;
           maxDeviation = Math.max(maxDeviation, deviation);
         }
         
-        let totalIntervals = doses.length - 1;
-        if (nextDoseTime) {
+        let totalIntervals = state.doses.length - 1;
+        if (state.nextDoseTime) {
           totalIntervals += 1;
           
-          const now = new Date();
-          if (now > nextDoseTime) {
-            const overdueMinutes = (now - nextDoseTime) / (1000 * 60);
+          const now = currentTime;
+          if (now > state.nextDoseTime) {
+            const overdueMinutes = (now - state.nextDoseTime) / (1000 * 60);
             totalDeviations += overdueMinutes;
             maxDeviation = Math.max(maxDeviation, overdueMinutes);
           }
         }
         
         const avgDeviation = totalIntervals > 0 ? totalDeviations / totalIntervals : 0;
-        const totalExpectedTime = totalIntervals * intervalMinutes;
+        const totalExpectedTime = totalIntervals * state.intervalMinutes;
         
         if (totalExpectedTime === 0) return { percentage: 100, status: 'perfect', avgDeviation: 0 };
         
@@ -241,35 +372,41 @@
           percentage: Math.round(percentage), 
           status, 
           avgDeviation,
-          includesOverdue: nextDoseTime && new Date() > nextDoseTime
+          includesOverdue: state.nextDoseTime && currentTime > state.nextDoseTime
         };
-      };
+      }, [state.doses, state.intervalMinutes, state.nextDoseTime, currentTime]);
       
-      const getTimeUntilNextDose = () => {
-        if (!nextDoseTime) return null;
+      // Calculate time until next dose
+      const getTimeUntilNextDose = useCallback(() => {
+        if (!state.nextDoseTime) return null;
         
-        const diff = nextDoseTime - currentTime;
+        const diff = state.nextDoseTime - currentTime;
         let missedIntervals = 0;
         
         if (diff <= 0) {
-          missedIntervals = Math.floor(Math.abs(diff) / (intervalMinutes * 60 * 1000));
+          missedIntervals = Math.floor(Math.abs(diff) / (state.intervalMinutes * 60 * 1000));
           return { 
             overdue: true, 
-            time: formatTimeDifference(Math.abs(diff)),
+            time: dateUtils.formatTimeDifference(Math.abs(diff)),
             missedIntervals
           };
         }
         
-        return { overdue: false, time: formatTimeDifference(diff), missedIntervals: 0 };
-      };
+        return { 
+          overdue: false, 
+          time: dateUtils.formatTimeDifference(diff), 
+          missedIntervals: 0 
+        };
+      }, [state.nextDoseTime, currentTime, state.intervalMinutes]);
       
-      const getDoseAdherence = (doseTime, doseIndex) => {
+      // Calculate dose adherence
+      const getDoseAdherence = useCallback((doseTime, doseIndex) => {
         const actualTime = new Date(doseTime);
-        const firstDose = new Date(doses[0].time);
-        const expectedTime = new Date(firstDose.getTime() + (doseIndex * intervalMinutes * 60 * 1000));
+        const firstDose = new Date(state.doses[0].time);
+        const expectedTime = new Date(firstDose.getTime() + (doseIndex * state.intervalMinutes * 60 * 1000));
         const diffMinutes = Math.abs(actualTime - expectedTime) / (1000 * 60);
         
-        const percentageOfInterval = (diffMinutes / intervalMinutes) * 100;
+        const percentageOfInterval = (diffMinutes / state.intervalMinutes) * 100;
         const roundedPercentage = Math.round(percentageOfInterval);
         const exceedsCap = roundedPercentage > 999;
         
@@ -285,365 +422,374 @@
           isLate: actualTime > expectedTime,
           category
         };
+      }, [state.doses, state.intervalMinutes]);
+
+      const value = {
+        doses: state.doses,
+        intervalMinutes: state.intervalMinutes,
+        nextDoseTime: state.nextDoseTime,
+        currentTime,
+        showAddModal,
+        setShowAddModal,
+        showEditModal,
+        setShowEditModal,
+        editingDose,
+        setEditingDose,
+        showResetConfirm,
+        setShowResetConfirm,
+        showDeleteConfirm,
+        setShowDeleteConfirm,
+        deletingDose,
+        setDeletingDose,
+        addDose,
+        updateDose,
+        deleteDose,
+        resetDoses,
+        setIntervalMinutes,
+        calculateAdherence,
+        getTimeUntilNextDose,
+        getDoseAdherence,
+        dateUtils
       };
       
-      // Handlers
+      return (
+        <MedicationContext.Provider value={value}>
+          {children}
+        </MedicationContext.Provider>
+      );
+    };
+
+    // Custom hook for medication context
+    const useMedication = () => {
+      const context = useContext(MedicationContext);
+      if (!context) {
+        throw new Error('useMedication must be used within a MedicationProvider');
+      }
+      return context;
+    };
+
+    // Modal Components
+    const AddDoseModal = () => {
+      const { showAddModal, setShowAddModal, addDose, dateUtils } = useMedication();
+      const dateTimeInputRef = useRef(null);
+      
+      if (!showAddModal) return null;
+      
       const handleAddDose = () => {
-        // Get the selected datetime from the input field
         const selectedDateTimeStr = dateTimeInputRef.current?.value;
         const selectedDateTime = selectedDateTimeStr ? new Date(selectedDateTimeStr) : new Date();
-        
-        const newDose = { time: selectedDateTime.toISOString(), id: Date.now() };
-        const newDoses = [...doses, newDose];
-        
-        setDoses(newDoses);
-        
-        if (doses.length === 0) {
-          setNextDoseTime(new Date(selectedDateTime.getTime() + intervalMinutes * 60 * 1000));
-        } else {
-          calculateAndSetNextDoseTime(newDoses);
-        }
-        
+        addDose(selectedDateTime);
         setShowAddModal(false);
       };
+      
+      return (
+        <Modal 
+          title="Record New Dose"
+          onClose={() => setShowAddModal(false)}
+          actions={
+            <button
+              onClick={handleAddDose}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Save
+            </button>
+          }
+        >
+          <div>
+            <label className="block text-gray-700 mb-2">Date and Time:</label>
+            <input
+              type="datetime-local"
+              className="w-full p-2 border border-gray-300 rounded"
+              defaultValue={dateUtils.getCurrentDateTimeForInput()}
+              ref={dateTimeInputRef}
+            />
+          </div>
+        </Modal>
+      );
+    };
 
+    const EditDoseModal = () => {
+      const { showEditModal, setShowEditModal, editingDose, setEditingDose, updateDose, dateUtils } = useMedication();
+      const editDateTimeInputRef = useRef(null);
+      
+      if (!showEditModal || !editingDose) return null;
+      
       const handleEditDose = () => {
-        if (!editingDose) return;
-        
-        // Get the selected datetime from the edit input field
         const selectedDateTimeStr = editDateTimeInputRef.current?.value;
         const selectedDateTime = selectedDateTimeStr ? new Date(selectedDateTimeStr) : new Date();
-        
-        // Update the dose with new time
-        const updatedDoses = doses.map(dose => 
-          dose.id === editingDose.id 
-            ? { ...dose, time: selectedDateTime.toISOString() } 
-            : dose
-        );
-        
-        // Sort doses by time to maintain chronological order
-        const sortedDoses = updatedDoses.sort((a, b) => new Date(a.time) - new Date(b.time));
-        
-        setDoses(sortedDoses);
-        calculateAndSetNextDoseTime(sortedDoses);
-        
+        updateDose(editingDose.id, selectedDateTime);
         setShowEditModal(false);
         setEditingDose(null);
       };
       
+      return (
+        <Modal 
+          title="Edit Historical Dose"
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingDose(null);
+          }}
+          actions={
+            <button
+              onClick={handleEditDose}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Update
+            </button>
+          }
+        >
+          <div>
+            <label className="block text-gray-700 mb-2">Date and Time:</label>
+            <input
+              type="datetime-local"
+              className="w-full p-2 border border-gray-300 rounded"
+              defaultValue={dateUtils.getDateTimeForEditInput(editingDose.time)}
+              ref={editDateTimeInputRef}
+            />
+          </div>
+        </Modal>
+      );
+    };
+
+    const ResetConfirmModal = () => {
+      const { showResetConfirm, setShowResetConfirm, resetDoses } = useMedication();
+      
+      if (!showResetConfirm) return null;
+      
+      const handleReset = () => {
+        resetDoses();
+        setShowResetConfirm(false);
+      };
+      
+      return (
+        <Modal
+          title="Reset Medication History"
+          onClose={() => setShowResetConfirm(false)}
+          actions={
+            <button
+              onClick={handleReset}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Reset All Data
+            </button>
+          }
+        >
+          <p>Are you sure you want to clear all dose history? This cannot be undone.</p>
+        </Modal>
+      );
+    };
+
+    const DeleteDoseConfirmModal = () => {
+      const { showDeleteConfirm, setShowDeleteConfirm, deletingDose, setDeletingDose, deleteDose, dateUtils } = useMedication();
+      
+      if (!showDeleteConfirm || !deletingDose) return null;
+      
       const handleDeleteDose = () => {
-        if (!deletingDose) return;
-        
-        const updatedDoses = doses.filter(dose => dose.id !== deletingDose.id);
-        setDoses(updatedDoses);
-        
-        if (updatedDoses.length === 0) {
-          setNextDoseTime(null);
-        } else {
-          calculateAndSetNextDoseTime(updatedDoses);
-        }
-        
+        deleteDose(deletingDose.id);
         setShowDeleteConfirm(false);
         setDeletingDose(null);
       };
       
-      const handleShowDeleteConfirm = (dose) => {
-        setDeletingDose(dose);
-        setShowDeleteConfirm(true);
-      };
-      
-      const handleReset = () => {
-        localStorage.removeItem(STORAGE_KEYS.DOSES);
-        setDoses([]);
-        setNextDoseTime(null);
-        setShowResetConfirm(false);
-      };
-
-      const handleShowAddModal = () => {
-        setShowAddModal(true);
-      };
-
-      const handleShowEditModal = (dose) => {
-        setEditingDose(dose);
-        setShowEditModal(true);
-      };
-      
-      // Effects
-      useEffect(() => {
-        // Load interval setting
-        try {
-          const savedInterval = localStorage.getItem(STORAGE_KEYS.INTERVAL);
-          if (savedInterval) setIntervalMinutes(JSON.parse(savedInterval));
-          
-          // Load saved doses
-          const savedDoses = localStorage.getItem(STORAGE_KEYS.DOSES);
-          if (savedDoses) {
-            const parsedDoses = JSON.parse(savedDoses);
-            setDoses(parsedDoses);
-            
-            if (parsedDoses.length > 0) calculateAndSetNextDoseTime(parsedDoses);
-            else setNextDoseTime(null);
+      return (
+        <Modal
+          title="Delete Dose"
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            setDeletingDose(null);
+          }}
+          actions={
+            <button
+              onClick={handleDeleteDose}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Delete
+            </button>
           }
-        } catch (e) {
-          console.error('Error loading saved data', e);
-        }
-      }, []);
+        >
+          <p>Are you sure you want to delete this dose from {dateUtils.formatDateTime(deletingDose.time)}?</p>
+        </Modal>
+      );
+    };
+
+    // Component for Frequency selection
+    const FrequencySelector = () => {
+      const { intervalMinutes, setIntervalMinutes } = useMedication();
       
-      useEffect(() => {
-        const timer = setInterval(() => {
-          setCurrentTime(new Date());
-        }, 500);
-        
-        return () => clearInterval(timer);
-      }, []);
-      
-      useEffect(() => {
-        localStorage.setItem(STORAGE_KEYS.DOSES, JSON.stringify(doses));
-      }, [doses]);
-      
-      useEffect(() => {
-        localStorage.setItem(STORAGE_KEYS.INTERVAL, JSON.stringify(intervalMinutes));
-        if (doses.length > 0) calculateAndSetNextDoseTime();
-      }, [intervalMinutes]);
-      
-      // Computed values
-      const adherence = calculateAdherence();
+      return (
+        <Card title="Frequency" className="mb-4">
+          <select
+            value={intervalMinutes}
+            onChange={(e) => setIntervalMinutes(parseInt(e.target.value))}
+            className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          >
+            {INTERVAL_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </Card>
+      );
+    };
+
+    // Component for Next Dose information
+    const NextDoseCard = () => {
+      const { nextDoseTime, doses, getTimeUntilNextDose, dateUtils } = useMedication();
       const nextDoseInfo = getTimeUntilNextDose();
       
-      // Get the current datetime in the format needed for the input field
-      const getCurrentDateTimeForInput = () => {
-        const now = new Date();
-        return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      };
+      return (
+        <Card title="Next Dose" className="mb-4">
+          {nextDoseTime && doses.length > 0 ? (
+            <div className="mt-2">
+              {(() => {
+                const { dayOfWeek, timeOfDay, timeZone } = dateUtils.formatDateTimeWithDayOfWeek(nextDoseTime);
+                return (
+                  <p className="text-2xl font-bold text-blue-500">{dayOfWeek} @ {timeOfDay} {timeZone}</p>
+                );
+              })()}
+              <div className="mt-2 flex items-center text-gray-700">
+                {nextDoseInfo.overdue && <Icon type="AlertTriangle" size={16} className="mr-1 text-red-500" />}
+                <span className="font-bold">
+                  {nextDoseInfo.overdue 
+                    ? nextDoseInfo.missedIntervals > 0 
+                      ? `Overdue by ${nextDoseInfo.time} (${nextDoseInfo.missedIntervals + 1} doses needed)` 
+                      : `Overdue by ${nextDoseInfo.time}`
+                    : `Due in ${nextDoseInfo.time}`
+                  }
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500 mt-2">No doses recorded yet. Add your first dose to start tracking.</p>
+          )}
+        </Card>
+      );
+    };
 
-      // Get the datetime in the format needed for the edit input field
-      const getDateTimeForEditInput = (timeString) => {
-        const date = new Date(timeString);
-        return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      };
+          // Component for Adherence information
+    const AdherenceCard = () => {
+      const { doses, nextDoseTime, currentTime, calculateAdherence } = useMedication();
+      
+      // Only show adherence if we have more than one dose or if we have one dose and it's overdue
+      if (!(doses.length > 1 || (doses.length > 0 && nextDoseTime && currentTime > nextDoseTime))) {
+        return null;
+      }
+      
+      const adherence = calculateAdherence();
+      
+      return (
+        <Card title="Adherence" className="mb-4">
+          <div className="w-full bg-gray-200 rounded-full h-4">
+            <div 
+              className={`h-4 rounded-full ${STATUS_COLORS[adherence.status]}`}
+              style={{ width: `${adherence.percentage}%` }}
+            ></div>
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-sm text-gray-500">0%</span>
+            <span className="text-sm font-medium">{adherence.percentage}%</span>
+            <span className="text-sm text-gray-500">100%</span>
+          </div>
+          <p className="text-sm text-gray-600 mt-2">
+            Average deviation: {Math.round(adherence.avgDeviation * 10) / 10} minutes
+          </p>
+        </Card>
+      );
+    };
+
+    // Component for Dose History
+    const DoseHistory = () => {
+      const { doses, setShowDeleteConfirm, setDeletingDose, setShowEditModal, setEditingDose, setShowResetConfirm, getDoseAdherence, dateUtils } = useMedication();
+      
+      return (
+        <Card 
+          title="History" 
+          action={doses.length > 0 && (
+            <button 
+              onClick={() => setShowResetConfirm(true)} 
+              className="text-red-500 text-sm hover:text-red-700"
+            >
+              <Icon type="X" size={16} />
+            </button>
+          )}
+        >
+          {doses.length === 0 ? (
+            <p className="text-gray-500 mt-2">No history yet</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-gray-100">
+              {[...doses].reverse().map((dose, index) => {
+                const reversedIndex = doses.length - 1 - index;
+                const isFirstDose = reversedIndex === 0;
+                const adherenceInfo = !isFirstDose ? getDoseAdherence(dose.time, reversedIndex) : null;
+                
+                return (
+                  <li key={dose.id} className="py-2 flex justify-between items-center">
+                    <div className="flex-grow">
+                      <div className="flex items-center">
+                        <p className="text-gray-700">{dateUtils.formatDateTime(dose.time)}</p>
+                        <button 
+                          onClick={() => {
+                            setEditingDose(dose);
+                            setShowEditModal(true);
+                          }}
+                          className="text-blue-500 hover:text-blue-700 ml-2"
+                        >
+                          <Icon type="Edit" size={16} />
+                        </button>
+                      </div>
+                      {!isFirstDose && (
+                        <p className={ADHERENCE_COLORS[adherenceInfo.category]}>
+                          {adherenceInfo.exceedsCap ? '> 999' : adherenceInfo.adherencePercentage}% 
+                          {' '}{adherenceInfo.isEarly ? 'early' : 'late'}
+                        </p>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setDeletingDose(dose);
+                        setShowDeleteConfirm(true);
+                      }}
+                      className="text-red-500 hover:text-red-700 ml-4"
+                    >
+                      <Icon type="X" size={16} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      );
+    };
+
+    // Main Medication Tracker component
+    const MedicationTracker = () => {
+      const { setShowAddModal } = useMedication();
       
       return (
         <div className="max-w-md mx-auto p-4 bg-gray-50 rounded-lg shadow-md">
           <h1 className="text-2xl font-bold mb-4 text-center">Medication Tracker</h1>
           
-          {/* Interval Selection */}
-          <Card title="Frequency" className="mb-4">
-            <select
-              value={intervalMinutes}
-              onChange={(e) => setIntervalMinutes(parseInt(e.target.value))}
-              className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              {INTERVAL_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </Card>
-          
-          {/* Next Dose Card */}
-          <Card title="Next Dose" className="mb-4">
-            {nextDoseTime && doses.length > 0 ? (
-              <div className="mt-2">
-                {(() => {
-                  const { dayOfWeek, timeOfDay, timeZone } = formatDateTimeWithDayOfWeek(nextDoseTime);
-                  return (
-                    <p className="text-2xl font-bold text-blue-500">{dayOfWeek} @ {timeOfDay} {timeZone}</p>
-                  );
-                })()}
-                <div className="mt-2 flex items-center text-gray-700">
-                  {nextDoseInfo.overdue && <Icon type="AlertTriangle" size={16} className="mr-1 text-red-500" />}
-                  <span className="font-bold">
-                    {nextDoseInfo.overdue 
-                      ? nextDoseInfo.missedIntervals > 0 
-                        ? `Overdue by ${nextDoseInfo.time} (${nextDoseInfo.missedIntervals + 1} doses needed)` 
-                        : `Overdue by ${nextDoseInfo.time}`
-                      : `Due in ${nextDoseInfo.time}`
-                    }
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-500 mt-2">No doses recorded yet. Add your first dose to start tracking.</p>
-            )}
-          </Card>
-          
-          {/* Adherence Card */}
-          {(doses.length > 1 || (doses.length > 0 && nextDoseTime && currentTime > nextDoseTime)) && (
-            <Card title="Adherence" className="mb-4">
-              <div className="w-full bg-gray-200 rounded-full h-4">
-                <div 
-                  className={`h-4 rounded-full ${STATUS_COLORS[adherence.status]}`}
-                  style={{ width: `${adherence.percentage}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-sm text-gray-500">0%</span>
-                <span className="text-sm font-medium">{adherence.percentage}%</span>
-                <span className="text-sm text-gray-500">100%</span>
-              </div>
-              <p className="text-sm text-gray-600 mt-2">
-                Average deviation: {Math.round(adherence.avgDeviation * 10) / 10} minutes
-              </p>
-            </Card>
-          )}
+          <FrequencySelector />
+          <NextDoseCard />
+          <AdherenceCard />
           
           {/* Primary Action Button */}
           <div className="mb-4">
             <button 
-              onClick={handleShowAddModal} 
+              onClick={() => setShowAddModal(true)} 
               className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center"
             >
               Record Dose
             </button>
           </div>
           
-          {/* History */}
-          <Card 
-            title="History" 
-            action={doses.length > 0 && (
-              <button 
-                onClick={() => setShowResetConfirm(true)} 
-                className="text-red-500 text-sm hover:text-red-700"
-              >
-                <Icon type="X" size={16} />
-              </button>
-            )}
-          >
-            {doses.length === 0 ? (
-              <p className="text-gray-500 mt-2">No history yet</p>
-            ) : (
-              <ul className="mt-2 divide-y divide-gray-100">
-                {[...doses].reverse().map((dose, index) => {
-                  const reversedIndex = doses.length - 1 - index;
-                  const isFirstDose = reversedIndex === 0;
-                  const adherenceInfo = !isFirstDose ? getDoseAdherence(dose.time, reversedIndex) : null;
-                  
-                  return (
-                    <li key={dose.id} className="py-2 flex justify-between items-center">
-                      <div className="flex-grow">
-                        <div className="flex items-center">
-                          <p className="text-gray-700">{formatDateTime(dose.time)}</p>
-                          <button 
-                            onClick={() => handleShowEditModal(dose)}
-                            className="text-blue-500 hover:text-blue-700 ml-2"
-                          >
-                            <Icon type="Edit" size={16} />
-                          </button>
-                        </div>
-                        {!isFirstDose && (
-                          <p className={ADHERENCE_COLORS[adherenceInfo.category]}>
-                            {adherenceInfo.exceedsCap ? '> 999' : adherenceInfo.adherencePercentage}% 
-                            {' '}{adherenceInfo.isEarly ? 'early' : 'late'}
-                          </p>
-                        )}
-                      </div>
-                      <button 
-                        onClick={() => handleShowDeleteConfirm(dose)}
-                        className="text-red-500 hover:text-red-700 ml-4"
-                      >
-                        <Icon type="X" size={16} />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
+          <DoseHistory />
           
-          {/* Add Dose Modal */}
-          {showAddModal && (
-            <Modal 
-              title="Record New Dose"
-              onClose={() => setShowAddModal(false)}
-              actions={
-                <button
-                  onClick={handleAddDose}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Save
-                </button>
-              }
-            >
-              <div>
-                <label className="block text-gray-700 mb-2">Date and Time:</label>
-                <input
-                  type="datetime-local"
-                  className="w-full p-2 border border-gray-300 rounded"
-                  defaultValue={getCurrentDateTimeForInput()}
-                  ref={dateTimeInputRef}
-                />
-              </div>
-            </Modal>
-          )}
-
-          {/* Edit Dose Modal */}
-          {showEditModal && editingDose && (
-            <Modal 
-              title="Edit Historical Dose"
-              onClose={() => {
-                setShowEditModal(false);
-                setEditingDose(null);
-              }}
-              actions={
-                <button
-                  onClick={handleEditDose}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Update
-                </button>
-              }
-            >
-              <div>
-                <label className="block text-gray-700 mb-2">Date and Time:</label>
-                <input
-                  type="datetime-local"
-                  className="w-full p-2 border border-gray-300 rounded"
-                  defaultValue={getDateTimeForEditInput(editingDose.time)}
-                  ref={editDateTimeInputRef}
-                />
-              </div>
-            </Modal>
-          )}
-          
-          {/* Reset Confirmation Modal */}
-          {showResetConfirm && (
-            <Modal
-              title="Reset Medication History"
-              onClose={() => setShowResetConfirm(false)}
-              actions={
-                <button
-                  onClick={handleReset}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Reset All Data
-                </button>
-              }
-            >
-              <p>Are you sure you want to clear all dose history? This cannot be undone.</p>
-            </Modal>
-          )}
-          
-          {/* Delete Dose Confirmation Modal */}
-          {showDeleteConfirm && deletingDose && (
-            <Modal
-              title="Delete Dose"
-              onClose={() => {
-                setShowDeleteConfirm(false);
-                setDeletingDose(null);
-              }}
-              actions={
-                <button
-                  onClick={handleDeleteDose}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Delete
-                </button>
-              }
-            >
-              <p>Are you sure you want to delete this dose from {formatDateTime(deletingDose.time)}?</p>
-            </Modal>
-          )}
+          <AddDoseModal />
+          <EditDoseModal />
+          <ResetConfirmModal />
+          <DeleteDoseConfirmModal />
         </div>
       );
     };
@@ -651,7 +797,9 @@
     // Main App component
     const App = () => (
       <div className="min-h-screen bg-gray-100 sm:py-8">
-        <MedicationTracker />
+        <MedicationProvider>
+          <MedicationTracker />
+        </MedicationProvider>
       </div>
     );
 
