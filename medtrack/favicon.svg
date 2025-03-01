@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="#4a90e2" />
+  
+  <!-- Pill shape -->
+  <rect x="9" y="12" width="14" height="8" rx="4" ry="4" fill="white" transform="rotate(-45 16 16)" />
+  
+  <!-- Cross symbol -->
+  <path d="M16 9 L16 23 M9 16 L23 16" stroke="#4a90e2" stroke-width="2" stroke-linecap="round" />
+  
+  <!-- Small circle indicators, like reminder dots -->
+  <circle cx="22" cy="10" r="2" fill="#ffc107" />
+  <circle cx="10" cy="22" r="2" fill="#ffc107" />
+</svg>
