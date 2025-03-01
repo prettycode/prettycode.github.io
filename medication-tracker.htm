@@ -765,6 +765,7 @@
     // Main Medication Tracker component
     const MedicationTracker = () => {
       const { setShowAddModal } = useMedication();
+      const fullYearCreated = 2025;
       
       return (
         <div className="max-w-md mx-auto p-4 bg-gray-50 rounded-lg shadow-md">
@@ -787,7 +788,7 @@
           <DoseHistory />
           
           <p className="text-xs text-gray-600 mt-2">
-              &copy; 2025 &ndash; {new Date().getFullYear()} {window.location.hostname || '{window.location.hostname}'}
+              &copy; {fullYearCreated}{new Date().getFullYear() > fullYearCreated ? "–" + new Date().getFullYear() : ''} {window.location.hostname || '{window.location.hostname}'}
           </p>
 
           <AddDoseModal />
