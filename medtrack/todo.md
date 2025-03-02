@@ -17,3 +17,10 @@
 * "Collecting" green vs. red marks, i.e. show as a horizontally-stacked bar chart
 * Green check marks next to label in historical entries?
 * Remember: we don't really care about if early or if late--the deviation is what matters, and deviation is measured absolutely (N% off-target).
+
+
+
+# Potential directions for large-scale changes
+
+## 1. Change Adherence UX
+> For adherence, we really only care about two things: are the doses being taken within a 5% deviation from when they they're due. If it's within that 5%, then they're achieving full adherence. If they're deviating more than 5%, that's achieving no adherence. With this understanding in mind, please update how adherence, deviation, and rating (excellent, good, fair, etc.) are calculated and how they appear to the user.
