@@ -236,8 +236,8 @@
       
       formatDateTime: (dateString) => {
         const date = new Date(dateString);
-        const dayOfWeek = date.toLocaleString(undefined, { weekday: 'short' });
-        const month = date.toLocaleString(undefined, { month: 'short' });
+        const dayOfWeek = date.toLocaleString(undefined, { weekday: 'long' });
+        const month = date.toLocaleString(undefined, { month: 'long' });
         const day = date.getDate();
         const year = date.getFullYear();
         
