@@ -22,3 +22,18 @@
 
 ## favicon for application
 > You're a brilliant graphic artist and UX designer who knows how to strike the perfect balance between simplicity and meaning. Design me an icon that is at least 192 px by 192 px, for a web application [does XYZ | is for XYZ], that I can use as both a favicon and as the default icon in its manifest.json file. Provde me with the icon in SVG format and make sure you specify `width="192"` and `height="192"` in the SVG's XML.
+
+## Apply basic coding guidelines
+> The code is looking very messy with respect to white space and syntax. Our code should follow the rules in the list below. Please apply them:
+> * Prefer guard clauses at the beginning of public and complex private functions.
+> * Always use "early exits".
+> * Never use nested if statements.
+> * Always use brackets when brackets are optional.
+> * Always use `const` instead of `var` for variables, unless other code actually mutates the variable.
+> * Use the latest JavaScript syntax conventions available that are supported by the version of babel we are using.
+
+## Clean up single file before splitting into entire project 
+> The code is looking very messy. I need you to go through it and apply best practices. It looks like there's a lot of duplication and missing abstractions. Please made this code ready for PR. One important note, however: you need to make all the changes here in this single index.htm file, progressing committing each phase of your changes one-by-one. 
+
+## Split single file into an entire project (with multiple files)
+> The code is looking very messy. I need you to go through it and apply best practices. It looks like there's a lot of duplication and missing abstractions. Please made this code ready for PR.
