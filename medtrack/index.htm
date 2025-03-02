@@ -30,10 +30,13 @@
     };
     
     const INTERVAL_OPTIONS = [
+      { label: "3x per Day (Every 8 hours)", value: 8 * 60 },
+      { label: "2x per Day (Every 12 hours)", value: 12 * 60 },
       { label: "ED (Every 24 hours)", value: 24 * 60 },
       { label: "EOD (Every 48 hours)", value: 48 * 60 },
       { label: "3x per Week (Every 56 hours)", value: 56 * 60 },
-      { label: "2x per Week (Every 84 hours)", value: 84 * 60 }
+      { label: "2x per Week (Every 84 hours)", value: 84 * 60 },
+      { label: "EW (Every 7 days)", value: 168 * 60 }
     ];
     
     const STATUS_COLORS = {
@@ -558,6 +561,10 @@
         setShowAddModal(false);
       };
       
+
+      // TODO: need multiplier option for scenario where multiple doses are taken at once to catch up.
+      // Imagine going on vacation and not taking medication for 3 weeks, then coming back and taking 3 week's worth.
+
       return (
         <Modal 
           title="Record New Dose"
@@ -727,12 +734,13 @@
                   </p>
                 );
               })()}
+              {/* TODO: only apply strong in code below if absolute deviation is >= X && < Y % deviation. */}
               <div className="mt-2 text-gray-700">
                 {nextDoseInfo.overdue 
                   ? nextDoseInfo.missedIntervals > 0 
-                    ? <>Overdue by <strong>{nextDoseInfo.time}</strong> (<strong>{nextDoseInfo.missedIntervals + 1}</strong> doses needed)</>
-                    : <>Overdue by <strong>{nextDoseInfo.time}</strong></>
-                  : `Due in ${nextDoseInfo.time}`
+                    ? <><span class="text-red-500"><strong>Overdue</strong></span> by <strong>{nextDoseInfo.time}</strong> (<strong>{nextDoseInfo.missedIntervals + 1}</strong> doses needed)</>
+                    : <><span class="text-red-500"><strong>Overdue</strong></span> by <strong>{nextDoseInfo.time}</strong></>
+                  : <>Due in <strong>{nextDoseInfo.time}</strong></>
                 }
               </div>
             </div>
