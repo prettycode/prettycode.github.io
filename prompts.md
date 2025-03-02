@@ -40,7 +40,7 @@ The code is looking very messy with respect to white space and syntax. Our code 
 </blockquote>
 
 ## Apply early level of abstraction in index.html A
-> Please make sure the code is well organized and respects separation of concerns. Do not, however, create any new files in the process. One important note, however: you need to make all the changes here in this single index.htm file, progressing committing each phase of your changes one-by-one. 
+> Please make sure the code is well organized and respects separation of concerns. Do not, however, create any new files in the process. Make all the changes here in this single index.htm file, progressing committing each phase of your changes one-by-one. 
 
 ## Apply early level of abstraction in index.html B
 > The code is looking very messy. I need you to go through it and apply best practices. It looks like there's a lot of duplication and missing abstractions. Please made this code ready for PR. One important note, however: you need to make all the changes here in this single index.htm file, progressing committing each phase of your changes one-by-one. 
