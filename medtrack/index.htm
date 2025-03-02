@@ -501,6 +501,48 @@
         };
       }, [state.doses, state.intervalMinutes]);
 
+      // Calculate current streak of on-time doses
+      const calculateStreak = useCallback(() => {
+        if (state.doses.length <= 1) return 0;
+        
+        let currentStreak = 0;
+        const firstDose = new Date(state.doses[0].time);
+        
+        // Start from the most recent dose and go backwards
+        for (let i = state.doses.length - 1; i > 0; i--) {
+          const expectedTime = new Date(firstDose.getTime() + (i * state.intervalMinutes * 60 * 1000));
+          const actualTime = new Date(state.doses[i].time);
+          const diffMinutes = Math.abs(actualTime - expectedTime) / (1000 * 60);
+          
+          // Consider a dose on-time if its adherence category is "excellent" (within 5% of target)
+          const percentageOfInterval = (diffMinutes / state.intervalMinutes) * 100;
+          const isExcellent = percentageOfInterval <= 5; // Same threshold as ADHERENCE_LEVELS.EXCELLENT
+          
+          if (isExcellent) {
+            currentStreak++;
+          } else {
+            // Break the streak if a dose was not excellent
+            break;
+          }
+        }
+        
+        // Check if the next dose is overdue, which would break the streak
+        if (state.nextDoseTime) {
+          const now = currentTime;
+          if (now > state.nextDoseTime) {
+            const overdueMinutes = (now - state.nextDoseTime) / (1000 * 60);
+            const overduePercentage = (overdueMinutes / state.intervalMinutes) * 100;
+            
+            if (overduePercentage > 5) { // Same threshold as ADHERENCE_LEVELS.EXCELLENT
+              // If significantly overdue (not excellent), reset streak
+              return 0;
+            }
+          }
+        }
+        
+        return currentStreak;
+      }, [state.doses, state.intervalMinutes, state.nextDoseTime, currentTime]);
+
       const value = {
         doses: state.doses,
         intervalMinutes: state.intervalMinutes,
@@ -526,6 +568,7 @@
         calculateAdherence,
         getTimeUntilNextDose,
         getDoseAdherence,
+        calculateStreak,
         dateUtils
       };
       
@@ -752,7 +795,7 @@
 
     // Component for Adherence information
     const AdherenceCard = () => {
-      const { doses, nextDoseTime, currentTime, calculateAdherence } = useMedication();
+      const { doses, nextDoseTime, currentTime, calculateAdherence, calculateStreak } = useMedication();
       
       // Only show adherence if we have more than one dose or if we have one dose and it's overdue
       if (!(doses.length > 1 || (doses.length > 0 && nextDoseTime && currentTime > nextDoseTime))) {
@@ -760,9 +803,20 @@
       }
       
       const adherence = calculateAdherence();
+      const currentStreak = calculateStreak();
       
       return (
-        <Card title="Adherence" className="mb-4">
+        <Card 
+          title="Adherence" 
+          className="mb-4"
+          action={
+            <div className="flex items-center">
+              <span className={`text-lg font-bold ${currentStreak > 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                {currentStreak > 0 && '🔥 '}{currentStreak}
+              </span>
+            </div>
+          }
+        >
           <div className="w-full bg-gray-200 rounded-full h-4">
             <div 
               className={`h-4 rounded-full ${ADHERENCE_COLORS[adherence.status]}`}
@@ -774,9 +828,23 @@
             <span className="text-sm font-medium">{adherence.percentage}%</span>
             <span className="text-sm text-gray-500">100%</span>
           </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Average deviation: {Math.round(adherence.avgDeviation * 10) / 10} minutes
-          </p>
+          <div className="mt-3">
+            <p className="text-sm text-gray-600">
+              Average deviation: {Math.round(adherence.avgDeviation * 10) / 10} minutes
+            </p>
+          </div>
+          {currentStreak > 0 && (
+            <div className="mt-2 p-2 bg-green-50 rounded-md border border-green-100">
+              <p className="text-sm text-green-700 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {currentStreak === 1 
+                  ? "1 dose taken on time!" 
+                  : `${currentStreak} consecutive doses taken on time!`}
+              </p>
+            </div>
+          )}
         </Card>
       );
     };
