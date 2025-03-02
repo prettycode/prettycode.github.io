@@ -52,24 +52,22 @@
     };
 
     // Alarm notification when next dose is due
-    function setupNotifications() {
+    async function setupNotifications() {
       // Check if notifications are supported
       if (!('Notification' in window)) {
-        console.log('This browser does not support notifications');
-        return;
+        throw new Error('This browser does not support notifications');
       }
       
       // Request permission
       const permission = await Notification.requestPermission();
+
       if (permission !== 'granted') {
-        console.log('Notification permission denied');
-        return;
+        throw new Error('Notification permission denied');
       }
       
       // Register service worker
       if (!('serviceWorker' in navigator)) {
-        console.log('This browser does not support service workers');
-        return;
+        throw new Error('This browser does not support service workers');
       }
 
       return navigator.serviceWorker.register('service-worker.js');
@@ -80,14 +78,12 @@
     function triggerAlarmNotification(alarmTitle, alarmBody) {
       notificationSetup.then(() => {
         if (Notification.permission !== 'granted') {
-          console.error("Can't send notification. Permission has not been granted.");
-          return;
+          throw new Error("Can't send notification. Permission has not been granted.");
         }
 
         // If the app is in the foreground, we can use the Notification API directly
         if (!navigator.serviceWorker.controller) {
-          console.error("Can't send notification. Service worker is not registered.");
-          return;
+          throw new Error("Can't send notification. Service worker is not registered.");
         }
 
         navigator.serviceWorker.controller.postMessage({
