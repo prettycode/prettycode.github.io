@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <!-- Background circle -->
-  <circle cx="96" cy="96" r="88" fill="#f0f5ff" stroke="#000000" stroke-width="6"/>
+  <!-- Background circle with thicker stroke -->
+  <circle cx="96" cy="96" r="88" fill="#f0f5ff" stroke="#000000" stroke-width="10"/>
   
   <!-- Definitions for filters -->
   <defs>
@@ -15,10 +15,10 @@
   <!-- Pill divider line (centered and thicker) -->
   <line x1="96" y1="56" x2="96" y2="136" stroke="white" stroke-width="10" />
   
-  <!-- Clock hands with black color (extended length and thicker) -->
-  <line x1="96" y1="96" x2="96" y2="20" stroke="#000000" stroke-width="10" stroke-linecap="round" />
-  <line x1="96" y1="96" x2="172" y2="96" stroke="#000000" stroke-width="10" stroke-linecap="round" />
+  <!-- Clock hands with black color (slightly shorter to create gap) -->
+  <line x1="96" y1="96" x2="96" y2="25" stroke="#000000" stroke-width="14" stroke-linecap="round" />
+  <line x1="96" y1="96" x2="167" y2="96" stroke="#000000" stroke-width="14" stroke-linecap="round" />
   
   <!-- Center dot with black color (larger) -->
-  <circle cx="96" cy="96" r="8" fill="#000000" />
+  <circle cx="96" cy="96" r="12" fill="#000000" />
 </svg>
