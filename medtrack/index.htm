@@ -780,7 +780,7 @@
               <div className="mt-2 text-gray-700">
                 {nextDoseInfo.overdue 
                   ? nextDoseInfo.missedIntervals > 0 
-                    ? <><span class="text-red-500"><strong>Overdue</strong></span> by <strong>{nextDoseInfo.time}</strong> (<strong>{nextDoseInfo.missedIntervals + 1}</strong> doses needed)</>
+                    ? <><span class="text-red-500"><strong>Overdue</strong></span> by <strong>{nextDoseInfo.time}</strong> (<strong>{nextDoseInfo.missedIntervals + 1}</strong> doses behind)</>
                     : <><span class="text-red-500"><strong>Overdue</strong></span> by <strong>{nextDoseInfo.time}</strong></>
                   : <>Due in <strong>{nextDoseInfo.time}</strong></>
                 }
