@@ -52,7 +52,7 @@
     };
 
     // Alarm notification when next dose is due
-    async function setupNotifications() {
+    function setupNotifications() {
       // Check if notifications are supported
       if (!('Notification' in window)) {
         console.log('This browser does not support notifications');
@@ -72,28 +72,30 @@
         return;
       }
 
-      await navigator.serviceWorker.register('service-worker.js');
+      return navigator.serviceWorker.register('service-worker.js');
     }
 
-    setupNotifications();
+    var notificationSetup = setupNotifications();
 
     function triggerAlarmNotification(alarmTitle, alarmBody) {
-      if (Notification.permission !== 'granted') {
-        console.error("Can't send notification. Permission has not been granted.");
-        return;
-      }
+      notificationSetup.then(() => {
+        if (Notification.permission !== 'granted') {
+          console.error("Can't send notification. Permission has not been granted.");
+          return;
+        }
 
-      // If the app is in the foreground, we can use the Notification API directly
-      if (!navigator.serviceWorker.controller) {
-        console.error("Can't send notification. Service worker is not registered.");
-        return;
-      }
+        // If the app is in the foreground, we can use the Notification API directly
+        if (!navigator.serviceWorker.controller) {
+          console.error("Can't send notification. Service worker is not registered.");
+          return;
+        }
 
-      navigator.serviceWorker.controller.postMessage({
-        type: 'ALARM_TRIGGERED',
-        title: alarmTitle || 'Notification title',
-        body: alarmBody || 'Notification body.',
-        icon: 'favicon.svg'
+        navigator.serviceWorker.controller.postMessage({
+          type: 'ALARM_TRIGGERED',
+          title: alarmTitle || 'Notification title',
+          body: alarmBody || 'Notification body.',
+          icon: 'favicon.svg'
+        });
       });
     }
 
