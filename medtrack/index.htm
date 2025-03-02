@@ -46,20 +46,6 @@
     }
 
     await setupNotifications();
-
-    function triggerAlarmNotification(alarmTitle, alarmBody) {
-      if (Notification.permission === 'granted') {
-        // If the app is in the foreground, we can use the Notification API directly
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'ALARM_TRIGGERED',
-            title: alarmTitle || 'Notification title',
-            body: alarmBody || 'Notification body.',
-            icon: 'favicon.svg'
-          });
-        }
-      }
-    }
   </script>
 
   <script type="text/babel">
@@ -92,6 +78,20 @@
       fair: 'text-yellow-600',
       poor: 'text-red-600'
     };
+
+    function triggerAlarmNotification(alarmTitle, alarmBody) {
+      if (Notification.permission === 'granted') {
+        // If the app is in the foreground, we can use the Notification API directly
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'ALARM_TRIGGERED',
+            title: alarmTitle || 'Notification title',
+            body: alarmBody || 'Notification body.',
+            icon: 'favicon.svg'
+          });
+        }
+      }
+    }
 
     // Create Context
     const MedicationContext = createContext();
