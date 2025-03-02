@@ -20,34 +20,6 @@
 <body>
   <div id="root"></div>
 
-  <script type="module">
-    // Alarm notification when next dose is due
-    async function setupNotifications() {
-      // Check if notifications are supported
-      if (!('Notification' in window)) {
-        console.log('This browser does not support notifications');
-        return;
-      }
-      
-      // Request permission
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        console.log('Notification permission denied');
-        return;
-      }
-      
-      // Register service worker
-      if (!('serviceWorker' in navigator)) {
-        console.log('This browser does not support service workers');
-        return;
-      }
-
-      await navigator.serviceWorker.register('service-worker.js');
-    }
-
-    await setupNotifications();
-  </script>
-
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext, useReducer } = React;
 
@@ -79,18 +51,50 @@
       poor: 'text-red-600'
     };
 
-    function triggerAlarmNotification(alarmTitle, alarmBody) {
-      if (Notification.permission === 'granted') {
-        // If the app is in the foreground, we can use the Notification API directly
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'ALARM_TRIGGERED',
-            title: alarmTitle || 'Notification title',
-            body: alarmBody || 'Notification body.',
-            icon: 'favicon.svg'
-          });
-        }
+    // Alarm notification when next dose is due
+    async function setupNotifications() {
+      // Check if notifications are supported
+      if (!('Notification' in window)) {
+        console.log('This browser does not support notifications');
+        return;
       }
+      
+      // Request permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.log('Notification permission denied');
+        return;
+      }
+      
+      // Register service worker
+      if (!('serviceWorker' in navigator)) {
+        console.log('This browser does not support service workers');
+        return;
+      }
+
+      await navigator.serviceWorker.register('service-worker.js');
+    }
+
+    setupNotifications();
+
+    function triggerAlarmNotification(alarmTitle, alarmBody) {
+      if (Notification.permission !== 'granted') {
+        console.error("Can't send notification. Permission has not been granted.");
+        return;
+      }
+
+      // If the app is in the foreground, we can use the Notification API directly
+      if (!navigator.serviceWorker.controller) {
+        console.error("Can't send notification. Service worker is not registered.");
+        return;
+      }
+
+      navigator.serviceWorker.controller.postMessage({
+        type: 'ALARM_TRIGGERED',
+        title: alarmTitle || 'Notification title',
+        body: alarmBody || 'Notification body.',
+        icon: 'favicon.svg'
+      });
     }
 
     // Create Context
@@ -718,7 +722,9 @@
               {(() => {
                 const { dayOfWeek, timeOfDay, timeZone } = dateUtils.formatDateTimeWithDayOfWeek(nextDoseTime);
                 return (
-                  <p className="text-2xl font-bold text-blue-500">{dayOfWeek} @ {timeOfDay} {timeZone}</p>
+                  <p className={`text-2xl font-bold ${nextDoseInfo.overdue ? 'text-red-500' : 'text-blue-500'}`}>
+                    {dayOfWeek} @ {timeOfDay} {timeZone}
+                  </p>
                 );
               })()}
               <div className="mt-2 flex items-center text-gray-700">
