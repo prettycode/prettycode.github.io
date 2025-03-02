@@ -1,17 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
   <!-- Background circle -->
   <circle cx="96" cy="96" r="88" fill="#f0f5ff" stroke="#4080ff" stroke-width="6"/>
   
-  <!-- Pill shape -->
-  <rect x="56" y="76" width="80" height="40" rx="20" ry="20" fill="#4080ff" />
+  <!-- Pill shape (full width and fatter) -->
+  <rect x="14" y="56" width="164" height="80" rx="40" ry="40" fill="#4080ff" />
   
-  <!-- Pill divider line -->
-  <line x1="96" y1="76" x2="96" y2="116" stroke="white" stroke-width="4" />
+  <!-- Pill divider line (centered and thicker) -->
+  <line x1="96" y1="56" x2="96" y2="136" stroke="white" stroke-width="10" />
   
-  <!-- Clock hands -->
-  <line x1="96" y1="96" x2="96" y2="60" stroke="#2060dd" stroke-width="6" stroke-linecap="round" />
-  <line x1="96" y1="96" x2="120" y2="96" stroke="#2060dd" stroke-width="6" stroke-linecap="round" />
+  <!-- Clock hands with contrasting color (extended length and thicker) -->
+  <line x1="96" y1="96" x2="96" y2="20" stroke="#ff6a00" stroke-width="10" stroke-linecap="round" />
+  <line x1="96" y1="96" x2="172" y2="96" stroke="#ff6a00" stroke-width="10" stroke-linecap="round" />
   
-  <!-- Center dot -->
-  <circle cx="96" cy="96" r="6" fill="#2060dd" />
+  <!-- Center dot with matching contrasting color (larger) -->
+  <circle cx="96" cy="96" r="8" fill="#ff6a00" />
 </svg>
