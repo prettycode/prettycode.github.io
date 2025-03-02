@@ -20,6 +20,49 @@
 <body>
   <div id="root"></div>
 
+  <script type="module">
+    // Alarm notification when next dose is due
+
+    async function setupNotifications() {
+      // Check if notifications are supported
+      if (!('Notification' in window)) {
+        console.log('This browser does not support notifications');
+        return;
+      }
+      
+      // Request permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.log('Notification permission denied');
+        return;
+      }
+      
+      // Register service worker
+      if (!('serviceWorker' in navigator)) {
+        console.log('This browser does not support service workers');
+        return;
+      }
+
+      await navigator.serviceWorker.register('service-worker.js');
+    }
+
+    await setupNotifications();
+
+    function triggerAlarmNotification(alarmTitle) {
+      if (Notification.permission === 'granted') {
+        // If the app is in the foreground, we can use the Notification API directly
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'ALARM_TRIGGERED',
+            title: alarmTitle || 'Alarm',
+            body: 'Your next dose is due now.',
+            icon: 'favicon.svg'
+          });
+        }
+      }
+    }
+  </script>
+
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext, useReducer } = React;
 
