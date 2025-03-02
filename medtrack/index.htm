@@ -785,7 +785,7 @@
     const DoseHistory = () => {
       const { doses, setShowDeleteConfirm, setDeletingDose, setShowEditModal, setEditingDose, setShowResetConfirm, getDoseAdherence, dateUtils } = useMedication();
       
-      return (
+      return (!!doses.length &&
         <Card 
           title="History" 
           action={doses.length > 0 && (
@@ -797,9 +797,6 @@
             </button>
           )}
         >
-          {doses.length === 0 ? (
-            <p className="text-gray-500 mt-2">No history yet</p>
-          ) : (
             <ul className="mt-2 divide-y divide-gray-100">
               {[...doses].reverse().map((dose, index) => {
                 const reversedIndex = doses.length - 1 - index;
@@ -843,7 +840,6 @@
                 );
               })}
             </ul>
-          )}
         </Card>
       );
     };
