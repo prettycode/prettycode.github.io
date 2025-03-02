@@ -23,12 +23,19 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, createContext, useContext, useReducer } = React;
 
-    // Constants
+    /**
+     * =================================================================
+     * APPLICATION CONSTANTS
+     * =================================================================
+     */
+    
+    // Storage keys for localStorage
     const STORAGE_KEYS = {
       DOSES: 'medicationDoses',
       INTERVAL: 'medicationInterval'
     };
     
+    // Medication interval options
     const INTERVAL_OPTIONS = [
       { label: "3x per Day (Every 8 hours)", value: 8 * 60 },
       { label: "2x per Day (Every 12 hours)", value: 12 * 60 },
@@ -39,7 +46,7 @@
       { label: "EW (Every 7 days)", value: 168 * 60 }
     ];
     
-    // Standardized adherence levels and colors
+    // Standardized adherence levels and associated colors
     const ADHERENCE_LEVELS = {
       EXCELLENT: 'excellent',
       FAIR: 'fair',
@@ -64,7 +71,13 @@
       [ADHERENCE_LEVELS.POOR]: 'bg-red-100'
     };
 
-    // Alarm notification when next dose is due
+    /**
+     * =================================================================
+     * UTILITY FUNCTIONS
+     * =================================================================
+     */
+    
+    // Notification setup and handling
     async function setupNotifications() {
       // Check if notifications are supported
       if (!('Notification' in window)) {
@@ -86,7 +99,7 @@
       return navigator.serviceWorker.register('service-worker.js');
     }
 
-    var notificationSetup = setupNotifications();
+    const notificationSetup = setupNotifications();
 
     function triggerAlarmNotification(alarmTitle, alarmBody) {
       notificationSetup.then(() => {
@@ -94,20 +107,111 @@
           throw new Error("Can't send notification. Permission has not been granted.");
         }
 
-        // If the app is in the foreground, we can use the Notification API directly
         if (!navigator.serviceWorker.controller) {
           throw new Error("Can't send notification. Service worker is not registered.");
         }
 
         navigator.serviceWorker.controller.postMessage({
           type: 'ALARM_TRIGGERED',
-          title: alarmTitle || 'Notification title',
-          body: alarmBody || 'Notification body.',
+          title: alarmTitle ?? 'Notification title',
+          body: alarmBody ?? 'Notification body.',
           icon: 'favicon.svg'
         });
       });
     }
 
+    // Date formatting utilities
+    const dateUtils = {
+      formatTimeDifference: (milliseconds) => {
+        const ms = Math.max(0, milliseconds);
+        const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+        
+        if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+        if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+        return `${minutes}m ${seconds}s`;
+      },
+      
+      formatDateTime: (dateString) => {
+        const date = new Date(dateString);
+        const options = {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZoneName: 'short'
+        };
+        
+        return date.toLocaleString(undefined, options);
+      },
+      
+      formatDateTimeWithDayOfWeek: (dateString) => {
+        const date = new Date(dateString);
+        const dayOfWeek = date.toLocaleString(undefined, { weekday: 'long' });
+        
+        const timeOptions = {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        };
+        
+        const timeOfDay = date.toLocaleString(undefined, timeOptions);
+        const timeZone = date.toLocaleString(undefined, { timeZoneName: 'short' }).split(' ').pop();
+        
+        return { dayOfWeek, timeOfDay, timeZone };
+      },
+      
+      getCurrentDateTimeForInput: () => {
+        const now = new Date();
+        return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+      },
+
+      getDateTimeForEditInput: (timeString) => {
+        const date = new Date(timeString);
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+      }
+    };
+
+    // Custom hooks
+    const useLocalStorage = (key, initialValue) => {
+      const [storedValue, setStoredValue] = useState(() => {
+        try {
+          const item = localStorage.getItem(key);
+          return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+          console.error('Error loading from localStorage', error);
+          return initialValue;
+        }
+      });
+
+      const setValue = useCallback((value) => {
+        try {
+          const valueToStore = value instanceof Function ? value(storedValue) : value;
+          setStoredValue(valueToStore);
+          localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch (error) {
+          console.error('Error saving to localStorage', error);
+        }
+      }, [key, storedValue]);
+
+      return [storedValue, setValue];
+    };
+
+    /**
+     * =================================================================
+     * STATE MANAGEMENT
+     * =================================================================
+     */
+    
     // Create Context
     const MedicationContext = createContext();
 
@@ -115,27 +219,51 @@
     const medicationReducer = (state, action) => {
       switch (action.type) {
         case 'ADD_DOSE':
-          return { ...state, doses: [...state.doses, action.payload] };
+          return { 
+            ...state, 
+            doses: [...state.doses, action.payload] 
+          };
         case 'UPDATE_DOSE':
           return { 
             ...state, 
-            doses: state.doses.map(dose => 
-              dose.id === action.payload.id ? { ...dose, time: action.payload.time } : dose
-            ).sort((a, b) => new Date(a.time) - new Date(b.time))
+            doses: state.doses
+              .map(dose => dose.id === action.payload.id 
+                ? { ...dose, time: action.payload.time } 
+                : dose
+              )
+              .sort((a, b) => new Date(a.time) - new Date(b.time))
           };
         case 'DELETE_DOSE':
-          return { ...state, doses: state.doses.filter(dose => dose.id !== action.payload) };
+          return { 
+            ...state, 
+            doses: state.doses.filter(dose => dose.id !== action.payload) 
+          };
         case 'RESET_DOSES':
-          return { ...state, doses: [] };
+          return { 
+            ...state, 
+            doses: [] 
+          };
         case 'SET_INTERVAL':
-          return { ...state, intervalMinutes: action.payload };
+          return { 
+            ...state, 
+            intervalMinutes: action.payload 
+          };
         case 'SET_NEXT_DOSE':
-          return { ...state, nextDoseTime: action.payload };
+          return { 
+            ...state, 
+            nextDoseTime: action.payload 
+          };
         default:
           return state;
       }
     };
 
+    /**
+     * =================================================================
+     * UI COMPONENTS
+     * =================================================================
+     */
+    
     // Icon Component
     const Icon = ({ type, size = 24, className = "" }) => {
       const icons = {
@@ -164,8 +292,13 @@
       return icons[type] || null;
     };
 
-    // Modal Component
-    const Modal = ({ title, children, onClose, actions }) => (
+    // Modal Component with modern syntax
+    const Modal = ({ 
+      title, 
+      children, 
+      onClose, 
+      actions 
+    }) => (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-lg p-6 w-full max-w-md">
           <h2 className="text-xl font-bold mb-4">{title}</h2>
@@ -183,8 +316,13 @@
       </div>
     );
 
-    // Card Component
-    const Card = ({ title, children, className = "", action }) => (
+    // Card Component with modern syntax
+    const Card = ({ 
+      title, 
+      children, 
+      className = "", 
+      action 
+    }) => (
       <div className={`bg-white p-4 rounded-lg shadow-sm ${className}`}>
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-lg font-semibold">{title}</h2>
@@ -194,99 +332,26 @@
       </div>
     );
 
-    // Utility hooks
-    const useLocalStorage = (key, initialValue) => {
-      const [storedValue, setStoredValue] = useState(() => {
-        try {
-          const item = localStorage.getItem(key);
-          return item ? JSON.parse(item) : initialValue;
-        } catch (error) {
-          console.error('Error loading from localStorage', error);
-          return initialValue;
-        }
-      });
-
-      const setValue = useCallback((value) => {
-        try {
-          const valueToStore = value instanceof Function ? value(storedValue) : value;
-          setStoredValue(valueToStore);
-          localStorage.setItem(key, JSON.stringify(valueToStore));
-        } catch (error) {
-          console.error('Error saving to localStorage', error);
-        }
-      }, [key, storedValue]);
-
-      return [storedValue, setValue];
-    };
-
-    // Date formatting utilities
-    const dateUtils = {
-      formatTimeDifference: (milliseconds) => {
-        const ms = Math.max(0, milliseconds);
-        const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-        
-        if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-        if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-        return `${minutes}m ${seconds}s`;
-      },
-      
-      formatDateTime: (dateString) => {
-        const date = new Date(dateString);
-        const dayOfWeek = date.toLocaleString(undefined, { weekday: 'long' });
-        const month = date.toLocaleString(undefined, { month: 'short' });
-        const day = date.getDate();
-        const year = date.getFullYear();
-        
-        let hours = date.getHours();
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        
-        hours = hours % 12 || 12;
-        const timeZone = date.toLocaleString(undefined, { timeZoneName: 'short' }).split(' ').pop();
-        
-        return `${dayOfWeek}, ${month} ${day}, ${year}, ${hours}:${minutes} ${ampm} ${timeZone}`;
-      },
-      
-      formatDateTimeWithDayOfWeek: (dateString) => {
-        const date = new Date(dateString);
-        const dayOfWeek = date.toLocaleString(undefined, { weekday: 'long' });
-        
-        let hours = date.getHours();
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        
-        hours = hours % 12 || 12;
-        const timeOfDay = `${hours}:${minutes} ${ampm}`;
-        const timeZone = date.toLocaleString(undefined, { timeZoneName: 'short' }).split(' ').pop();
-        
-        return { dayOfWeek, timeOfDay, timeZone };
-      },
-      
-      getCurrentDateTimeForInput: () => {
-        const now = new Date();
-        return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      },
-
-      getDateTimeForEditInput: (timeString) => {
-        const date = new Date(timeString);
-        return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      }
-    };
+    /**
+     * =================================================================
+     * DATA PROVIDER
+     * =================================================================
+     */
 
     // Provider component
     const MedicationProvider = ({ children }) => {
+      // Local storage state management
       const [storedDoses, setStoredDoses] = useLocalStorage(STORAGE_KEYS.DOSES, []);
       const [storedInterval, setStoredInterval] = useLocalStorage(STORAGE_KEYS.INTERVAL, 84 * 60); // Default: 2x per Week
       
+      // Main application state
       const [state, dispatch] = useReducer(medicationReducer, {
         doses: storedDoses,
         intervalMinutes: storedInterval,
         nextDoseTime: null
       });
       
+      // UI state
       const [currentTime, setCurrentTime] = useState(new Date());
       const [showAddModal, setShowAddModal] = useState(false);
       const [showEditModal, setShowEditModal] = useState(false);
@@ -295,119 +360,157 @@
       const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
       const [deletingDose, setDeletingDose] = useState(null);
       
-      // Track if we've already triggered a notification for current dose
+      // Refs
       const hasNotifiedRef = useRef(false);
       
-      // Calculate next dose time
+      // Business logic for dose timing calculations
       const calculateNextDoseTime = useCallback((dosesArray = state.doses) => {
         if (dosesArray.length === 0) {
-          dispatch({ type: 'SET_NEXT_DOSE', payload: null });
+          dispatch({ 
+            type: 'SET_NEXT_DOSE', 
+            payload: null 
+          });
           return;
         }
         
         const firstDose = new Date(dosesArray[0].time);
         const nextDose = new Date(firstDose.getTime() + (dosesArray.length * state.intervalMinutes * 60 * 1000));
-        dispatch({ type: 'SET_NEXT_DOSE', payload: nextDose });
+        dispatch({ 
+          type: 'SET_NEXT_DOSE', 
+          payload: nextDose 
+        });
         
-        // Reset notification flag when next dose time changes
         hasNotifiedRef.current = false;
       }, [state.doses, state.intervalMinutes]);
       
-      // Set up timer for current time and check for notifications
+      // Time tracking and notification effects
       useEffect(() => {
         const timer = setInterval(() => {
           const now = new Date();
           setCurrentTime(now);
           
-          // Check if we need to trigger an alarm notification
-          if (state.nextDoseTime && !hasNotifiedRef.current) {
-            if (now >= state.nextDoseTime) {
-              var { dayOfWeek, timeOfDay, timeZone } = dateUtils.formatDateTimeWithDayOfWeek(state.nextDoseTime);
-              // Get medication name from next dose
-              let alarmTitle = "Medication Due";
-              let alarmBody = `Your next dose of medication is due ${dayOfWeek}, ${timeOfDay} ${timeZone}`;
-              triggerAlarmNotification(alarmTitle, alarmBody);
-              hasNotifiedRef.current = true;
-            }
+          if (!state.nextDoseTime || hasNotifiedRef.current) {
+            return;
+          }
+          
+          if (now >= state.nextDoseTime) {
+            const { 
+              dayOfWeek, 
+              timeOfDay, 
+              timeZone 
+            } = dateUtils.formatDateTimeWithDayOfWeek(state.nextDoseTime);
+            
+            const alarmTitle = "Medication Due";
+            const alarmBody = `Your next dose of medication is due ${dayOfWeek}, ${timeOfDay} ${timeZone}`;
+            triggerAlarmNotification(alarmTitle, alarmBody);
+            hasNotifiedRef.current = true;
           }
         }, 500);
         
         return () => clearInterval(timer);
       }, [state.nextDoseTime]);
       
-      // Save doses to localStorage when they change
+      // Syncing state to localStorage
       useEffect(() => {
         setStoredDoses(state.doses);
       }, [state.doses, setStoredDoses]);
       
-      // Save interval to localStorage when it changes
       useEffect(() => {
         setStoredInterval(state.intervalMinutes);
-        if (state.doses.length > 0) calculateNextDoseTime();
+        if (state.doses.length > 0) {
+          calculateNextDoseTime();
+        }
       }, [state.intervalMinutes, calculateNextDoseTime, setStoredInterval, state.doses.length]);
       
-      // Calculate initial next dose time when component mounts
+      // Calculate next dose when doses change
       useEffect(() => {
-        if (state.doses.length > 0) calculateNextDoseTime();
-        else dispatch({ type: 'SET_NEXT_DOSE', payload: null });
+        if (state.doses.length > 0) {
+          calculateNextDoseTime();
+        } else {
+          dispatch({ 
+            type: 'SET_NEXT_DOSE', 
+            payload: null 
+          });
+        }
       }, [calculateNextDoseTime, state.doses.length]);
       
-      // Handler functions
+      // Action handlers
       const addDose = useCallback((time) => {
-        const newDose = { time: time.toISOString(), id: Date.now() };
-        dispatch({ type: 'ADD_DOSE', payload: newDose });
+        const newDose = { 
+          time: time.toISOString(), 
+          id: Date.now() 
+        };
+        dispatch({ 
+          type: 'ADD_DOSE', 
+          payload: newDose 
+        });
         
         if (state.doses.length === 0) {
           const nextTime = new Date(time.getTime() + state.intervalMinutes * 60 * 1000);
-          dispatch({ type: 'SET_NEXT_DOSE', payload: nextTime });
+          dispatch({ 
+            type: 'SET_NEXT_DOSE', 
+            payload: nextTime 
+          });
         } else {
           calculateNextDoseTime([...state.doses, newDose]);
         }
         
-        // Reset notification flag when a new dose is added
         hasNotifiedRef.current = false;
       }, [state.doses, state.intervalMinutes, calculateNextDoseTime]);
       
       const updateDose = useCallback((id, time) => {
         dispatch({ 
           type: 'UPDATE_DOSE', 
-          payload: { id, time: time.toISOString() } 
+          payload: { 
+            id, 
+            time: time.toISOString() 
+          } 
         });
-        // Next dose time will be recalculated via effect that watches doses
-        // Reset notification flag when doses are updated
         hasNotifiedRef.current = false;
       }, []);
       
       const deleteDose = useCallback((id) => {
-        dispatch({ type: 'DELETE_DOSE', payload: id });
-        // Next dose time will be recalculated via effect that watches doses
-        // Reset notification flag when doses are deleted
+        dispatch({ 
+          type: 'DELETE_DOSE', 
+          payload: id 
+        });
         hasNotifiedRef.current = false;
       }, []);
       
       const resetDoses = useCallback(() => {
-        dispatch({ type: 'RESET_DOSES' });
-        dispatch({ type: 'SET_NEXT_DOSE', payload: null });
-        // Reset notification flag when doses are reset
+        dispatch({ 
+          type: 'RESET_DOSES' 
+        });
+        dispatch({ 
+          type: 'SET_NEXT_DOSE', 
+          payload: null 
+        });
         hasNotifiedRef.current = false;
       }, []);
       
       const setIntervalMinutes = useCallback((minutes) => {
-        dispatch({ type: 'SET_INTERVAL', payload: minutes });
-        // Reset notification flag when interval changes
+        dispatch({ 
+          type: 'SET_INTERVAL', 
+          payload: minutes 
+        });
         hasNotifiedRef.current = false;
       }, []);
       
-      // Calculate adherence
+      // Analysis functions
       const calculateAdherence = useCallback(() => {
-        if (state.doses.length === 0) return { percentage: 100, status: ADHERENCE_LEVELS.EXCELLENT };
+        if (state.doses.length === 0) {
+          return { 
+            percentage: 100, 
+            status: ADHERENCE_LEVELS.EXCELLENT 
+          };
+        }
         
         let totalDeviations = 0;
-        const firstDose = new Date(state.doses[0].time);
+        const firstDose = new Date(state.doses[0]?.time);
         
         for (let i = 1; i < state.doses.length; i++) {
           const expectedTime = new Date(firstDose.getTime() + (i * state.intervalMinutes * 60 * 1000));
-          const actualTime = new Date(state.doses[i].time);
+          const actualTime = new Date(state.doses[i]?.time);
           const deviation = Math.abs(actualTime - expectedTime) / (1000 * 60);
           
           totalDeviations += deviation;
@@ -427,12 +530,17 @@
         const avgDeviation = totalIntervals > 0 ? totalDeviations / totalIntervals : 0;
         const totalExpectedTime = totalIntervals * state.intervalMinutes;
         
-        if (totalExpectedTime === 0) return { percentage: 100, status: ADHERENCE_LEVELS.EXCELLENT, avgDeviation: 0 };
+        if (totalExpectedTime === 0) {
+          return { 
+            percentage: 100, 
+            status: ADHERENCE_LEVELS.EXCELLENT, 
+            avgDeviation: 0 
+          };
+        }
         
         const deviationPercentage = (totalDeviations / totalExpectedTime) * 100;
         const percentage = Math.max(0, Math.min(100, 100 - deviationPercentage));
         
-        // Apply the standardized adherence levels
         let status;
         if (percentage >= 95) {
           status = ADHERENCE_LEVELS.EXCELLENT; // Within 5% of target
@@ -449,9 +557,10 @@
         };
       }, [state.doses, state.intervalMinutes, state.nextDoseTime, currentTime]);
       
-      // Calculate time until next dose
       const getTimeUntilNextDose = useCallback(() => {
-        if (!state.nextDoseTime) return null;
+        if (!state.nextDoseTime) {
+          return null;
+        }
         
         const diff = state.nextDoseTime - currentTime;
         let missedIntervals = 0;
@@ -472,10 +581,9 @@
         };
       }, [state.nextDoseTime, currentTime, state.intervalMinutes]);
       
-      // Calculate dose adherence
       const getDoseAdherence = useCallback((doseTime, doseIndex) => {
         const actualTime = new Date(doseTime);
-        const firstDose = new Date(state.doses[0].time);
+        const firstDose = new Date(state.doses[0]?.time);
         const expectedTime = new Date(firstDose.getTime() + (doseIndex * state.intervalMinutes * 60 * 1000));
         const diffMinutes = Math.abs(actualTime - expectedTime) / (1000 * 60);
         
@@ -483,7 +591,6 @@
         const roundedPercentage = Math.round(percentageOfInterval);
         const exceedsCap = roundedPercentage > 999;
         
-        // Apply the standardized adherence levels
         let category;
         if (roundedPercentage <= 5) {
           category = ADHERENCE_LEVELS.EXCELLENT; // Within 5% of target
@@ -502,48 +609,43 @@
         };
       }, [state.doses, state.intervalMinutes]);
 
-      // Calculate current streak of on-time doses
       const calculateStreak = useCallback(() => {
-        if (state.doses.length <= 1) return 0;
+        if (state.doses.length <= 1) {
+          return 0;
+        }
         
         let currentStreak = 0;
-        const firstDose = new Date(state.doses[0].time);
+        const firstDose = new Date(state.doses[0]?.time);
         
         // Start from the most recent dose and go backwards
         for (let i = state.doses.length - 1; i > 0; i--) {
           const expectedTime = new Date(firstDose.getTime() + (i * state.intervalMinutes * 60 * 1000));
-          const actualTime = new Date(state.doses[i].time);
+          const actualTime = new Date(state.doses[i]?.time);
           const diffMinutes = Math.abs(actualTime - expectedTime) / (1000 * 60);
           
-          // Consider a dose on-time if its adherence category is "excellent" (within 5% of target)
           const percentageOfInterval = (diffMinutes / state.intervalMinutes) * 100;
           const isExcellent = percentageOfInterval <= 5; // Same threshold as ADHERENCE_LEVELS.EXCELLENT
           
           if (isExcellent) {
             currentStreak++;
           } else {
-            // Break the streak if a dose was not excellent
             break;
           }
         }
         
-        // Check if the next dose is overdue, which would break the streak
-        if (state.nextDoseTime) {
-          const now = currentTime;
-          if (now > state.nextDoseTime) {
-            const overdueMinutes = (now - state.nextDoseTime) / (1000 * 60);
-            const overduePercentage = (overdueMinutes / state.intervalMinutes) * 100;
-            
-            if (overduePercentage > 5) { // Same threshold as ADHERENCE_LEVELS.EXCELLENT
-              // If significantly overdue (not excellent), reset streak
-              return 0;
-            }
-          }
+        // Check if next dose breaks streak
+        if (state.nextDoseTime && currentTime > state.nextDoseTime) {
+          const overdueMinutes = (currentTime - state.nextDoseTime) / (1000 * 60);
+          const overduePercentage = (overdueMinutes / state.intervalMinutes) * 100;
+          
+          // Reset streak if significantly overdue
+          return overduePercentage > 5 ? 0 : currentStreak;
         }
         
         return currentStreak;
       }, [state.doses, state.intervalMinutes, state.nextDoseTime, currentTime]);
 
+      // Create context value
       const value = {
         doses: state.doses,
         intervalMinutes: state.intervalMinutes,
@@ -589,24 +691,32 @@
       return context;
     };
 
+    /**
+     * =================================================================
+     * MODAL COMPONENTS
+     * =================================================================
+     */
+
     // Modal Components
     const AddDoseModal = () => {
-      const { showAddModal, setShowAddModal, addDose, dateUtils } = useMedication();
+      const { 
+        showAddModal, 
+        setShowAddModal, 
+        addDose, 
+        dateUtils 
+      } = useMedication();
       const dateTimeInputRef = useRef(null);
       
-      if (!showAddModal) return null;
+      if (!showAddModal) {
+        return null;
+      }
       
       const handleAddDose = () => {
-        const selectedDateTimeStr = dateTimeInputRef.current?.value;
-        const selectedDateTime = selectedDateTimeStr ? new Date(selectedDateTimeStr) : new Date();
+        const selectedDateTime = new Date(dateTimeInputRef.current?.value ?? Date.now());
         addDose(selectedDateTime);
         setShowAddModal(false);
       };
       
-
-      // TODO: need multiplier option for scenario where multiple doses are taken at once to catch up.
-      // Imagine going on vacation and not taking medication for 3 weeks, then coming back and taking 3 week's worth.
-
       return (
         <Modal 
           title="Record New Dose"
@@ -634,14 +744,22 @@
     };
 
     const EditDoseModal = () => {
-      const { showEditModal, setShowEditModal, editingDose, setEditingDose, updateDose, dateUtils } = useMedication();
+      const { 
+        showEditModal, 
+        setShowEditModal, 
+        editingDose, 
+        setEditingDose, 
+        updateDose, 
+        dateUtils 
+      } = useMedication();
       const editDateTimeInputRef = useRef(null);
       
-      if (!showEditModal || !editingDose) return null;
+      if (!showEditModal || !editingDose) {
+        return null;
+      }
       
       const handleEditDose = () => {
-        const selectedDateTimeStr = editDateTimeInputRef.current?.value;
-        const selectedDateTime = selectedDateTimeStr ? new Date(selectedDateTimeStr) : new Date();
+        const selectedDateTime = new Date(editDateTimeInputRef.current?.value ?? editingDose.time);
         updateDose(editingDose.id, selectedDateTime);
         setShowEditModal(false);
         setEditingDose(null);
@@ -677,9 +795,15 @@
     };
 
     const ResetConfirmModal = () => {
-      const { showResetConfirm, setShowResetConfirm, resetDoses } = useMedication();
+      const { 
+        showResetConfirm, 
+        setShowResetConfirm, 
+        resetDoses 
+      } = useMedication();
       
-      if (!showResetConfirm) return null;
+      if (!showResetConfirm) {
+        return null;
+      }
       
       const handleReset = () => {
         resetDoses();
@@ -705,9 +829,18 @@
     };
 
     const DeleteDoseConfirmModal = () => {
-      const { showDeleteConfirm, setShowDeleteConfirm, deletingDose, setDeletingDose, deleteDose, dateUtils } = useMedication();
+      const { 
+        showDeleteConfirm, 
+        setShowDeleteConfirm, 
+        deletingDose, 
+        setDeletingDose, 
+        deleteDose, 
+        dateUtils 
+      } = useMedication();
       
-      if (!showDeleteConfirm || !deletingDose) return null;
+      if (!showDeleteConfirm || !deletingDose) {
+        return null;
+      }
       
       const handleDeleteDose = () => {
         deleteDose(deletingDose.id);
@@ -736,9 +869,18 @@
       );
     };
 
+    /**
+     * =================================================================
+     * FEATURE COMPONENTS
+     * =================================================================
+     */
+
     // Component for Frequency selection
     const FrequencySelector = () => {
-      const { intervalMinutes, setIntervalMinutes } = useMedication();
+      const { 
+        intervalMinutes, 
+        setIntervalMinutes 
+      } = useMedication();
       
       return (
         <Card title="Frequency" className="mb-4">
@@ -759,46 +901,61 @@
 
     // Component for Next Dose information
     const NextDoseCard = () => {
-      const { nextDoseTime, doses, getTimeUntilNextDose, dateUtils } = useMedication();
+      const { 
+        nextDoseTime, 
+        doses, 
+        getTimeUntilNextDose, 
+        dateUtils 
+      } = useMedication();
       const nextDoseInfo = getTimeUntilNextDose();
+      
+      if (!nextDoseTime || !doses.length) {
+        return (
+          <Card title="Next Dose" className="mb-4">
+            <p className="text-gray-500 mt-2">No doses recorded yet. Add your first dose to start tracking.</p>
+          </Card>
+        );
+      }
+      
+      const { 
+        dayOfWeek, 
+        timeOfDay, 
+        timeZone 
+      } = dateUtils.formatDateTimeWithDayOfWeek(nextDoseTime);
       
       return (
         <Card title="Next Dose" className="mb-4">
-          {nextDoseTime && doses.length > 0 ? (
-            <div className="mt-2">
-              {(() => {
-                const { dayOfWeek, timeOfDay, timeZone } = dateUtils.formatDateTimeWithDayOfWeek(nextDoseTime);
-
-                return (
-                  <p className={`flex items-center text-2xl font-bold ${nextDoseInfo.overdue ? 'text-red-500' : 'text-blue-500'}`}>
-                    {nextDoseInfo.overdue && <Icon type="AlertTriangle" className="mr-2 text-red-500" />}
-                    {!nextDoseInfo.overdue && <Icon type="Clock" className="mr-2" />}
-                    {dayOfWeek}, {timeOfDay} {timeZone}
-                  </p>
-                );
-              })()}
-              {/* TODO: only apply strong in code below if absolute deviation is >= X && < Y % deviation. */}
-              <div className="mt-2 text-gray-700">
-                {nextDoseInfo.overdue 
-                  ? nextDoseInfo.missedIntervals > 0 
-                    ? <><span class="text-red-500"><strong>Overdue</strong></span> by <strong>{nextDoseInfo.time}</strong> (<strong>{nextDoseInfo.missedIntervals + 1}</strong> doses behind)</>
-                    : <><span class="text-red-500"><strong>Overdue</strong></span> by <strong>{nextDoseInfo.time}</strong></>
-                  : <>Due in <strong>{nextDoseInfo.time}</strong></>
-                }
-              </div>
+          <div className="mt-2">
+            <p className={`flex items-center text-2xl font-bold ${nextDoseInfo.overdue ? 'text-red-500' : 'text-blue-500'}`}>
+              {nextDoseInfo.overdue ? 
+                <Icon type="AlertTriangle" className="mr-2 text-red-500" /> : 
+                <Icon type="Clock" className="mr-2" />
+              }
+              {dayOfWeek}, {timeOfDay} {timeZone}
+            </p>
+            <div className="mt-2 text-gray-700">
+              {nextDoseInfo.overdue 
+                ? nextDoseInfo.missedIntervals > 0 
+                  ? <><span className="text-red-500"><strong>Overdue</strong></span> by <strong>{nextDoseInfo.time}</strong> (<strong>{nextDoseInfo.missedIntervals + 1}</strong> doses behind)</>
+                  : <><span className="text-red-500"><strong>Overdue</strong></span> by <strong>{nextDoseInfo.time}</strong></>
+                : <>Due in <strong>{nextDoseInfo.time}</strong></>
+              }
             </div>
-          ) : (
-            <p className="text-gray-500 mt-2">No doses recorded yet. Add your first dose to start tracking.</p>
-          )}
+          </div>
         </Card>
       );
     };
 
     // Component for Adherence information
     const AdherenceCard = () => {
-      const { doses, nextDoseTime, currentTime, calculateAdherence, calculateStreak } = useMedication();
+      const { 
+        doses, 
+        nextDoseTime, 
+        currentTime, 
+        calculateAdherence, 
+        calculateStreak 
+      } = useMedication();
       
-      // Only show adherence if we have more than one dose or if we have one dose and it's overdue
       if (!(doses.length > 1 || (doses.length > 0 && nextDoseTime && currentTime > nextDoseTime))) {
         return null;
       }
@@ -852,7 +1009,16 @@
 
     // Component for Dose History
     const DoseHistory = () => {
-      const { doses, setShowDeleteConfirm, setDeletingDose, setShowEditModal, setEditingDose, setShowResetConfirm, getDoseAdherence, dateUtils } = useMedication();
+      const { 
+        doses, 
+        setShowDeleteConfirm, 
+        setDeletingDose, 
+        setShowEditModal, 
+        setEditingDose, 
+        setShowResetConfirm, 
+        getDoseAdherence, 
+        dateUtils 
+      } = useMedication();
       
       return (!!doses.length &&
         <Card 
@@ -913,9 +1079,17 @@
       );
     };
 
+    /**
+     * =================================================================
+     * MAIN APPLICATION COMPONENTS
+     * =================================================================
+     */
+
     // Main Medication Tracker component
     const MedicationTracker = () => {
-      const { setShowAddModal } = useMedication();
+      const { 
+        setShowAddModal 
+      } = useMedication();
       const fullYearCreated = 2025;
       
       return (
@@ -925,7 +1099,6 @@
           <FrequencySelector />
           <NextDoseCard />
           
-          {/* Primary Action Button */}
           <div className="mb-4">
             <button 
               onClick={() => setShowAddModal(true)} 

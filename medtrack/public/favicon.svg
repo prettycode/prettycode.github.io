@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Solid background circle -->
+  <circle cx="96" cy="96" r="90" fill="#000000"/>
+  
+  <!-- Inner white circle -->
+  <circle cx="96" cy="96" r="78" fill="#ffffff"/>
+  
+  <!-- Simplified pill - no divider line -->
+  <rect x="36" y="72" width="120" height="48" rx="24" ry="24" fill="#4080ff"/>
+  
+  <!-- Simplified clock hands (shorter and with good spacing) -->
+  <line x1="96" y1="96" x2="96" y2="42" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
+  <line x1="96" y1="96" x2="138" y2="96" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
+  
+  <!-- Center dot -->
+  <circle cx="96" cy="96" r="9" fill="#000000"/>
+</svg>

@@ -1,0 +1,24 @@
+{
+  "name": "medication-tracker",
+  "version": "1.0.0",
+  "description": "A TypeScript-based medication tracking application",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.56",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.4"
+  }
+}
