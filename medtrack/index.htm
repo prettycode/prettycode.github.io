@@ -22,7 +22,6 @@
 
   <script type="module">
     // Alarm notification when next dose is due
-
     async function setupNotifications() {
       // Check if notifications are supported
       if (!('Notification' in window)) {
@@ -48,14 +47,14 @@
 
     await setupNotifications();
 
-    function triggerAlarmNotification(alarmTitle) {
+    function triggerAlarmNotification(alarmTitle, alarmBody) {
       if (Notification.permission === 'granted') {
         // If the app is in the foreground, we can use the Notification API directly
         if (navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.postMessage({
             type: 'ALARM_TRIGGERED',
-            title: alarmTitle || 'Alarm',
-            body: 'Your next dose is due now.',
+            title: alarmTitle || 'Notification title',
+            body: alarmBody || 'Notification body.',
             icon: 'favicon.svg'
           });
         }
@@ -296,6 +295,9 @@
       const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
       const [deletingDose, setDeletingDose] = useState(null);
       
+      // Track if we've already triggered a notification for current dose
+      const hasNotifiedRef = useRef(false);
+      
       // Calculate next dose time
       const calculateNextDoseTime = useCallback((dosesArray = state.doses) => {
         if (dosesArray.length === 0) {
@@ -306,16 +308,31 @@
         const firstDose = new Date(dosesArray[0].time);
         const nextDose = new Date(firstDose.getTime() + (dosesArray.length * state.intervalMinutes * 60 * 1000));
         dispatch({ type: 'SET_NEXT_DOSE', payload: nextDose });
+        
+        // Reset notification flag when next dose time changes
+        hasNotifiedRef.current = false;
       }, [state.doses, state.intervalMinutes]);
       
-      // Set up timer for current time
+      // Set up timer for current time and check for notifications
       useEffect(() => {
         const timer = setInterval(() => {
-          setCurrentTime(new Date());
+          const now = new Date();
+          setCurrentTime(now);
+          
+          // Check if we need to trigger an alarm notification
+          if (state.nextDoseTime && !hasNotifiedRef.current) {
+            if (now >= state.nextDoseTime) {
+              // Get medication name from next dose
+              let alarmTitle = "Medication Due";
+              let alarmBody = "Your next dose of medication is due now."
+              triggerAlarmNotification(alarmTitle, alarmBody);
+              hasNotifiedRef.current = true;
+            }
+          }
         }, 500);
         
         return () => clearInterval(timer);
-      }, []);
+      }, [state.nextDoseTime]);
       
       // Save doses to localStorage when they change
       useEffect(() => {
@@ -345,6 +362,9 @@
         } else {
           calculateNextDoseTime([...state.doses, newDose]);
         }
+        
+        // Reset notification flag when a new dose is added
+        hasNotifiedRef.current = false;
       }, [state.doses, state.intervalMinutes, calculateNextDoseTime]);
       
       const updateDose = useCallback((id, time) => {
@@ -353,20 +373,28 @@
           payload: { id, time: time.toISOString() } 
         });
         // Next dose time will be recalculated via effect that watches doses
+        // Reset notification flag when doses are updated
+        hasNotifiedRef.current = false;
       }, []);
       
       const deleteDose = useCallback((id) => {
         dispatch({ type: 'DELETE_DOSE', payload: id });
         // Next dose time will be recalculated via effect that watches doses
+        // Reset notification flag when doses are deleted
+        hasNotifiedRef.current = false;
       }, []);
       
       const resetDoses = useCallback(() => {
         dispatch({ type: 'RESET_DOSES' });
         dispatch({ type: 'SET_NEXT_DOSE', payload: null });
+        // Reset notification flag when doses are reset
+        hasNotifiedRef.current = false;
       }, []);
       
       const setIntervalMinutes = useCallback((minutes) => {
         dispatch({ type: 'SET_INTERVAL', payload: minutes });
+        // Reset notification flag when interval changes
+        hasNotifiedRef.current = false;
       }, []);
       
       // Calculate adherence
@@ -712,7 +740,7 @@
       );
     };
 
-          // Component for Adherence information
+    // Component for Adherence information
     const AdherenceCard = () => {
       const { doses, nextDoseTime, currentTime, calculateAdherence } = useMedication();
       
