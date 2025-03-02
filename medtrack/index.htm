@@ -322,9 +322,10 @@
           // Check if we need to trigger an alarm notification
           if (state.nextDoseTime && !hasNotifiedRef.current) {
             if (now >= state.nextDoseTime) {
+              var { dayOfWeek, timeOfDay, timeZone } = dateUtils.formatDateTimeWithDayOfWeek(state.nextDoseTime);
               // Get medication name from next dose
               let alarmTitle = "Medication Due";
-              let alarmBody = "Your next dose of medication is due now."
+              let alarmBody = `Your next dose of medication is due ${dayOfWeek}, ${timeOfDay} ${timeZone}`;
               triggerAlarmNotification(alarmTitle, alarmBody);
               hasNotifiedRef.current = true;
             }
