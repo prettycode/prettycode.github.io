@@ -719,22 +719,21 @@
             <div className="mt-2">
               {(() => {
                 const { dayOfWeek, timeOfDay, timeZone } = dateUtils.formatDateTimeWithDayOfWeek(nextDoseTime);
+
                 return (
-                  <p className={`text-2xl font-bold ${nextDoseInfo.overdue ? 'text-red-500' : 'text-blue-500'}`}>
-                    {dayOfWeek} @ {timeOfDay} {timeZone}
+                  <p className={`flex items-center text-2xl font-bold ${nextDoseInfo.overdue ? 'text-red-500' : 'text-blue-500'}`}>
+                    {nextDoseInfo.overdue && <Icon type="AlertTriangle" className="mr-2 text-red-500" />}
+                    {dayOfWeek}, {timeOfDay} {timeZone}
                   </p>
                 );
               })()}
-              <div className="mt-2 flex items-center text-gray-700">
-                {nextDoseInfo.overdue && <Icon type="AlertTriangle" size={16} className="mr-1 text-red-500" />}
-                <span className="font-bold">
-                  {nextDoseInfo.overdue 
-                    ? nextDoseInfo.missedIntervals > 0 
-                      ? `Overdue by ${nextDoseInfo.time} (${nextDoseInfo.missedIntervals + 1} doses needed)` 
-                      : `Overdue by ${nextDoseInfo.time}`
-                    : `Due in ${nextDoseInfo.time}`
-                  }
-                </span>
+              <div className="mt-2 text-gray-700">
+                {nextDoseInfo.overdue 
+                  ? nextDoseInfo.missedIntervals > 0 
+                    ? <>Overdue by <strong>{nextDoseInfo.time}</strong> (<strong>{nextDoseInfo.missedIntervals + 1}</strong> doses needed)</>
+                    : <>Overdue by <strong>{nextDoseInfo.time}</strong></>
+                  : `Due in ${nextDoseInfo.time}`
+                }
               </div>
             </div>
           ) : (
