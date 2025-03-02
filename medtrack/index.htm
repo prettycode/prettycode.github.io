@@ -850,7 +850,6 @@
           
           <FrequencySelector />
           <NextDoseCard />
-          <AdherenceCard />
           
           {/* Primary Action Button */}
           <div className="mb-4">
@@ -863,7 +862,8 @@
           </div>
           
           <DoseHistory />
-          
+          <AdherenceCard />
+
           <p className="text-xs text-gray-600 mt-3">
               &copy; {fullYearCreated}{new Date().getFullYear() > fullYearCreated ? "–" + new Date().getFullYear() : ''} {window.location.host + window.location.pathname}
           </p>
