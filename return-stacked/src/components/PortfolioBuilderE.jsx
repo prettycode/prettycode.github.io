@@ -294,7 +294,7 @@ const PortfolioVisualizer = () => {
 
         {/* Total Leverage Display */}
         <Card>
-          <CardContent className="py-4">
+          <CardContent>
             <div className="flex justify-between items-center">
               <span className="font-semibold">Portfolio's Total Leverage</span>
               <span className="text-xl font-bold">{totalLeverage.toFixed(2)}x</span>
@@ -302,9 +302,6 @@ const PortfolioVisualizer = () => {
           </CardContent>
         </Card>
 
-        {/* Portfolio Exposures Section */}
-        <h2 className="text-2xl font-bold mb-6">Portfolio Exposures</h2>
-        
         <div className="flex flex-col space-y-6">
           {Object.entries(EXPOSURE_MAPPING).map(([category, subcategories]) => (
             <Card key={category} className="shadow-sm">
