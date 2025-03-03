@@ -47,3 +47,7 @@ The code is looking very messy with respect to white space and syntax. Our code 
 
 ## Split single file into an entire project (with multiple files)
 > The code is looking very messy. I need you to go through it and apply best practices. It looks like there's a lot of duplication and missing abstractions. Please made this code ready for PR.
+
+## Making sure chareges in Node.js project are passing CI
+> 
+Please add an NPM script to the package.json under key "build:local:ci". Please have this script act as the pass/fail CI pipeline for anytime changes are considered complete and working. Running this script will prove the changes are still compiling.
