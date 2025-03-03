@@ -1,7 +1,7 @@
 {
   "name": "medication-tracker",
   "version": "1.0.0",
-  "description": "A TypeScript-based medication tracking application",
+  "description": "A web application for medication tracking.",
   "type": "module",
   "scripts": {
     "dev": "vite",
