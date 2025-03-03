@@ -1,86 +1,207 @@
 "use client";
 
-import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState, useMemo } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-// Asset class groupings with exact values from the image
-const EXPOSURES_DATA = {
-  "Asset Class": [
-    { key: 'Equity', value: 89.00 },
-    { key: 'U.S. Treasuries', value: 35.00 },
-    { key: 'Managed Futures', value: 30.00 },
-    { key: 'Futures Yield', value: 25.00 },
-    { key: 'Gold', value: 14.00 },
-    { key: 'Bitcoin', value: 5.00 }
-  ],
-  "Factor Style": [
-    { key: 'Blend', value: 89.00 },
-    { key: 'Value', value: 0.00 },
-    { key: 'Growth', value: 0.00 }
-  ],
-  "Size Factor": [
-    { key: 'Large Cap', value: 89.00 },
-    { key: 'Small Cap', value: 0.00 }
-  ],
-  "Market": [
-    { key: 'U.S.', value: 112.00 },
-    { key: 'International Developed', value: 9.00 },
-    { key: 'Emerging Market', value: 3.00 }
-  ]
+const ETF_DATA = {
+  AVUV: {
+    'Small Cap Value U.S.': 1
+  },
+  RSST: { 
+    'Large Cap Blend U.S.': 1,
+    'Managed Futures': 1
+  },
+  RSBT: {
+    'U.S. Treasuries': 1,
+    'Managed Futures': 1
+  },
+  RSSY: {
+    'Large Cap Blend U.S.': 1,
+    'Futures Yield': 1
+  },
+  RSBY: {
+    'U.S. Treasuries': 1,
+    'Futures Yield': 1
+  },
+  RSSB: {
+    'Large Cap Blend U.S.': 0.6,
+    'Large Cap Blend International Developed': 0.3,
+    'Large Cap Blend Emerging Market': 0.1,
+    'U.S. Treasuries': 1
+  },
+  TMF: {
+    'U.S. Treasuries': 3
+  },
+  GOVZ: {
+    'U.S. Treasuries': 1.6
+  },
+  TLT: {
+    'U.S. Treasuries': 1
+  },
+  UGL: {
+    'Gold': 2
+  },
+  GLDM: {
+    'Gold': 1
+  },
+  GDE: {
+    'Large Cap Blend U.S.': 0.9,
+    'Gold': 0.9
+  },
+  BTGD: {
+    'Bitcoin': 1,
+    'Gold': 1
+  },
+  IBIT: {
+    'Bitcoin': 1
+  },
+  UPRO: {
+    'Large Cap Blend U.S.': 3
+  },
+  SSO: {
+    'Large Cap Blend U.S.': 2
+  },
+  VOO: {
+    'Large Cap Blend U.S.': 1
+  },
+  QQQM: {
+    'Large Cap Growth U.S.': 1
+  },
+  VEA: {
+    'Large Cap Blend International': 1
+  },
+  AVDV: {
+    'Small Cap Value International': 1
+  },
+  AVEM: {
+    'Large Cap Blend Emerging': 1
+  },
+  AVEE: {
+    'Small Cap Blend Emerging': 1
+  },
+  DGS: {
+    'Small Cap Value Emerging': 1
+  },
+  EDC: {
+    'Large Cap Blend Emerging': 3
+  }
 };
 
-// Define colors for each asset class
-const COLOR_MAP = {
-  'Equity': 'bg-blue-600',
-  'U.S. Treasuries': 'bg-green-700',
-  'Managed Futures': 'bg-purple-600',
-  'Futures Yield': 'bg-amber-600',
-  'Gold': 'bg-yellow-500',
-  'Bitcoin': 'bg-orange-500',
-  'Blend': 'bg-blue-600',
-  'Value': 'bg-gray-200',
-  'Growth': 'bg-gray-200',
-  'Large Cap': 'bg-blue-600',
-  'Small Cap': 'bg-gray-200',
-  'U.S.': 'bg-blue-600',
-  'International Developed': 'bg-blue-400',
-  'Emerging Market': 'bg-blue-300'
+// Helper function to categorize exposures
+const EXPOSURE_MAPPING = {
+  'Asset Class': {
+    'Equity': ['Large Cap', 'Small Cap'],
+    'U.S. Treasuries': ['Treasuries'],
+    'Managed Futures': ['Managed Futures'],
+    'Futures Yield': ['Futures Yield'],
+    'Gold': ['Gold'],
+    'Bitcoin': ['Bitcoin']
+  },
+  'Factor Style': {
+    'Blend': ['Blend'],
+    'Value': ['Value'],
+    'Growth': ['Growth']
+  },
+  'Size Factor': {
+    'Large Cap': ['Large Cap'],
+    'Small Cap': ['Small Cap']
+  },
+  'Market': {
+    'U.S.': ['U.S.'],
+    'International Developed': ['International Developed'],
+    'Emerging Market': ['Emerging Market']
+  }
 };
 
-const PortfolioBuilderE = () => {
+const ExposureBar = ({ value, maxValue, label }) => {
+  const percentage = (value / maxValue) * 100;
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <Card className="shadow-sm border rounded-2xl overflow-hidden">
-        <CardContent className="p-10">
-          <h2 className="text-xl font-semibold mb-8">Portfolio Exposures</h2>
-          
-          <div className="space-y-12">
-            {Object.entries(EXPOSURES_DATA).map(([category, items]) => (
-              <div key={category} className="space-y-5">
-                <h3 className="text-lg font-medium">{category}</h3>
-                <div className="space-y-6">
-                  {items.map(item => (
-                    <div key={item.key}>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-sm text-gray-800">{item.key}</span>
-                        <span className="text-sm text-gray-800">{item.value.toFixed(2)}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`${COLOR_MAP[item.key]} h-2 rounded-full`} 
-                          style={{ width: `${Math.min(100, item.value)}%` }}>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="w-full mb-4">
+      <div className="flex justify-between mb-1">
+        <span className="text-sm font-medium">{label}</span>
+        <span className="text-sm font-medium">{value.toFixed(2)}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div 
+          className="bg-blue-400 h-2.5 rounded-full transition-all duration-300"
+          style={{ width: `${Math.min(100, percentage)}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+const DEFAULT_PORTFOLIO = {
+  'RSSB': 30.0,
+  'RSST': 25.0,
+  'RSSY': 25.0,
+  'RSBT': 5.0,
+  'GDE': 10.0,
+  'BTGD': 5.0
+};
+
+const PortfolioVisualizer = () => {
+  // Dummy data for portfolio exposures
+  const dummyExposures = {
+    'Asset Class': {
+      'Equity': 0.45,
+      'U.S. Treasuries': 0.25,
+      'Managed Futures': 0.15,
+      'Futures Yield': 0.10,
+      'Gold': 0.08,
+      'Bitcoin': 0.05
+    },
+    'Factor Style': {
+      'Blend': 0.70,
+      'Value': 0.20,
+      'Growth': 0.10
+    },
+    'Size Factor': {
+      'Large Cap': 0.75,
+      'Small Cap': 0.25
+    },
+    'Market': {
+      'U.S.': 0.65,
+      'International Developed': 0.25,
+      'Emerging Market': 0.10
+    }
+  };
+
+  const categoryExposures = dummyExposures;
+
+  return (
+    <div className="p-4 max-w-4xl mx-auto">
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Portfolio Exposures</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {Object.entries(EXPOSURE_MAPPING).map(([category, subcategories]) => (
+            <div key={category} className="mb-8">
+              <h3 className="text-lg font-semibold mb-4">{category}</h3>
+              {Object.entries(subcategories).map(([subcategory]) => {
+                const exposure = categoryExposures[category][subcategory] * 100; // Convert to percentage
+                const maxExposure = Math.max(
+                  ...Object.values(categoryExposures[category]).map(v => v * 100),
+                  100
+                );
+                
+                return (
+                  <ExposureBar 
+                    key={subcategory}
+                    value={exposure}
+                    maxValue={maxExposure}
+                    label={subcategory}
+                  />
+                );
+              })}
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>
   );
 };
 
-export default PortfolioBuilderE; 
+export default PortfolioVisualizer; 
