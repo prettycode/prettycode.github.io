@@ -113,7 +113,35 @@ const EXPOSURE_MAPPING = {
   }
 };
 
-const ExposureBar = ({ value, maxValue, label }) => {
+// Define a color palette for different categories
+const CATEGORY_COLORS = {
+  'Asset Class': {
+    base: 'bg-indigo-500',
+    light: 'bg-indigo-400',
+    text: 'text-indigo-900',
+    header: 'border-l-4 border-indigo-500'
+  },
+  'Market': {
+    base: 'bg-emerald-500',
+    light: 'bg-emerald-400',
+    text: 'text-emerald-900',
+    header: 'border-l-4 border-emerald-500'
+  },
+  'Factor Style': {
+    base: 'bg-amber-500',
+    light: 'bg-amber-400',
+    text: 'text-amber-900',
+    header: 'border-l-4 border-amber-500'
+  },
+  'Size Factor': {
+    base: 'bg-rose-500',
+    light: 'bg-rose-400',
+    text: 'text-rose-900',
+    header: 'border-l-4 border-rose-500'
+  }
+};
+
+const ExposureBar = ({ value, maxValue, label, color = 'bg-blue-400' }) => {
   const percentage = (value / maxValue) * 100;
   
   // Format the percentage to remove unnecessary decimal places
@@ -128,13 +156,13 @@ const ExposureBar = ({ value, maxValue, label }) => {
   
   return (
     <div className="w-full mb-4">
-      <div className="flex justify-between mb-1">
+      <div className="flex justify-between mb-1.5">
         <span className="text-sm font-medium">{label}</span>
-        <span className="text-sm font-medium">{formatPercentage(value)}</span>
+        <span className="text-sm font-semibold">{formatPercentage(value)}</span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2.5">
+      <div className="w-full bg-gray-100 rounded-full h-2.5">
         <div 
-          className="bg-blue-500 h-2.5 rounded-full transition-all duration-300"
+          className={`${color} h-2.5 rounded-full transition-all duration-500`}
           style={{ width: `${Math.min(100, percentage)}%` }}
         />
       </div>
@@ -162,6 +190,11 @@ const PortfolioVisualizer = () => {
       'Gold': 0.08,
       'Bitcoin': 0.05
     },
+    'Market': {
+      'U.S.': 0.65,
+      'International Developed': 0.25,
+      'Emerging': 0.10
+    },
     'Factor Style': {
       'Blend': 0.70,
       'Value': 0.20,
@@ -170,27 +203,22 @@ const PortfolioVisualizer = () => {
     'Size Factor': {
       'Large Cap': 0.75,
       'Small Cap': 0.25
-    },
-    'Market': {
-      'U.S.': 0.65,
-      'International Developed': 0.25,
-      'Emerging': 0.10
     }
   };
 
   const categoryExposures = dummyExposures;
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Portfolio Exposures</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {Object.entries(EXPOSURE_MAPPING).map(([category, subcategories]) => (
-            <div key={category} className="mb-8">
-              <h3 className="text-lg font-semibold mb-4">{category}</h3>
+    <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg">
+      <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Portfolio Exposures</h2>
+      
+      <div className="flex flex-col space-y-5">
+        {Object.entries(EXPOSURE_MAPPING).map(([category, subcategories]) => (
+          <Card key={category} className="shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
+            <CardHeader className={`py-4 ${CATEGORY_COLORS[category].header}`}>
+              <CardTitle className="text-xl pl-3">{category}</CardTitle>
+            </CardHeader>
+            <CardContent className="py-5 px-6">
               {Object.entries(subcategories).map(([subcategory]) => {
                 const exposure = categoryExposures[category][subcategory] * 100; // Convert to percentage
                 const maxExposure = Math.max(
@@ -204,13 +232,14 @@ const PortfolioVisualizer = () => {
                     value={exposure}
                     maxValue={maxExposure}
                     label={subcategory}
+                    color={CATEGORY_COLORS[category].light}
                   />
                 );
               })}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };
