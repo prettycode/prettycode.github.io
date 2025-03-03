@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { PortfolioBuilder } from "./PortfolioBuilder";
 
 const ETF_DATA = {
@@ -208,8 +209,9 @@ const mapExposuresToCategories = (exposures) => {
   return result;
 };
 
-const ExposureBar = ({ value, maxValue, label, color = 'bg-blue-400' }) => {
-  const percentage = (value / maxValue) * 100;
+const ExposureBar = ({ value, maxValue, label, color = 'bg-blue-400', isAbsolute = false }) => {
+  // Use the absolute value or percentage based on isAbsolute flag
+  const percentage = isAbsolute ? value : (value / maxValue) * 100;
   
   // Format the percentage to remove unnecessary decimal places
   const formatPercentage = (num) => {
@@ -249,6 +251,12 @@ const DEFAULT_PORTFOLIO = {
 const PortfolioVisualizer = () => {
   const [categoryExposures, setCategoryExposures] = useState(mapExposuresToCategories());
   const [totalLeverage, setTotalLeverage] = useState(1.0);
+  const [displayMode, setDisplayMode] = useState({
+    'Asset Class': false, // false = relative, true = absolute
+    'Market': false,
+    'Factor Style': false,
+    'Size Factor': false
+  });
 
   // Handle exposure changes from the PortfolioBuilder
   const handleExposuresChange = (exposures, leverage) => {
@@ -256,6 +264,14 @@ const PortfolioVisualizer = () => {
     const mappedExposures = mapExposuresToCategories(exposures);
     setCategoryExposures(mappedExposures);
     setTotalLeverage(leverage);
+  };
+
+  // Toggle between absolute and relative display for a category
+  const toggleDisplayMode = (category) => {
+    setDisplayMode(prevMode => ({
+      ...prevMode,
+      [category]: !prevMode[category]
+    }));
   };
 
   return (
@@ -278,7 +294,7 @@ const PortfolioVisualizer = () => {
 
         {/* Total Leverage Display */}
         <Card>
-          <CardContent>
+          <CardContent className="py-4">
             <div className="flex justify-between items-center">
               <span className="font-semibold">Portfolio's Total Leverage</span>
               <span className="text-xl font-bold">{totalLeverage.toFixed(2)}x</span>
@@ -286,32 +302,70 @@ const PortfolioVisualizer = () => {
           </CardContent>
         </Card>
 
-        {Object.entries(EXPOSURE_MAPPING).map(([category, subcategories]) => (
-          <Card key={category} className="shadow-sm">
-            <CardHeader className={CATEGORY_COLORS[category].header}>
-              <CardTitle>{category} Exposure (Relative)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {Object.entries(subcategories).map(([subcategory]) => {
-                const exposure = (categoryExposures[category]?.[subcategory] || 0) * 100; // Convert to percentage
-                const maxExposure = Math.max(
-                  ...Object.values(categoryExposures[category] || {}).map(v => v * 100),
-                  100
-                );
-                
-                return (
-                  <ExposureBar 
-                    key={subcategory}
-                    value={exposure}
-                    maxValue={maxExposure}
-                    label={subcategory}
-                    color={CATEGORY_COLORS[category].light}
-                  />
-                );
-              })}
-            </CardContent>
-          </Card>
-        ))}
+        {/* Portfolio Exposures Section */}
+        <h2 className="text-2xl font-bold mb-6">Portfolio Exposures</h2>
+        
+        <div className="flex flex-col space-y-6">
+          {Object.entries(EXPOSURE_MAPPING).map(([category, subcategories]) => (
+            <Card key={category} className="shadow-sm">
+              <CardHeader className={`${CATEGORY_COLORS[category].header} flex flex-row justify-between items-center`}>
+                <CardTitle>{category} Exposure {displayMode[category] ? '(Absolute)' : '(Relative)'}</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-500">Relative</span>
+                  {category === 'Asset Class' && (
+                    <Switch 
+                      checked={displayMode[category]} 
+                      onCheckedChange={() => toggleDisplayMode(category)}
+                      className="data-[state=checked]:bg-indigo-500"
+                    />
+                  )}
+                  {category === 'Market' && (
+                    <Switch 
+                      checked={displayMode[category]} 
+                      onCheckedChange={() => toggleDisplayMode(category)}
+                      className="data-[state=checked]:bg-emerald-500"
+                    />
+                  )}
+                  {category === 'Factor Style' && (
+                    <Switch 
+                      checked={displayMode[category]} 
+                      onCheckedChange={() => toggleDisplayMode(category)}
+                      className="data-[state=checked]:bg-amber-500"
+                    />
+                  )}
+                  {category === 'Size Factor' && (
+                    <Switch 
+                      checked={displayMode[category]} 
+                      onCheckedChange={() => toggleDisplayMode(category)}
+                      className="data-[state=checked]:bg-rose-500"
+                    />
+                  )}
+                  <span className="text-xs text-gray-500">Absolute</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {Object.entries(subcategories).map(([subcategory]) => {
+                  const exposure = (categoryExposures[category]?.[subcategory] || 0) * 100; // Convert to percentage
+                  const maxExposure = Math.max(
+                    ...Object.values(categoryExposures[category] || {}).map(v => v * 100),
+                    100
+                  );
+                  
+                  return (
+                    <ExposureBar 
+                      key={subcategory}
+                      value={exposure}
+                      maxValue={maxExposure}
+                      label={subcategory}
+                      color={CATEGORY_COLORS[category].light}
+                      isAbsolute={displayMode[category]}
+                    />
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );
