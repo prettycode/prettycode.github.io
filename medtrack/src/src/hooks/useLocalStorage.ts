@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { STORAGE_PREFIX } from '../utils/constants';
 
 /**
  * Custom hook for storing and retrieving data from localStorage
@@ -9,7 +10,7 @@ import { useState, useCallback } from 'react';
 export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
-      const item = localStorage.getItem(key);
+      const item = localStorage.getItem(STORAGE_PREFIX + key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
       console.error('Error loading from localStorage', error);
@@ -21,7 +22,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T 
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
-      localStorage.setItem(key, JSON.stringify(valueToStore));
+      localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(valueToStore));
     } catch (error) {
       console.error('Error saving to localStorage', error);
     }

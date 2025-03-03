@@ -1,6 +1,4 @@
-/// <reference types="react" />
-/// <reference types="react-dom" />
-
+// Type definitions for React environment
 declare namespace NodeJS {
   interface ProcessEnv {
     readonly NODE_ENV: 'development' | 'production' | 'test';

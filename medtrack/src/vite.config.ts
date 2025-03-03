@@ -8,7 +8,7 @@ export default defineConfig({
   publicDir: 'public',
   base: './',
   build: {
-    outDir: '../dist',
+    // Clean the out dir before building
     emptyOutDir: true
   },
   server: {
