@@ -1,39 +1,50 @@
 {
-  "name": "medication-tracker",
-  "version": "1.0.0",
-  "description": "A web application for medication tracking.",
-  "type": "module",
-  "scripts": {
-    "start": "vite",
-    "build": "tsc && vite build --outDir ../dist",
-    "preview": "vite preview",
-    "type-check": "tsc --noEmit",
-    "lint": "eslint .",
-    "test:local": "vitest run --passWithNoTests",
-    "test:ci": "vitest run",
-    "audit-fix": "npm audit fix --force",
-    "ci": "npm install && npm ci && npm audit --audit-level=high && npm run type-check && npm run lint && npm run test:local && npm run build"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.21.0",
-    "@types/react": "^18.2.56",
-    "@types/react-dom": "^18.2.19",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
-    "@typescript-eslint/parser": "^7.0.2",
-    "@vitejs/plugin-react": "^4.2.1",
-    "@vitejs/plugin-react-swc": "^3.5.0",
-    "eslint": "^8.57.1",
-    "eslint-plugin-react": "^7.37.4",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-    "globals": "^16.0.0",
-    "typescript": "^5.3.3",
-    "typescript-eslint": "^8.25.0",
-    "vite": "^6.2.0",
-    "vitest": "^3.0.7"
-  }
+    "name": "medication-tracker",
+    "version": "1.0.0",
+    "description": "A web application for medication tracking.",
+    "type": "module",
+    "scripts": {
+        "start": "vite",
+        "preview": "vite preview",
+        "build:vite": "vite build --outDir ../dist",
+        "build:typescript:local": "tsc",
+        "build:typescript:ci": "tsc --noEmit",
+        "lint": "eslint .",
+        "formatting:fix": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
+        "formatting:ci": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
+        "test:local": "vitest run --passWithNoTests",
+        "test:ci": "vitest run",
+        "audit:ci": "npm audit --audit-level=high",
+        "audit:fix": "npm audit fix",
+        "audit:fix:force": "npm audit fix --force",
+        "ci:local": "npm install && npm run audit:fix && npm run formatting:fix && npm run build:typescript:local && npm run lint && npm run test:local && npm run build:vite",
+        "ci": "npm ci && npm run audit:ci && npm run formatting:ci && npm run build:typescript:ci && npm run lint && npm run test:ci && npm run build:vite"
+    },
+    "dependencies": {
+        "@react-oauth/google": "^0.12.1",
+        "gapi-script": "^1.2.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.21.0",
+        "@types/react": "^18.2.56",
+        "@types/react-dom": "^18.2.19",
+        "@typescript-eslint/eslint-plugin": "^7.0.2",
+        "@typescript-eslint/parser": "^7.0.2",
+        "@vitejs/plugin-react": "^4.2.1",
+        "@vitejs/plugin-react-swc": "^3.5.0",
+        "eslint": "^8.57.1",
+        "eslint-config-prettier": "^10.0.2",
+        "eslint-plugin-prettier": "^5.1.3",
+        "eslint-plugin-react": "^7.37.4",
+        "eslint-plugin-react-hooks": "^4.6.0",
+        "eslint-plugin-react-refresh": "^0.4.5",
+        "globals": "^16.0.0",
+        "prettier": "^3.5.3",
+        "typescript": "^5.3.3",
+        "typescript-eslint": "^8.25.0",
+        "vite": "^6.2.0",
+        "vitest": "^3.0.7"
+    }
 }

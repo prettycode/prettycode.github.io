@@ -6,4 +6,4 @@
 export const APP_STORAGE_ID = 'medtrack';
 export const STORAGE_PREFIX = `${APP_STORAGE_ID}:`;
 
-// Other app-wide constants can be added here 
+// Other app-wide constants can be added here

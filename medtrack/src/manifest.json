@@ -8,11 +8,11 @@
     "description": "Keep track of when to next take your medication.",
     "id": "/medtrack/",
     "icons": [
-      {
-        "src": "./favicon.svg",
-        "sizes": "any",
-        "type": "image/svg+xml",
-        "purpose": "any"
-      }
+        {
+            "src": "./favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
     ]
-  }
+}
