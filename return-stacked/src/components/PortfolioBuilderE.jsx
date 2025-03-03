@@ -97,6 +97,11 @@ const EXPOSURE_MAPPING = {
     'Gold': ['Gold'],
     'Bitcoin': ['Bitcoin']
   },
+  'Market': {
+    'U.S.': ['U.S.'],
+    'International Developed': ['International Developed'],
+    'Emerging': ['Emerging Market']
+  },
   'Factor Style': {
     'Blend': ['Blend'],
     'Value': ['Value'],
@@ -105,25 +110,31 @@ const EXPOSURE_MAPPING = {
   'Size Factor': {
     'Large Cap': ['Large Cap'],
     'Small Cap': ['Small Cap']
-  },
-  'Market': {
-    'U.S.': ['U.S.'],
-    'International Developed': ['International Developed'],
-    'Emerging Market': ['Emerging Market']
   }
 };
 
 const ExposureBar = ({ value, maxValue, label }) => {
   const percentage = (value / maxValue) * 100;
+  
+  // Format the percentage to remove unnecessary decimal places
+  const formatPercentage = (num) => {
+    // If it's a whole number (ends with .00), show without decimals
+    if (num % 1 === 0) {
+      return `${Math.floor(num)}%`;
+    }
+    // Otherwise show with 2 decimal places
+    return `${num.toFixed(2)}%`;
+  };
+  
   return (
     <div className="w-full mb-4">
       <div className="flex justify-between mb-1">
         <span className="text-sm font-medium">{label}</span>
-        <span className="text-sm font-medium">{value.toFixed(2)}%</span>
+        <span className="text-sm font-medium">{formatPercentage(value)}</span>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-2.5">
         <div 
-          className="bg-blue-400 h-2.5 rounded-full transition-all duration-300"
+          className="bg-blue-500 h-2.5 rounded-full transition-all duration-300"
           style={{ width: `${Math.min(100, percentage)}%` }}
         />
       </div>
@@ -163,7 +174,7 @@ const PortfolioVisualizer = () => {
     'Market': {
       'U.S.': 0.65,
       'International Developed': 0.25,
-      'Emerging Market': 0.10
+      'Emerging': 0.10
     }
   };
 
