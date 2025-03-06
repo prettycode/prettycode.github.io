@@ -126,7 +126,7 @@ export interface MedicationContextType {
     getDoseAdherence: (doseTime: string, doseIndex: number) => DoseAdherenceInfo;
     calculateStreak: () => number;
     dateUtils: {
-        formatTimeDifference: (milliseconds: number) => string;
+        formatTimeDifference: (milliseconds: number, showZeros?: boolean) => string;
         formatDateTime: (dateString: string) => string;
         formatDateTimeWithDayOfWeek: (dateString: string) => FormattedDateTime;
         getCurrentDateTimeForInput: () => string;

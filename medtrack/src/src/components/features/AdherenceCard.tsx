@@ -16,6 +16,15 @@ export const AdherenceCard: React.FC = () => {
     const adherence = calculateAdherence();
     const currentStreak = calculateStreak();
 
+    // Calculate time difference between first and last dose for streak display
+    let streakDuration = '';
+    if (currentStreak > 0 && doses.length > 1) {
+        const firstDoseTime = new Date(doses[0].time).getTime();
+        const lastDoseTime = new Date(doses[doses.length - 1].time).getTime();
+        const timeDifference = lastDoseTime - firstDoseTime;
+        streakDuration = useMedication().dateUtils.formatTimeDifference(timeDifference, false);
+    }
+
     return (
         <Card
             title="Adherence"
@@ -25,6 +34,7 @@ export const AdherenceCard: React.FC = () => {
                     <span className={`text-lg font-bold ${currentStreak > 0 ? 'text-green-600' : 'text-gray-600'}`}>
                         {currentStreak > 0 && '🔥 '}
                         {currentStreak}
+                        {currentStreak > 0 && streakDuration && <span className="ml-1 font-normal">({streakDuration})</span>}
                     </span>
                 </div>
             }
@@ -40,7 +50,7 @@ export const AdherenceCard: React.FC = () => {
                 <span className="text-sm font-medium">{adherence.percentage}%</span>
                 <span className="text-sm text-gray-500">100%</span>
             </div>
-            <div className="mt-3">
+            {/*<div className="mt-3">
                 <p className="text-sm text-gray-600">Average deviation: {Math.round(adherence.avgDeviation ?? 0 * 10) / 10} minutes</p>
             </div>
             {currentStreak > 0 && (
@@ -58,7 +68,7 @@ export const AdherenceCard: React.FC = () => {
                         {currentStreak === 1 ? '1 dose taken on time!' : `${currentStreak} consecutive doses taken on time!`}
                     </p>
                 </div>
-            )}
+            )}*/}
         </Card>
     );
 };
