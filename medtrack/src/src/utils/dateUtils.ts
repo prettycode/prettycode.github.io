@@ -19,7 +19,7 @@ export const dateUtils = {
     formatDateTime: (dateString: string): string => {
         const date = new Date(dateString);
         const options: Intl.DateTimeFormatOptions = {
-            weekday: 'long',
+            weekday: 'short',
             month: 'short',
             day: 'numeric',
             year: 'numeric',

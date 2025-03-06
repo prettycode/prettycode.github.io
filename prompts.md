@@ -32,10 +32,19 @@ The code is looking very messy with respect to white space and syntax. Our code 
 * Always use "early exits".
 * Never use nested if statements.
 * Always use brackets when brackets are optional.
+* Examine `console.log` uses and make sure to use the appropraite function (e.g. `info`, `warm`, `error`) instead of always using `log`.
+* Always use `async`/`await` instead of Promise callbacks.
+* Scrutinize `try`/`catch` statements to make sure the `try` portion is only around the actual line(s) of code that are anticipated could fail; do not wrap whole bodies of methods or large pieces of code as a catch-up.
 * Always use `const` instead of `var` for variables, unless other code actually mutates the variable.
 * Remove superfluous comments. The code should be written such that it's mostly self-documenting.
+* Always use camelCase, not `snake_case` or `PascalCase`, for variable names.
+* Ternary statements should written on three lines, like this:
+    ```condition 
+    ? exprIfTrue 
+    : exprIfFalse```
 * Always use object destructuring. Each destructured variable should be on its own line.
 * Always put each property on each line when creating or passing objects or parameters.
+* The first property of a new object should always be on the next line after its opening brackets *if* there is more than one property.
 * Use the latest JavaScript syntax conventions available that are supported by the version of babel we are using.
 </blockquote>
 
@@ -51,3 +60,6 @@ The code is looking very messy with respect to white space and syntax. Our code 
 ## Making sure chareges in Node.js project are passing CI
 > 
 Please add an NPM script to the package.json under key "build:local:ci". Please have this script act as the pass/fail CI pipeline for anytime changes are considered complete and working. Running this script will prove the changes are still compiling.
+
+Please rewrite these tests from scratch. Look at the server.ts contents and figure out what important code paths need to be covered. Anything that causes a return of status code that's not 200 needs a test. Succesful executions that do need return status code 200 need tests too of course. We don't want to overdue it with the number of tests--we want to catch all the major code paths, while trying to mock as little as possible.
+You can test using command `npx vitest run`
