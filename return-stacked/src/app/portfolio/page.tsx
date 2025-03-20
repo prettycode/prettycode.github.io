@@ -13,18 +13,20 @@ import PortfolioBuilderB from "@/components/PortfolioBuilderB";
 import PortfolioBuilderC from "@/components/PortfolioBuilderC";
 import PortfolioBuilderD from "@/components/PortfolioBuilderD";
 import PortfolioBuilderE from "@/components/PortfolioBuilderE";
+import PortfolioBuilderF from "@/components/PortfolioBuilderF";
 
-type BuilderType = "A" | "B" | "C" | "D" | "E";
+type BuilderType = "A" | "B" | "C" | "D" | "E" | "F";
 
 export default function PortfolioPage() {
-  const [selectedBuilder, setSelectedBuilder] = useState<BuilderType>("E");
+  const [selectedBuilder, setSelectedBuilder] = useState<BuilderType>("F");
 
   const portfolioComponents = {
     "A": <PortfolioBuilderA />,
     "B": <PortfolioBuilderB />,
     "C": <PortfolioBuilderC />,
     "D": <PortfolioBuilderD />,
-    "E": <PortfolioBuilderE />
+    "E": <PortfolioBuilderE />,
+    "F": <PortfolioBuilderF />
   };
 
   return (
@@ -46,6 +48,7 @@ export default function PortfolioPage() {
                 <SelectItem value="C">Builder C</SelectItem>
                 <SelectItem value="D">Builder D</SelectItem>
                 <SelectItem value="E">Builder E</SelectItem>
+                <SelectItem value="F">Builder F</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -13,6 +13,12 @@ export default function Home() {
             <h2 className="text-xl font-semibold">Portfolio Builder</h2>
             <p className="text-center text-sm text-gray-600 dark:text-gray-400">Access our comprehensive portfolio builder with multiple visualization options</p>
           </Link>
+          
+          <Link href="/portfolio" className="rounded-lg border border-solid border-black/[.08] dark:border-white/[.145] hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] p-8 transition-colors flex flex-col items-center gap-4 min-w-64">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">F</div>
+            <h2 className="text-xl font-semibold">ETF Portfolio Visualizer</h2>
+            <p className="text-center text-sm text-gray-600 dark:text-gray-400">Visualize ETF portfolios and analyze exposures across asset classes and markets</p>
+          </Link>
         </div>
       </main>
       <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">

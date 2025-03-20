@@ -63,3 +63,27 @@ Please add an NPM script to the package.json under key "build:local:ci". Please 
 
 Please rewrite these tests from scratch. Look at the server.ts contents and figure out what important code paths need to be covered. Anything that causes a return of status code that's not 200 needs a test. Succesful executions that do need return status code 200 need tests too of course. We don't want to overdue it with the number of tests--we want to catch all the major code paths, while trying to mock as little as possible.
 You can test using command `npx vitest run`
+
+
+Please make a comprehensive analysis of all the markdown files in this repository. Please evaluate each one and research whether or not its still accurate, by looking through code. Make any additions, deletions, or modifications in these markdown files, and create or remove any markdown files themselves as necessary. You've been tasked wtih organizating the documentation resources for this project for other engineers and stakeholders. Ignore all markdown files that are descendants of "node_modules" folders.
+
+
+We need our implementation to be minimalist but also not take any short-cuts. Do not be superfluous though. Do not add comments to everything you do. Prefer async/await always.
+
+
+Please look closely at build.ps1 and see if there is any refactoring needed. We want to apply all the fixes possible when not in CI mode. Think about a project that needs to carefully maintain order across manny engineers. Think about what the most modern .NET projects do. We need to make sure all the checks possible are here to ensure code quality and standards. We are CI experts and need to be lean while also maintaining "best in class" standards. (Do not create any tests, however; it's okay to run tests as part of the build, so long as zero tests doesn't cause the build to fail when not In CI mode. We don't need example tests.) 
+
+
+Never comment in your code changes explaining what changes you made. Same goes for making changes in markdown files.
+
+
+
+## .editorconfig
+# All files
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
