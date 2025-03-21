@@ -1034,68 +1034,44 @@ const ETFPortfolioVisualizer = () => {
 
   return (
     <div className="max-w-full mx-auto p-6 bg-gray-50">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">ETF Portfolio Exposure Visualizer</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-800">Portfolio Exposure</h1>
       
       <div className="flex flex-col md:flex-row gap-6">
         {/* LEFT COLUMN - Portfolio Selection and Building */}
         <div className="md:w-11/20 flex flex-col">
           <div className="mb-6">
-            <div className="flex justify-between mb-4">
-              <label className="block text-sm font-medium mb-2 text-gray-700">
-                Portfolio Builder
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={resetPortfolio}
-                  className="px-3 py-1 text-sm rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={saveCustomPortfolio}
-                  disabled={Math.abs(totalAllocation - 100) > 0.1}
-                  className={`px-3 py-1 text-sm rounded-md ${
-                    Math.abs(totalAllocation - 100) <= 0.1
-                      ? 'bg-gray-800 text-white hover:bg-gray-700' 
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  Save Portfolio
-                </button>
-              </div>
-            </div>
-            
             {/* Example Portfolio Templates */}
             <div className="mb-4">
               <h3 className="text-md font-medium mb-2">Portfolio Templates</h3>
-              <div className="flex flex-wrap gap-2">
-                {examplePortfolios.map((portfolio, index) => (
-                  <button
-                    key={index}
-                    onClick={() => loadExamplePortfolio(portfolio)}
-                    className="px-3 py-2 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm transition-colors"
-                  >
-                    {portfolio.name}
-                  </button>
-                ))}
+              <div className="relative">
+                <select 
+                  className="block w-full px-3 py-2 text-gray-800 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent appearance-none bg-white"
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const selectedPortfolio = examplePortfolios[parseInt(e.target.value)];
+                      loadExamplePortfolio(selectedPortfolio);
+                      e.target.value = ""; // Reset after selection
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>Select a portfolio template...</option>
+                  {examplePortfolios.map((portfolio, index) => (
+                    <option key={index} value={index}>
+                      {portfolio.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd"></path>
+                  </svg>
+                </div>
               </div>
             </div>
             
             <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-4">
-              <div className="flex flex-wrap justify-between items-center mb-4">
-                <div>
-                  <h3 className="text-lg font-bold">{customPortfolio.name}</h3>
-                  <p className="text-sm text-gray-500">
-                    {customPortfolio.description}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Total Allocation: <span className={Math.abs(totalAllocation - 100) > 0.1 ? "text-red-500 font-bold" : "text-green-500 font-bold"}>
-                      {totalAllocation.toFixed(1)}%
-                    </span>
-                    {Math.abs(totalAllocation - 100) > 0.1 && <span className="text-red-500"> (Should be 100%)</span>}
-                  </p>
-                </div>
-              </div>
+
               
               {/* ETF Selection */}
               <div className="mb-4">
@@ -1126,9 +1102,8 @@ const ETFPortfolioVisualizer = () => {
               
               {/* Combined ETF Allocation and Builder */}
               <div>
-                <h4 className="text-md font-medium mb-2">ETF Allocation</h4>
                 <div className="flex justify-between items-center mb-3">
-                  <div></div>
+                  <h4 className="text-md font-medium">ETF Allocation</h4>
                   <button
                     onClick={() => setShowDetailColumns(!showDetailColumns)}
                     className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 px-3 py-1 rounded border border-gray-300 hover:bg-gray-100 transition-colors"
@@ -1232,15 +1207,17 @@ const ETFPortfolioVisualizer = () => {
                             )}
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               <div className="flex items-center gap-2 w-full">
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  value={percentage}
-                                  onChange={(e) => updateETFAllocation(ticker, e.target.value)}
-                                  disabled={locked || disabled}
-                                  className={`${showDetailColumns ? 'w-24' : 'flex-grow'} ${disabled || locked ? "opacity-50" : ""}`}
-                                />
+                                {!showDetailColumns && (
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={percentage}
+                                    onChange={(e) => updateETFAllocation(ticker, e.target.value)}
+                                    disabled={locked || disabled}
+                                    className={`flex-grow ${disabled || locked ? "opacity-50" : ""}`}
+                                  />
+                                )}
                                 <div className="flex-shrink-0 flex items-center">
                                   <input
                                     type="number"
@@ -1314,6 +1291,28 @@ const ETFPortfolioVisualizer = () => {
                       )}
                     </tbody>
                   </table>
+                  
+                </div>
+                
+                {/* Action buttons */}
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    onClick={resetPortfolio}
+                    className="px-3 py-1 text-sm rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    onClick={saveCustomPortfolio}
+                    disabled={Math.abs(totalAllocation - 100) > 0.1}
+                    className={`px-3 py-1 text-sm rounded-md ${
+                      Math.abs(totalAllocation - 100) <= 0.1
+                        ? 'bg-gray-800 text-white hover:bg-gray-700' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    Save Portfolio
+                  </button>
                 </div>
               </div>
             </div>

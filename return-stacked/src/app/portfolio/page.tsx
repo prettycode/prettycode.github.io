@@ -19,7 +19,7 @@ import PortfolioBuilderG from "@/components/PortfolioBuilderG";
 type BuilderType = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 
 export default function PortfolioPage() {
-  const [selectedBuilder, setSelectedBuilder] = useState<BuilderType>("F");
+  const [selectedBuilder, setSelectedBuilder] = useState<BuilderType>("G");
 
   const portfolioComponents = {
     "A": <PortfolioBuilderA />,
