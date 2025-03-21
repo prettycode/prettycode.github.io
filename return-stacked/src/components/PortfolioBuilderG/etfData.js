@@ -306,38 +306,54 @@ export const etfCatalog = [
         'Daily Reset'
     ),
     createETF('KMLM', [{ exposure: { assetClass: 'Managed Futures' }, amount: 1.0 }]),
+    createETF('AVUV', [
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'U.S.',
+                factorStyle: 'Value',
+                sizeFactor: 'Small Cap',
+            },
+            amount: 1.0,
+        },
+    ]),
 ];
 
 // Function to create a portfolio
-export const createPortfolio = (name, description, allocations) => {
+export const createPortfolio = (name, allocations) => {
     const holdings = new Map();
 
     for (const { ticker, percentage } of allocations) {
         holdings.set(ticker, percentage);
     }
 
-    return { name, description, holdings };
+    return { name, holdings };
 };
 
 // Define example portfolios
 export const examplePortfolios = [
-    createPortfolio(
-        'Example portfolio',
-        'Optimized portfolio using high leverage across diverse asset classes to maximize returns while minimizing volatility',
-        [
-            { ticker: 'RSST', percentage: 17 }, // Stacked leverage: Equity + Managed Futures
-            { ticker: 'RSBT', percentage: 16 }, // Stacked leverage: Treasuries + Managed Futures
-            { ticker: 'RSSY', percentage: 10 }, // Stacked leverage: Equity + Futures Yield
-            { ticker: 'TMF', percentage: 12 }, // 3x Leveraged Treasuries for negative correlation to equities
-            { ticker: 'UPRO', percentage: 8 }, // 3x Leveraged S&P 500
-            { ticker: 'EDC', percentage: 8 }, // 3x Leveraged Emerging Markets
-            { ticker: 'UGL', percentage: 8 }, // 2x Leveraged Gold for inflation protection
-            { ticker: 'BTGD', percentage: 8 }, // Stacked leverage: Bitcoin + Gold for diversification
-            { ticker: 'AVDV', percentage: 6 }, // International Developed Small Cap Value
-            { ticker: 'DGS', percentage: 4 }, // Emerging Markets Small Cap Value
-            { ticker: 'KMLM', percentage: 3 }, // Managed Futures for trend following
-        ]
-    ),
+    createPortfolio('Levered 4:3:2:1', [
+        { ticker: 'RSST', percentage: 60 }, // Stacked leverage: Equity + Managed Futures
+        { ticker: 'GDE', percentage: 25 }, // Stacked leverage: Equity + Gold
+        { ticker: 'TMF', percentage: 15 }, // 3x Leveraged Treasuries
+    ]),
+    createPortfolio('SSO/ZROZ/GLD', [
+        { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
+        { ticker: 'GOVZ', percentage: 25 }, // Extended Duration Treasuries
+        { ticker: 'GLDM', percentage: 25 }, // Gold exposure
+    ]),
+    createPortfolio('YOLO', [
+        { ticker: 'UPRO', percentage: 45 }, // 3x Leveraged S&P 500
+        { ticker: 'KMLM', percentage: 30 }, // Managed Futures for trend following
+        { ticker: 'TMF', percentage: 25 }, // 3x Leveraged Treasuries
+    ]),
+    createPortfolio('Levered Value Barbell', [
+        { ticker: 'RSST', percentage: 25 }, // Stacked leverage: Equity + Managed Futures
+        { ticker: 'RSSB', percentage: 25 }, // Stacked leverage: Global Equity + Treasuries
+        { ticker: 'AVDV', percentage: 17.5 }, // International Developed Small Cap Value
+        { ticker: 'DGS', percentage: 17.5 }, // Emerging Markets Small Cap Value
+        { ticker: 'AVUV', percentage: 15 }, // U.S. Small Cap Value
+    ]),
 ];
 
 // Function to analyze a portfolio's total exposure

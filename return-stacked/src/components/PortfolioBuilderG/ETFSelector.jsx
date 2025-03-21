@@ -12,8 +12,7 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
     const filteredETFs = etfCatalog
         .filter(
             (etf) =>
-                etf.ticker.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                !existingTickers.includes(etf.ticker)
+                etf.ticker.toLowerCase().includes(searchTerm.toLowerCase()) && !existingTickers.includes(etf.ticker)
         )
         .sort((a, b) => a.ticker.localeCompare(b.ticker)); // Sort alphabetically by ticker
 
@@ -146,9 +145,7 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
             {isOpen && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[50vh] overflow-y-auto">
                     {filteredETFs.length === 0 ? (
-                        <div className="px-4 py-2 text-sm text-gray-500">
-                            No ETFs found matching "{searchTerm}"
-                        </div>
+                        <div className="px-4 py-2 text-sm text-gray-500">No ETFs found matching "{searchTerm}"</div>
                     ) : (
                         <ul className="py-1">
                             {filteredETFs.map((etf, index) => (
