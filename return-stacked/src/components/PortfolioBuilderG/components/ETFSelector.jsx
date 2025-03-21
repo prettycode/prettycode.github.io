@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { parseExposureKey } from './etfData';
+import { parseExposureKey } from '../utils/etfData';
 
 const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
     const [isOpen, setIsOpen] = useState(false);

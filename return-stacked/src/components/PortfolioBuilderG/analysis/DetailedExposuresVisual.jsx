@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
-import { analyzePortfolio, parseExposureKey, assetClassColors, regionColors } from './etfData';
+import { analyzePortfolio, parseExposureKey, assetClassColors, regionColors } from '../utils/etfData';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
+import { Percent, GanttChart, Filter, ChevronDown, ChevronRight } from 'lucide-react';
 
-// Component to display detailed exposures as visual progress bars
-const DetailedExposuresVisual = ({ portfolio }) => {
-    // Shared states for display settings
-    const [showRelative, setShowRelative] = useState(true);
+// Component to display detailed exposures with compact modern visualization
+const DetailedExposuresVisual = ({ portfolio, onSortChange, showRelative = true, hideZeroValues = false }) => {
+    // Local state for sort order and expanded categories
     const [sortByValue, setSortByValue] = useState(false);
-    const [hideZeroValues, setHideZeroValues] = useState(false);
+    const [expandedCategories, setExpandedCategories] = useState({
+        assetClass: true,
+        marketRegion: false,
+        factorStyle: false,
+        sizeFactor: false,
+    });
 
     const { exposures, totalLeverage } = analyzePortfolio(portfolio);
 
@@ -138,8 +148,24 @@ const DetailedExposuresVisual = ({ portfolio }) => {
         Emerging: equityBlue,
     };
 
+    // Notify parent when sortByValue changes
+    const handleSortChange = (newSortValue) => {
+        setSortByValue(newSortValue);
+        if (onSortChange) {
+            onSortChange(newSortValue);
+        }
+    };
+
+    // Toggle category expansion
+    const toggleCategory = (category) => {
+        setExpandedCategories({
+            ...expandedCategories,
+            [category]: !expandedCategories[category],
+        });
+    };
+
     // Helper component for exposure category
-    const ExposureCategory = ({ title, exposuresAbs, exposuresRel, colors, borderColor }) => {
+    const ExposureCategory = ({ id, title, icon, exposuresAbs, exposuresRel, colors }) => {
         // Determine which exposure set to use based on the shared toggle
         const exposuresToUse = showRelative ? exposuresRel : exposuresAbs;
 
@@ -156,154 +182,122 @@ const DetailedExposuresVisual = ({ portfolio }) => {
             exposureItems = exposureItems.filter(([_, value]) => value > 0);
         }
 
+        // Check if we should show this category
+        const isExpanded = expandedCategories[id];
+        const hasNonZeroValues = exposureItems.some(([_, value]) => value > 0);
+
+        if (hideZeroValues && !hasNonZeroValues) {
+            return null;
+        }
+
         return (
-            <div className="mb-7">
-                <h3 className="text-lg font-medium mb-4">{title}</h3>
-                <div className="space-y-4 ml-4">
-                    {exposureItems.length > 0 ? (
-                        exposureItems.map(([name, value], index) => (
-                            <div key={index} className="space-y-1">
-                                <div className="flex justify-between">
-                                    <span className="text-sm font-medium text-gray-700">{name}</span>
-                                    <span className="text-sm font-medium text-gray-900">{value.toFixed(0)}%</span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                    <div
-                                        className="h-2.5 rounded-full"
-                                        style={{
-                                            width: `${Math.min(value, 100)}%`,
-                                            backgroundColor: colors[name] || '#D1D5DB',
-                                        }}
-                                    ></div>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="text-sm text-gray-500 italic">No exposures to display</div>
+            <Card className="overflow-hidden bg-card shadow-sm mb-2 border-border/40">
+                <CardHeader
+                    className={cn(
+                        'cursor-pointer py-3 px-3 flex flex-row items-center justify-between',
+                        isExpanded ? 'border-b border-border/40' : ''
                     )}
-                </div>
-            </div>
+                    onClick={() => toggleCategory(id)}
+                >
+                    <div className="flex items-center space-x-1.5">
+                        {icon}
+                        <CardTitle className="text-xs font-medium">{title}</CardTitle>
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center">
+                        {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    </div>
+                </CardHeader>
+
+                {isExpanded && (
+                    <CardContent className="py-3 px-4">
+                        <div className="space-y-2">
+                            {exposureItems.length > 0 ? (
+                                exposureItems.map(([name, value], index) => (
+                                    <div key={index} className="space-y-1">
+                                        <div className="flex justify-between font-medium">
+                                            <span className="text-xs">{name}</span>
+                                            <span className="text-xs">{value.toFixed(1)}%</span>
+                                        </div>
+                                        <div className="relative h-1.5">
+                                            <Progress
+                                                value={Math.min(value, 100)}
+                                                className="h-1.5 absolute w-full"
+                                                indicatorClassName={cn('transition-all', {
+                                                    'bg-gradient-to-r from-blue-500 to-blue-600': !colors[name],
+                                                })}
+                                                style={{
+                                                    '--progress-background': colors[name] || '#3b82f6',
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-xs text-muted-foreground italic">No exposures to display</div>
+                            )}
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
         );
     };
 
     return (
-        <div className="space-y-8">
-            {/* Display controls - toggles in a flex container */}
-            <div className="flex flex-wrap justify-end mb-2 gap-4">
-                {/* Relative/Absolute toggle */}
-                <label className="inline-flex items-center cursor-pointer">
-                    <span className="mr-2 text-sm font-medium text-gray-500">Relative</span>
-                    <div
-                        className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full"
-                        style={{ backgroundColor: showRelative ? '#7070f8' : '#e5e7eb' }}
-                    >
-                        <input
-                            type="checkbox"
-                            className="absolute w-6 h-6 opacity-0 cursor-pointer z-10"
-                            checked={!showRelative}
-                            onChange={() => setShowRelative(!showRelative)}
-                        />
-                        <span
-                            className={`absolute left-0 top-0 w-6 h-6 transition-transform duration-200 transform ${
-                                !showRelative ? 'translate-x-6' : 'translate-x-0'
-                            } bg-white border border-gray-300 rounded-full`}
-                        />
-                        <span
-                            className={`block h-full rounded-full`}
-                            style={{ backgroundColor: !showRelative ? '#7070f8' : '#e5e7eb' }}
-                        />
-                    </div>
-                    <span className="ml-2 text-sm font-medium text-gray-500">Absolute</span>
-                </label>
-
-                {/* Sort/Fixed Order toggle */}
-                <label className="inline-flex items-center cursor-pointer">
-                    <span className="mr-2 text-sm font-medium text-gray-500">Fixed Order</span>
-                    <div
-                        className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full"
-                        style={{ backgroundColor: !sortByValue ? '#7070f8' : '#e5e7eb' }}
-                    >
-                        <input
-                            type="checkbox"
-                            className="absolute w-6 h-6 opacity-0 cursor-pointer z-10"
-                            checked={sortByValue}
-                            onChange={() => setSortByValue(!sortByValue)}
-                        />
-                        <span
-                            className={`absolute left-0 top-0 w-6 h-6 transition-transform duration-200 transform ${
-                                sortByValue ? 'translate-x-6' : 'translate-x-0'
-                            } bg-white border border-gray-300 rounded-full`}
-                        />
-                        <span
-                            className={`block h-full rounded-full`}
-                            style={{ backgroundColor: sortByValue ? '#7070f8' : '#e5e7eb' }}
-                        />
-                    </div>
-                    <span className="ml-2 text-sm font-medium text-gray-500">Sort by Value</span>
-                </label>
-
-                {/* Show/Hide Zero Values toggle */}
-                <label className="inline-flex items-center cursor-pointer">
-                    <span className="mr-2 text-sm font-medium text-gray-500">Show All</span>
-                    <div
-                        className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full"
-                        style={{ backgroundColor: !hideZeroValues ? '#7070f8' : '#e5e7eb' }}
-                    >
-                        <input
-                            type="checkbox"
-                            className="absolute w-6 h-6 opacity-0 cursor-pointer z-10"
-                            checked={hideZeroValues}
-                            onChange={() => setHideZeroValues(!hideZeroValues)}
-                        />
-                        <span
-                            className={`absolute left-0 top-0 w-6 h-6 transition-transform duration-200 transform ${
-                                hideZeroValues ? 'translate-x-6' : 'translate-x-0'
-                            } bg-white border border-gray-300 rounded-full`}
-                        />
-                        <span
-                            className={`block h-full rounded-full`}
-                            style={{
-                                backgroundColor: hideZeroValues ? '#7070f8' : '#e5e7eb',
-                            }}
-                        />
-                    </div>
-                    <span className="ml-2 text-sm font-medium text-gray-500">Hide Zero</span>
-                </label>
-            </div>
-
+        <div className="space-y-2">
+            {/* Exposure Categories */}
             <ExposureCategory
+                id="assetClass"
                 title="Asset Class Exposure"
+                icon={<div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#7070f8' }}></div>}
                 exposuresAbs={assetClassExposuresAbs}
                 exposuresRel={assetClassExposuresRel}
                 colors={assetClassColors}
-                borderColor="#7070f8"
             />
 
             <ExposureCategory
+                id="marketRegion"
                 title="Market Exposure"
+                icon={<div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#32d296' }}></div>}
                 exposuresAbs={marketRegionExposuresAbs}
                 exposuresRel={marketRegionExposuresRel}
                 colors={marketRegionColors}
-                borderColor="#32d296"
             />
 
             <ExposureCategory
+                id="factorStyle"
                 title="Factor Style Exposure"
+                icon={<div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ffbb00' }}></div>}
                 exposuresAbs={factorStyleExposuresAbs}
                 exposuresRel={factorStyleExposuresRel}
                 colors={factorStyleColors}
-                borderColor="#ffbb00"
             />
 
             <ExposureCategory
+                id="sizeFactor"
                 title="Size Factor Exposure"
+                icon={<div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ff6b6b' }}></div>}
                 exposuresAbs={sizeFactorExposuresAbs}
                 exposuresRel={sizeFactorExposuresRel}
                 colors={sizeFactorColors}
-                borderColor="#ff6b6b"
             />
         </div>
     );
 };
+
+// Toggle component for view options
+export const ViewToggle = ({ label, icon, isChecked, onChange }) => (
+    <div className="flex items-center space-x-1.5 px-1.5 py-1 rounded-sm hover:bg-muted">
+        {icon}
+        <Label htmlFor={`toggle-${label}`} className="text-[10px] cursor-pointer">
+            {label}
+        </Label>
+        <Switch
+            id={`toggle-${label}`}
+            checked={isChecked}
+            onCheckedChange={onChange}
+            className="data-[state=checked]:bg-primary h-[16px] w-[28px]"
+        />
+    </div>
+);
 
 export default DetailedExposuresVisual;

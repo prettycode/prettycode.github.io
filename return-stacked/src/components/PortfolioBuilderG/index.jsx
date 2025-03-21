@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
-import { etfCatalog, examplePortfolios, createPortfolio } from './etfData';
-import { parseExposureKey } from './etfData';
-import ETFSelector from './ETFSelector';
-import PortfolioAnalysis from './PortfolioAnalysis';
+import React, { useState, useEffect } from 'react';
+import { etfCatalog, examplePortfolios, createPortfolio, parseExposureKey } from './utils';
+import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils';
+import { savePortfolio, getSavedPortfolios, deserializePortfolio, deletePortfolio } from './utils';
+import { ETFSelector, PortfolioControls, SavePortfolioModal } from './components';
+import { PortfolioAnalysis } from './analysis';
 
 // Main component
 const PortfolioBuilderG = () => {
     const [customPortfolio, setCustomPortfolio] = useState(createPortfolio('My Custom Portfolio', []));
     const [tempInputs, setTempInputs] = useState({});
     const [showDetailColumns, setShowDetailColumns] = useState(false);
+    const [savedPortfolios, setSavedPortfolios] = useState([]);
+    const [showSaveModal, setShowSaveModal] = useState(false);
+
+    // Load saved portfolios from localStorage on initial render
+    useEffect(() => {
+        loadSavedPortfolios();
+    }, []);
+
+    // Function to load saved portfolios
+    const loadSavedPortfolios = () => {
+        const portfolios = getSavedPortfolios();
+        setSavedPortfolios(portfolios);
+    };
 
     // Function to update custom portfolio
     const updateCustomPortfolio = (updatedHoldings) => {
@@ -39,176 +53,21 @@ const PortfolioBuilderG = () => {
         if (customPortfolio.holdings.size <= 1) return; // Don't remove the last ETF
 
         const holdings = new Map(customPortfolio.holdings);
-        const holdingToRemove = holdings.get(ticker);
-        const deletedAllocation = holdingToRemove ? holdingToRemove.percentage : 0;
+        const updatedHoldings = redistributeAfterRemoval(holdings, ticker);
 
-        // Remove the ETF
-        holdings.delete(ticker);
-
-        // If deleted ETF had 0% allocation, no need to redistribute
-        if (deletedAllocation === 0) {
-            updateCustomPortfolio(holdings);
-            return;
+        if (updatedHoldings) {
+            updateCustomPortfolio(updatedHoldings);
         }
-
-        // Find available ETFs for redistribution (not locked or disabled)
-        const availableETFs = Array.from(holdings.entries())
-            .filter(([_, holding]) => !holding.locked && !holding.disabled)
-            .map(([etfTicker]) => etfTicker);
-
-        // If no available ETFs, unlock or enable one if possible
-        if (availableETFs.length === 0) {
-            const remainingETFs = Array.from(holdings.keys());
-
-            if (remainingETFs.length > 0) {
-                const targetETF = remainingETFs[0];
-                const targetHolding = holdings.get(targetETF);
-
-                // If disabled, enable it first
-                if (targetHolding.disabled) {
-                    holdings.set(targetETF, {
-                        ...targetHolding,
-                        disabled: false,
-                        percentage: deletedAllocation,
-                    });
-                }
-                // If locked, unlock it
-                else if (targetHolding.locked) {
-                    holdings.set(targetETF, {
-                        ...targetHolding,
-                        locked: false,
-                        percentage: targetHolding.percentage + deletedAllocation,
-                    });
-                }
-            }
-        } else {
-            // Redistribute proportionally among available ETFs
-            const totalAvailableAllocation = availableETFs.reduce((sum, etf) => {
-                const holding = holdings.get(etf);
-                return sum + (holding ? holding.percentage : 0);
-            }, 0);
-
-            // If all available ETFs have 0%, distribute equally
-            if (totalAvailableAllocation <= 0) {
-                const equalShare = deletedAllocation / availableETFs.length;
-
-                for (const etf of availableETFs) {
-                    const holding = holdings.get(etf);
-                    holdings.set(etf, {
-                        ...holding,
-                        percentage: equalShare,
-                    });
-                }
-            }
-            // Distribute proportionally based on current allocations
-            else {
-                for (const etf of availableETFs) {
-                    const holding = holdings.get(etf);
-                    const proportion = holding.percentage / totalAvailableAllocation;
-
-                    holdings.set(etf, {
-                        ...holding,
-                        percentage: holding.percentage + deletedAllocation * proportion,
-                    });
-                }
-            }
-        }
-
-        // Round percentages to one decimal place for cleaner UI
-        for (const [etf, holding] of holdings.entries()) {
-            holdings.set(etf, {
-                ...holding,
-                percentage: parseFloat(holding.percentage.toFixed(1)),
-            });
-        }
-
-        updateCustomPortfolio(holdings);
     };
 
     // Function to update an ETF's allocation and adjust others to maintain 100% total
     const updateETFAllocation = (ticker, newPercentage) => {
         const holdings = new Map(customPortfolio.holdings);
-        const currentHolding = holdings.get(ticker);
+        const updatedHoldings = updateAllocation(holdings, ticker, newPercentage);
 
-        // Don't allow changes to locked or disabled ETFs
-        if (currentHolding.locked || currentHolding.disabled) return;
-
-        // Parse and constrain the new value
-        const parsedValue = Math.max(0, Math.min(100, parseFloat(newPercentage) || 0));
-        const oldValue = currentHolding.percentage;
-        const difference = parsedValue - oldValue;
-
-        if (difference === 0) return;
-
-        // Set the new allocation for this ETF
-        holdings.set(ticker, {
-            ...currentHolding,
-            percentage: parsedValue,
-        });
-
-        // Find ETFs that can be adjusted (not locked or disabled)
-        const adjustableETFs = Array.from(holdings.entries())
-            .filter(([etfTicker, holding]) => etfTicker !== ticker && !holding.locked && !holding.disabled)
-            .map(([etfTicker]) => etfTicker);
-
-        // If no adjustable ETFs, revert the change
-        if (adjustableETFs.length === 0) {
-            return;
+        if (updatedHoldings) {
+            updateCustomPortfolio(updatedHoldings);
         }
-
-        // Calculate how much allocation is already locked
-        const lockedAllocation = Array.from(holdings.entries())
-            .filter(([etfTicker, holding]) => etfTicker !== ticker && (holding.locked || holding.disabled))
-            .reduce((sum, [_, holding]) => sum + (holding.disabled ? 0 : holding.percentage), 0);
-
-        // Calculate how much is available to distribute
-        const remainingAllocation = 100 - lockedAllocation - parsedValue;
-
-        // If remaining allocation is negative, we can't make this change
-        if (remainingAllocation < 0) {
-            return;
-        }
-
-        // Calculate current total of adjustable ETFs to maintain proportions
-        const currentAdjustableTotal = adjustableETFs.reduce((sum, etf) => {
-            const holding = holdings.get(etf);
-            return sum + holding.percentage;
-        }, 0);
-
-        // If all adjustable ETFs have 0%, distribute equally
-        if (currentAdjustableTotal <= 0) {
-            const equalShare = remainingAllocation / adjustableETFs.length;
-
-            for (const etf of adjustableETFs) {
-                const holding = holdings.get(etf);
-                holdings.set(etf, {
-                    ...holding,
-                    percentage: equalShare,
-                });
-            }
-        }
-        // Otherwise, distribute proportionally
-        else {
-            for (const etf of adjustableETFs) {
-                const holding = holdings.get(etf);
-                const proportion = holding.percentage / currentAdjustableTotal;
-
-                holdings.set(etf, {
-                    ...holding,
-                    percentage: remainingAllocation * proportion,
-                });
-            }
-        }
-
-        // Round percentages to one decimal place
-        for (const [etf, holding] of holdings.entries()) {
-            holdings.set(etf, {
-                ...holding,
-                percentage: parseFloat(holding.percentage.toFixed(1)),
-            });
-        }
-
-        updateCustomPortfolio(holdings);
     };
 
     // Function to toggle lock status
@@ -322,35 +181,69 @@ const PortfolioBuilderG = () => {
         updateCustomPortfolio(holdings);
     };
 
-    // Calculate total allocation (only for non-disabled holdings)
-    const totalAllocation = Array.from(customPortfolio.holdings.entries())
-        .filter(([_, holding]) => !holding.disabled)
-        .reduce((sum, [_, holding]) => sum + holding.percentage, 0);
+    // Calculate total allocation
+    const totalAllocation = calculateTotalAllocation(customPortfolio.holdings);
 
-    // Function to load an example portfolio into the builder
-    const loadExamplePortfolio = (portfolio) => {
-        // Convert the example portfolio's holdings to the format used by the builder
-        const newHoldings = new Map();
+    // Function to load a portfolio (example or saved)
+    const loadPortfolio = (portfolio, isSaved = false) => {
+        try {
+            // If it's a saved portfolio, it needs to be deserialized
+            const portfolioToLoad = isSaved ? deserializePortfolio(portfolio) : portfolio;
 
-        for (const [ticker, percentage] of portfolio.holdings.entries()) {
-            newHoldings.set(ticker, {
-                percentage,
-                locked: false,
-                disabled: false,
+            // Convert the portfolio's holdings to the format used by the builder
+            const newHoldings = new Map();
+
+            for (const [ticker, percentage] of portfolioToLoad.holdings.entries()) {
+                if (typeof percentage === 'number') {
+                    // Simple percentage (used by example portfolios)
+                    newHoldings.set(ticker, {
+                        percentage,
+                        locked: false,
+                        disabled: false,
+                    });
+                } else {
+                    // Full holding object (used by saved portfolios)
+                    newHoldings.set(ticker, percentage);
+                }
+            }
+
+            // Update the custom portfolio with the loaded portfolio's data
+            setCustomPortfolio({
+                name: portfolioToLoad.name,
+                description: portfolioToLoad.description || '',
+                holdings: newHoldings,
             });
+        } catch (error) {
+            console.error('Error loading portfolio:', error);
+            alert('There was an error loading the portfolio. Please try again.');
         }
+    };
 
-        // Update the custom portfolio with the example portfolio's data
-        setCustomPortfolio({
-            name: portfolio.name,
-            description: portfolio.description,
-            holdings: newHoldings,
-        });
+    // Function to delete a saved portfolio
+    const handleDeletePortfolio = (portfolioName) => {
+        try {
+            // Delete the portfolio from localStorage
+            const updatedPortfolios = deletePortfolio(portfolioName);
+
+            // Update the state with the new list
+            setSavedPortfolios(updatedPortfolios);
+
+            // If the currently loaded portfolio was deleted, reset to default
+            if (customPortfolio.name === portfolioName) {
+                resetPortfolio();
+            }
+
+            // Show success message
+            alert(`Portfolio "${portfolioName}" deleted successfully.`);
+        } catch (error) {
+            console.error('Error deleting portfolio:', error);
+            alert('There was an error deleting the portfolio. Please try again.');
+        }
     };
 
     // Function to reset the portfolio builder (clear all ETFs)
     const resetPortfolio = () => {
-        setCustomPortfolio(createPortfolio('My Custom Portfolio', 'Build your own portfolio', []));
+        setCustomPortfolio(createPortfolio('My Custom Portfolio', []));
     };
 
     // Function to handle temp input state for number fields
@@ -374,12 +267,42 @@ const PortfolioBuilderG = () => {
         }
     };
 
-    // Function to save custom portfolio
-    const saveCustomPortfolio = () => {
-        // This would typically interact with a backend or local storage
-        alert("Portfolio saved! (Implementation would depend on your application's needs)");
+    // Function to open save modal
+    const openSaveModal = () => {
+        setShowSaveModal(true);
     };
 
+    // Function to save custom portfolio
+    const saveCustomPortfolio = (portfolioName) => {
+        try {
+            // Create a new portfolio object with the provided name
+            const portfolioToSave = {
+                ...customPortfolio,
+                name: portfolioName,
+            };
+
+            // Save to localStorage and update local state
+            const updatedSavedPortfolios = savePortfolio(portfolioToSave);
+            setSavedPortfolios(updatedSavedPortfolios);
+
+            // Update current portfolio name
+            setCustomPortfolio((prev) => ({
+                ...prev,
+                name: portfolioName,
+            }));
+
+            // Close the modal
+            setShowSaveModal(false);
+
+            // Show success message
+            alert(`Portfolio "${portfolioName}" saved successfully!`);
+        } catch (error) {
+            console.error('Error saving portfolio:', error);
+            alert('There was an error saving your portfolio. Please try again.');
+        }
+    };
+
+    // Render the component
     return (
         <div className="max-w-full mx-auto p-6 bg-gray-50">
             <h1 className="text-2xl font-bold mb-6 text-gray-800">Portfolio Exposure</h1>
@@ -388,41 +311,12 @@ const PortfolioBuilderG = () => {
                 {/* LEFT COLUMN - Portfolio Selection and Building */}
                 <div className="md:w-11/20 flex flex-col">
                     <div className="mb-6">
-                        {/* Example Portfolio Templates */}
-                        <div className="mb-4">
-                            <h3 className="text-md font-medium mb-2">Portfolio Templates</h3>
-                            <div className="relative">
-                                <select
-                                    className="block w-full px-3 py-2 text-gray-800 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent appearance-none bg-white"
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            const selectedPortfolio = examplePortfolios[parseInt(e.target.value)];
-                                            loadExamplePortfolio(selectedPortfolio);
-                                            e.target.value = ''; // Reset after selection
-                                        }
-                                    }}
-                                    defaultValue=""
-                                >
-                                    <option value="" disabled>
-                                        Select a portfolio template...
-                                    </option>
-                                    {examplePortfolios.map((portfolio, index) => (
-                                        <option key={index} value={index}>
-                                            {portfolio.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                    <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                            clipRule="evenodd"
-                                        ></path>
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
+                        <PortfolioControls
+                            examplePortfolios={examplePortfolios}
+                            savedPortfolios={savedPortfolios}
+                            loadPortfolio={loadPortfolio}
+                            onDeletePortfolio={handleDeletePortfolio}
+                        />
 
                         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-4">
                             {/* ETF Selection */}
@@ -835,7 +729,7 @@ const PortfolioBuilderG = () => {
                                         </table>
                                     </div>
 
-                                    {/* Action buttons */}
+                                    {/* Portfolio action buttons */}
                                     <div className="flex justify-end gap-2 mt-4">
                                         <button
                                             onClick={resetPortfolio}
@@ -844,7 +738,7 @@ const PortfolioBuilderG = () => {
                                             Clear All
                                         </button>
                                         <button
-                                            onClick={saveCustomPortfolio}
+                                            onClick={openSaveModal}
                                             disabled={Math.abs(totalAllocation - 100) > 0.1}
                                             className={`px-3 py-1 text-sm rounded-md ${
                                                 Math.abs(totalAllocation - 100) <= 0.1
@@ -866,6 +760,14 @@ const PortfolioBuilderG = () => {
                     <PortfolioAnalysis portfolio={customPortfolio} />
                 </div>
             </div>
+
+            {/* Save Portfolio Modal */}
+            <SavePortfolioModal
+                isOpen={showSaveModal}
+                onClose={() => setShowSaveModal(false)}
+                onSave={saveCustomPortfolio}
+                initialName={customPortfolio.name !== 'My Custom Portfolio' ? customPortfolio.name : ''}
+            />
         </div>
     );
 };
