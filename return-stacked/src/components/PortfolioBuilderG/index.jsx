@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { etfCatalog, examplePortfolios, createPortfolio } from "./etfData";
-import AssetClassExposureBar from "./AssetClassExposureBar";
-import DetailedExposuresVisual from "./DetailedExposuresVisual";
 import { parseExposureKey } from "./etfData";
 import ETFSelector from "./ETFSelector";
+import PortfolioAnalysis from "./PortfolioAnalysis";
 
 // Main component
 const PortfolioBuilderG = () => {
@@ -895,24 +894,7 @@ const PortfolioBuilderG = () => {
 
         {/* RIGHT COLUMN - Portfolio Analysis and Visualization */}
         <div className="md:w-9/20 flex flex-col">
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-5">
-              Portfolio Analysis
-            </h2>
-            {customPortfolio.holdings.size === 0 && (
-              <div className="mt-4 p-4 bg-gray-100 rounded-md text-gray-700">
-                Select ETFs or load a portfolio template to start building your
-                portfolio. Your portfolio analysis will appear here.
-              </div>
-            )}
-
-            {customPortfolio.holdings.size > 0 && (
-              <>
-                <AssetClassExposureBar portfolio={customPortfolio} />
-                <DetailedExposuresVisual portfolio={customPortfolio} />
-              </>
-            )}
-          </div>
+          <PortfolioAnalysis portfolio={customPortfolio} />
         </div>
       </div>
     </div>
