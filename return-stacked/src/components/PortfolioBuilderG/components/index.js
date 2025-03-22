@@ -13,3 +13,4 @@ export { default as PortfolioHeader } from './PortfolioHeader';
 export { default as PortfolioControls } from './PortfolioControls';
 export { default as SavePortfolioModal } from './SavePortfolioModal';
 export { default as PortfolioBuilder } from './PortfolioBuilder';
+export { default as PortfolioTable } from './PortfolioTable';
