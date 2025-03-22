@@ -32,7 +32,7 @@ export const parseExposureKey = (key) => {
 
 // Colors for asset classes and regions
 export const assetClassColors = {
-    Equity: 'oklch(.623 .214 259.815)',
+    Equity: 'oklch(.623 .175 259.815)',
     'U.S. Treasuries': 'rgb(50, 210, 150)',
     'Managed Futures': '#7070f8',
     'Futures Yield': '#a64ff2',
@@ -194,6 +194,36 @@ export const etfCatalog = [
                     sizeFactor: 'Large Cap',
                 },
                 amount: 2.0,
+            },
+        ],
+        'Daily Reset'
+    ),
+    createETF(
+        'QLD',
+        [
+            {
+                exposure: {
+                    assetClass: 'Equity',
+                    marketRegion: 'U.S.',
+                    factorStyle: 'Growth',
+                    sizeFactor: 'Large Cap',
+                },
+                amount: 2.0,
+            },
+        ],
+        'Daily Reset'
+    ),
+    createETF(
+        'TQQQ',
+        [
+            {
+                exposure: {
+                    assetClass: 'Equity',
+                    marketRegion: 'U.S.',
+                    factorStyle: 'Growth',
+                    sizeFactor: 'Large Cap',
+                },
+                amount: 3.0,
             },
         ],
         'Daily Reset'

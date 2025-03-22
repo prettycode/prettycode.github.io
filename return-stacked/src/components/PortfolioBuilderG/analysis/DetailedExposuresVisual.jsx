@@ -8,14 +8,19 @@ import { cn } from '@/lib/utils';
 import { Percent, GanttChart, Filter, ChevronDown, ChevronRight } from 'lucide-react';
 
 // Component to display detailed exposures with compact modern visualization
-const DetailedExposuresVisual = ({ portfolio, onSortChange, showRelative = true, hideZeroValues = false }) => {
-    // Local state for sort order and expanded categories
-    const [sortByValue, setSortByValue] = useState(false);
+const DetailedExposuresVisual = ({
+    portfolio,
+    onSortChange,
+    showRelative = true,
+    hideZeroValues = false,
+    sortByValue = false,
+}) => {
+    // Local state for expanded categories
     const [expandedCategories, setExpandedCategories] = useState({
         assetClass: true,
-        marketRegion: false,
-        factorStyle: false,
-        sizeFactor: false,
+        marketRegion: true,
+        factorStyle: true,
+        sizeFactor: true,
     });
 
     const { exposures, totalLeverage } = analyzePortfolio(portfolio);
@@ -150,7 +155,6 @@ const DetailedExposuresVisual = ({ portfolio, onSortChange, showRelative = true,
 
     // Notify parent when sortByValue changes
     const handleSortChange = (newSortValue) => {
-        setSortByValue(newSortValue);
         if (onSortChange) {
             onSortChange(newSortValue);
         }
@@ -213,7 +217,12 @@ const DetailedExposuresVisual = ({ portfolio, onSortChange, showRelative = true,
                         <div className="space-y-2">
                             {exposureItems.length > 0 ? (
                                 exposureItems.map(([name, value], index) => (
-                                    <div key={index} className="space-y-1">
+                                    <div
+                                        key={index}
+                                        className={cn('space-y-1', {
+                                            'pb-2': index === exposureItems.length - 1,
+                                        })}
+                                    >
                                         <div className="flex justify-between font-medium">
                                             <span className="text-xs">{name}</span>
                                             <span className="text-xs">{value.toFixed(1)}%</span>
@@ -248,7 +257,6 @@ const DetailedExposuresVisual = ({ portfolio, onSortChange, showRelative = true,
             <ExposureCategory
                 id="assetClass"
                 title="Asset Class Exposure"
-                icon={<div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#7070f8' }}></div>}
                 exposuresAbs={assetClassExposuresAbs}
                 exposuresRel={assetClassExposuresRel}
                 colors={assetClassColors}
@@ -257,7 +265,6 @@ const DetailedExposuresVisual = ({ portfolio, onSortChange, showRelative = true,
             <ExposureCategory
                 id="marketRegion"
                 title="Market Exposure"
-                icon={<div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#32d296' }}></div>}
                 exposuresAbs={marketRegionExposuresAbs}
                 exposuresRel={marketRegionExposuresRel}
                 colors={marketRegionColors}
@@ -266,7 +273,6 @@ const DetailedExposuresVisual = ({ portfolio, onSortChange, showRelative = true,
             <ExposureCategory
                 id="factorStyle"
                 title="Factor Style Exposure"
-                icon={<div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ffbb00' }}></div>}
                 exposuresAbs={factorStyleExposuresAbs}
                 exposuresRel={factorStyleExposuresRel}
                 colors={factorStyleColors}
@@ -275,7 +281,6 @@ const DetailedExposuresVisual = ({ portfolio, onSortChange, showRelative = true,
             <ExposureCategory
                 id="sizeFactor"
                 title="Size Factor Exposure"
-                icon={<div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ff6b6b' }}></div>}
                 exposuresAbs={sizeFactorExposuresAbs}
                 exposuresRel={sizeFactorExposuresRel}
                 colors={sizeFactorColors}

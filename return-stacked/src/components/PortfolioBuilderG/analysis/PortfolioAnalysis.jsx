@@ -77,16 +77,17 @@ const PortfolioAnalysis = ({ portfolio }) => {
                 </Card>
             ) : (
                 <div className="space-y-3">
-                    <AssetClassExposureBar portfolio={portfolio} sortByValue={sortByValue} />
-                    <div className="flex items-center space-x-1 text-xs text-muted-foreground border-b border-border/40 pb-1 mb-1">
-                        <Layers className="h-3 w-3" />
-                        <span>Detailed Exposures</span>
-                    </div>
+                    <AssetClassExposureBar
+                        portfolio={portfolio}
+                        sortByValue={sortByValue}
+                        showRelative={showRelative}
+                    />
                     <DetailedExposuresVisual
                         portfolio={portfolio}
                         onSortChange={handleSortChange}
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
+                        sortByValue={sortByValue}
                     />
                 </div>
             )}
