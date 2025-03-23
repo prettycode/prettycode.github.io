@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { parseExposureKey } from '../../utils/etfData';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -97,7 +102,7 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
             }
 
             constituents.push(
-                <div key={key} className="text-xs mb-1 text-gray-600">
+                <div key={key} className="text-xs mb-1 text-muted-foreground">
                     {description}: {(amount * 100).toFixed(1)}%
                 </div>
             );
@@ -106,10 +111,24 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
         return constituents;
     };
 
+    // Helper function to get badge styling based on leverage type
+    const getLeverageBadgeClass = (leverageType) => {
+        switch (leverageType) {
+            case 'Stacked':
+                return 'bg-blue-100 text-blue-800';
+            case 'Daily Reset':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'None':
+                return 'bg-green-100 text-green-800';
+            default:
+                return 'bg-purple-100 text-purple-800';
+        }
+    };
+
     return (
         <div className="relative w-full" ref={dropdownRef}>
             <div className="relative">
-                <input
+                <Input
                     ref={inputRef}
                     type="text"
                     value={searchTerm}
@@ -121,66 +140,63 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                     onFocus={() => setIsOpen(true)}
                     onKeyDown={handleKeyDown}
                     placeholder="Search ETFs or select from dropdown..."
-                    className="block w-full px-3 py-2 text-gray-800 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent appearance-none bg-white"
+                    className="pr-10"
                 />
-                <button
-                    className="absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-y-0 right-0 h-full"
                     onClick={() => {
                         setIsOpen(!isOpen);
                         inputRef.current.focus();
                     }}
                 >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                            fillRule="evenodd"
-                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                        ></path>
-                    </svg>
-                </button>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
             </div>
 
             {isOpen && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[50vh] overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-[50vh] overflow-y-auto">
                     {filteredETFs.length === 0 ? (
-                        <div className="px-4 py-2 text-sm text-gray-500">No ETFs found matching "{searchTerm}"</div>
+                        <div className="px-4 py-2 text-sm text-muted-foreground">
+                            No ETFs found matching "{searchTerm}"
+                        </div>
                     ) : (
                         <ul className="py-1">
                             {filteredETFs.map((etf, index) => (
                                 <li
                                     key={etf.ticker}
-                                    className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                                        index === highlightedIndex ? 'bg-gray-100' : ''
-                                    }`}
+                                    className={cn(
+                                        'px-4 py-2 cursor-pointer transition-colors',
+                                        index === highlightedIndex
+                                            ? 'bg-accent text-accent-foreground'
+                                            : 'hover:bg-accent/50'
+                                    )}
                                     onClick={() => handleSelect(etf)}
                                     onMouseEnter={() => setHighlightedIndex(index)}
                                 >
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between items-center">
                                         <div className="font-medium">{etf.ticker}</div>
-                                        <div className="text-xs text-gray-500">
-                                            {etf.leverageType !== 'None' ? (
-                                                <span
-                                                    className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
-                                                        etf.leverageType === 'Stacked'
-                                                            ? 'bg-blue-100 text-blue-800'
-                                                            : etf.leverageType === 'Daily Reset'
-                                                            ? 'bg-yellow-100 text-yellow-800'
-                                                            : 'bg-purple-100 text-purple-800'
-                                                    }`}
-                                                >
-                                                    {etf.leverageType}
-                                                </span>
-                                            ) : (
-                                                <span className="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800">
-                                                    Unlevered
-                                                </span>
-                                            )}
-                                            <span className="ml-2 px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">
+                                        <div className="flex gap-1">
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    'text-xs font-semibold',
+                                                    getLeverageBadgeClass(etf.leverageType)
+                                                )}
+                                            >
+                                                {etf.leverageType !== 'None' ? etf.leverageType : 'Unlevered'}
+                                            </Badge>
+                                            <Badge
+                                                variant="outline"
+                                                className="bg-red-100 text-red-800 text-xs font-semibold"
+                                            >
                                                 {calculateTotalExposure(etf)}x
-                                            </span>
+                                            </Badge>
                                         </div>
                                     </div>
-                                    <div className="mt-1">{renderConstituents(etf)}</div>
+                                    <div className="mt-1 space-y-0.5">{renderConstituents(etf)}</div>
                                 </li>
                             ))}
                         </ul>

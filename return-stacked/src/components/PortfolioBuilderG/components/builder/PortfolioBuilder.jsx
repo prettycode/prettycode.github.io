@@ -212,8 +212,7 @@ const PortfolioBuilder = ({
                         <Card className="border border-border/40 py-0">
                             <CardContent className="p-4">
                                 <div className="flex items-center space-x-1 mb-3">
-                                    <Plus className="h-4 w-4 text-primary" />
-                                    <h3 className="text-sm font-medium">Add ETFs to Your Portfolio</h3>
+                                    <h3 className="text-sm font-medium">Add ETF</h3>
                                 </div>
                                 <ETFSelector
                                     etfCatalog={etfCatalog}
