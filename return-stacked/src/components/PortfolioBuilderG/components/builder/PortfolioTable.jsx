@@ -27,10 +27,10 @@ const PortfolioTable = ({
                     <TableRow className="hover:bg-transparent">
                         <TableHead
                             className={cn('font-medium text-xs py-2', {
-                                'w-[15%]': !showDetailColumns,
+                                'w-[8%]': !showDetailColumns,
                             })}
                         >
-                            Ticker
+                            {!showDetailColumns ? 'Ticker' : 'Ticker'}
                         </TableHead>
                         {showDetailColumns && (
                             <>
@@ -41,12 +41,18 @@ const PortfolioTable = ({
                         )}
                         <TableHead
                             className={cn('font-medium text-xs py-2', {
-                                'w-[70%]': !showDetailColumns,
+                                'w-[80%]': !showDetailColumns,
                             })}
                         >
                             Allocation (%)
                         </TableHead>
-                        <TableHead className="text-right font-medium text-xs py-2 w-[15%]">Actions</TableHead>
+                        <TableHead
+                            className={cn('text-right font-medium text-xs py-2', {
+                                'w-[12%]': !showDetailColumns,
+                            })}
+                        >
+                            {/* Actions column - no label */}
+                        </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -96,43 +102,15 @@ const PortfolioTable = ({
                                 )}
                             >
                                 <TableCell className="font-medium py-1.5">
-                                    <div className="flex items-center gap-1.5">
-                                        <span className={cn(disabled && 'text-muted-foreground')}>{ticker}</span>
-                                        {!showDetailColumns && (
-                                            <>
-                                                {totalExposure > 1 && (
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={cn(
-                                                            'ml-1 text-[10px] px-1.5 py-0 font-medium',
-                                                            totalExposure <= 1.2
-                                                                ? 'bg-green-100 text-green-800 border-green-200'
-                                                                : totalExposure <= 2.2
-                                                                ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                                                : 'bg-red-100 text-red-800 border-red-200'
-                                                        )}
-                                                    >
-                                                        {totalExposure.toFixed(1)}x
-                                                    </Badge>
-                                                )}
-                                                {etf.leverageType !== 'None' && (
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={cn(
-                                                            'text-[10px] px-1.5 py-0 font-medium',
-                                                            etf.leverageType === 'Stacked'
-                                                                ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                                                : etf.leverageType === 'Daily Reset'
-                                                                ? 'bg-red-100 text-red-800 border-red-200'
-                                                                : 'bg-green-100 text-green-800 border-green-200'
-                                                        )}
-                                                    >
-                                                        {etf.leverageType === 'None' ? 'U' : etf.leverageType.charAt(0)}
-                                                    </Badge>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
+                                    {!showDetailColumns ? (
+                                        <div className="flex items-center">
+                                            <span className={cn(disabled && 'text-muted-foreground')}>{ticker}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={cn(disabled && 'text-muted-foreground')}>{ticker}</span>
+                                        </div>
+                                    )}
                                 </TableCell>
                                 {showDetailColumns && (
                                     <>
@@ -146,19 +124,25 @@ const PortfolioTable = ({
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-xs text-right text-muted-foreground py-1.5">
-                                            <Badge
-                                                variant="outline"
-                                                className={cn(
-                                                    'text-[10px] px-1.5 py-0 font-medium',
-                                                    totalExposure <= 1.2
-                                                        ? 'bg-green-100 text-green-800 border-green-200'
-                                                        : totalExposure <= 2.2
-                                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                                        : 'bg-red-100 text-red-800 border-red-200'
-                                                )}
-                                            >
-                                                {totalExposure.toFixed(1)}x
-                                            </Badge>
+                                            {totalExposure.toFixed(1) === '1.0' ? (
+                                                <span className="text-xs text-muted-foreground text-center block">
+                                                    -
+                                                </span>
+                                            ) : (
+                                                <Badge
+                                                    variant="outline"
+                                                    className={cn(
+                                                        'text-[10px] px-1.5 py-0 font-medium',
+                                                        totalExposure <= 1.2
+                                                            ? 'bg-green-100 text-green-800 border-green-200'
+                                                            : totalExposure <= 2.2
+                                                            ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                                            : 'bg-red-100 text-red-800 border-red-200'
+                                                    )}
+                                                >
+                                                    {totalExposure.toFixed(1)}x
+                                                </Badge>
+                                            )}
                                         </TableCell>
                                         <TableCell className="py-1.5">
                                             <Badge
@@ -224,10 +208,10 @@ const PortfolioTable = ({
                                             variant="ghost"
                                             size="icon"
                                             className={cn(
-                                                'h-6 w-6',
+                                                'h-6 w-6 text-muted-foreground',
                                                 locked && 'text-amber-500',
                                                 disabled && 'opacity-50 cursor-not-allowed',
-                                                !disabled && 'cursor-pointer'
+                                                !disabled && 'cursor-pointer hover:text-foreground'
                                             )}
                                             title={locked ? 'Unlock' : 'Lock'}
                                             disabled={disabled}
@@ -242,7 +226,11 @@ const PortfolioTable = ({
                                             onClick={() => onToggleDisable(ticker)}
                                             variant="ghost"
                                             size="icon"
-                                            className={cn('h-6 w-6 cursor-pointer', disabled && 'text-destructive')}
+                                            className={cn(
+                                                'h-6 w-6 text-muted-foreground cursor-pointer',
+                                                disabled && 'text-destructive',
+                                                !disabled && 'hover:text-foreground'
+                                            )}
                                             title={disabled ? 'Enable' : 'Disable'}
                                         >
                                             {disabled ? (
@@ -256,10 +244,10 @@ const PortfolioTable = ({
                                             variant="ghost"
                                             size="icon"
                                             className={cn(
-                                                'h-6 w-6 hover:text-destructive',
+                                                'h-6 w-6 text-muted-foreground',
                                                 customPortfolio.holdings.size <= 1
                                                     ? 'opacity-50 cursor-not-allowed'
-                                                    : 'cursor-pointer'
+                                                    : 'cursor-pointer hover:text-destructive'
                                             )}
                                             title="Delete"
                                             disabled={customPortfolio.holdings.size <= 1}

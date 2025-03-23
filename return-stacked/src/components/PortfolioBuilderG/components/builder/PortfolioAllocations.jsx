@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, BookTemplate, EyeOff, Eye, Percent, Trash2, Save, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+    AlertCircle,
+    BookTemplate,
+    EyeOff,
+    Eye,
+    Percent,
+    Trash2,
+    Save,
+    ChevronDown,
+    ChevronUp,
+    Layers,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import PortfolioTable from './PortfolioTable';
+import { analyzePortfolio } from '../../utils/etfData';
 
 const PortfolioAllocations = ({
     isPortfolioEmpty,
@@ -32,6 +44,16 @@ const PortfolioAllocations = ({
         setIsExpanded(!isExpanded);
     };
 
+    // Calculate total leverage using analyzePortfolio
+    const { totalLeverage = 0 } = !isPortfolioEmpty ? analyzePortfolio(customPortfolio) : { totalLeverage: 0 };
+
+    // Determine color based on leverage level
+    const getLeverageColor = (leverage) => {
+        if (leverage < 1.5) return 'bg-green-100 text-green-800';
+        if (leverage < 2) return 'bg-amber-100 text-amber-800';
+        return 'bg-red-100 text-red-800';
+    };
+
     return (
         <>
             {isPortfolioEmpty ? (
@@ -58,19 +80,17 @@ const PortfolioAllocations = ({
                     <div className={cn('p-3 space-y-3', isExpanded ? 'border-b' : '')}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
-                                <h3 className="text-sm font-medium">Portfolio Allocations</h3>
+                                <h3 className="text-sm font-medium">Asset Allocation</h3>
 
-                                {/* Allocation status indicator */}
+                                {/* Leverage indicator instead of allocation percentage */}
                                 <div
                                     className={cn(
                                         'px-2.5 py-0.5 rounded-full text-xs flex items-center',
-                                        Math.abs(totalAllocation - 100) <= 0.1
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-amber-100 text-amber-800'
+                                        getLeverageColor(totalLeverage)
                                     )}
                                 >
-                                    <Percent className="h-3 w-3 mr-1" />
-                                    <span>{totalAllocation.toFixed(1)}%</span>
+                                    <Layers className="h-3 w-3 mr-1" />
+                                    <span>{totalLeverage.toFixed(2)}x</span>
                                 </div>
                             </div>
 

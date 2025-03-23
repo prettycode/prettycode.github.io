@@ -424,27 +424,35 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                     })}
 
                                     <td className="py-1.5 px-2 text-center">
-                                        <Badge
-                                            variant="outline"
-                                            className={cn(
-                                                'text-[10px] px-1.5 py-0 font-medium',
-                                                getLeverageAmountColor(calculateTotalExposure(etf))
-                                            )}
-                                        >
-                                            {calculateTotalExposure(etf)}x
-                                        </Badge>
+                                        {calculateTotalExposure(etf) === '1.0' ? (
+                                            <span className="text-xs text-muted-foreground">-</span>
+                                        ) : (
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    'text-[10px] px-1.5 py-0 font-medium',
+                                                    getLeverageAmountColor(calculateTotalExposure(etf))
+                                                )}
+                                            >
+                                                {calculateTotalExposure(etf)}x
+                                            </Badge>
+                                        )}
                                     </td>
 
                                     <td className="py-1.5 px-2 text-center">
-                                        <Badge
-                                            variant="outline"
-                                            className={cn(
-                                                'text-[10px] px-1.5 py-0 font-medium',
-                                                getLeverageTypeColor(etf.leverageType)
-                                            )}
-                                        >
-                                            {etf.leverageType !== 'None' ? etf.leverageType : 'Unlevered'}
-                                        </Badge>
+                                        {etf.leverageType === 'None' ? (
+                                            <span className="text-xs text-muted-foreground">-</span>
+                                        ) : (
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    'text-[10px] px-1.5 py-0 font-medium',
+                                                    getLeverageTypeColor(etf.leverageType)
+                                                )}
+                                            >
+                                                {etf.leverageType}
+                                            </Badge>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
