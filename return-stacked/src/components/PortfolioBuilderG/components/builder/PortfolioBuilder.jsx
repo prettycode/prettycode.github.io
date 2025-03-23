@@ -209,18 +209,11 @@ const PortfolioBuilder = ({
                 <TabsContent value="build">
                     <div className="space-y-3">
                         {/* ETF Selection */}
-                        <Card className="border border-border/40 py-0">
-                            <CardContent className="p-4">
-                                <div className="flex items-center space-x-1 mb-3">
-                                    <h3 className="text-sm font-medium">Add ETF</h3>
-                                </div>
-                                <ETFSelector
-                                    etfCatalog={etfCatalog}
-                                    onSelect={onAddETF}
-                                    existingTickers={Array.from(customPortfolio.holdings.keys())}
-                                />
-                            </CardContent>
-                        </Card>
+                        <ETFSelector
+                            etfCatalog={etfCatalog}
+                            onSelect={onAddETF}
+                            existingTickers={Array.from(customPortfolio.holdings.keys())}
+                        />
 
                         {/* Portfolio Allocations */}
                         <PortfolioAllocations
