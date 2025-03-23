@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { etfCatalog, examplePortfolios, createPortfolio, parseExposureKey } from './utils';
 import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils';
 import { savePortfolio, getSavedPortfolios, deserializePortfolio, deletePortfolio } from './utils';
-import { ETFSelector, PortfolioControls, SavePortfolioModal, PortfolioBuilder } from './components';
-import { PortfolioAnalysis } from './analysis';
+import PortfolioBuilder from './components/builder/PortfolioBuilder';
+import SavePortfolioModal from './components/builder/SavePortfolioModal';
+import PortfolioAnalysis from './components/analysis/PortfolioAnalysis';
 
 // Main component
 const PortfolioBuilderG = () => {

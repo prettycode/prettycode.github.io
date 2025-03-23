@@ -22,7 +22,7 @@ export const redistributeAfterRemoval = (holdings, ticker) => {
 
     // Find available ETFs for redistribution (not locked or disabled)
     const availableETFs = Array.from(holdings.entries())
-        .filter(([_, holding]) => !holding.locked && !holding.disabled)
+        .filter(([, holding]) => !holding.locked && !holding.disabled)
         .map(([etfTicker]) => etfTicker);
 
     // If no available ETFs, unlock or enable one if possible
@@ -99,7 +99,7 @@ export const updateAllocation = (holdings, ticker, newPercentage) => {
     // Calculate how much allocation is already locked
     const lockedAllocation = Array.from(holdings.entries())
         .filter(([etfTicker, holding]) => etfTicker !== ticker && (holding.locked || holding.disabled))
-        .reduce((sum, [_, holding]) => sum + (holding.disabled ? 0 : holding.percentage), 0);
+        .reduce((sum, [, holding]) => sum + (holding.disabled ? 0 : holding.percentage), 0);
 
     // Calculate how much is available to distribute
     const remainingAllocation = 100 - lockedAllocation - parsedValue;
@@ -183,6 +183,6 @@ export const roundHoldingPercentages = (holdings) => {
  */
 export const calculateTotalAllocation = (holdings) => {
     return Array.from(holdings.entries())
-        .filter(([_, holding]) => !holding.disabled)
-        .reduce((sum, [_, holding]) => sum + holding.percentage, 0);
+        .filter(([, holding]) => !holding.disabled)
+        .reduce((sum, [, holding]) => sum + holding.percentage, 0);
 };

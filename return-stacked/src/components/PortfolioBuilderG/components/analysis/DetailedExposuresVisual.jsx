@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { analyzePortfolio, parseExposureKey, assetClassColors, regionColors } from '../utils/etfData';
+import { analyzePortfolio, parseExposureKey, assetClassColors, regionColors } from '../../utils/etfData';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';

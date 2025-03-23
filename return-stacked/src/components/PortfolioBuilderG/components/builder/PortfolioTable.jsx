@@ -1,5 +1,5 @@
 import React from 'react';
-import { parseExposureKey } from '../utils';
+import { parseExposureKey } from '../../utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { analyzePortfolio, assetClassColors } from '../utils/etfData';
+import { analyzePortfolio, assetClassColors } from '../../utils/etfData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Info } from 'lucide-react';
