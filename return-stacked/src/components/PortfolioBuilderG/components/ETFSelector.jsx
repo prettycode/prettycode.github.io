@@ -108,8 +108,6 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
 
     return (
         <div className="relative w-full" ref={dropdownRef}>
-            <label className="block text-md font-medium mb-2">Add ETF to Portfolio</label>
-
             <div className="relative">
                 <input
                     ref={inputRef}
