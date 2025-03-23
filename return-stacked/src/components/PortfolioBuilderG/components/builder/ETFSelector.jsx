@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SearchIcon, FilterIcon, ArrowUpDown, PlusCircle } from 'lucide-react';
+import { SearchIcon, FilterIcon, ArrowUpDown, PlusCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
@@ -14,6 +14,7 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
     const [highlightedIndex, setHighlightedIndex] = useState(0);
     const [sortDirection, setSortDirection] = useState('asc');
     const [sortColumn, setSortColumn] = useState('ticker');
+    const [isExpanded, setIsExpanded] = useState(true);
     const listRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -49,6 +50,13 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
 
         return orderedClasses;
     }, [etfCatalog]);
+
+    // Auto-expand when user starts typing
+    useEffect(() => {
+        if (searchTerm.length > 0 && !isExpanded) {
+            setIsExpanded(true);
+        }
+    }, [searchTerm]);
 
     // Get display name for asset classes (same as in AssetClassExposureBar)
     const getAssetClassDisplayName = (assetClass) => {
@@ -235,9 +243,31 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
         }
     };
 
+    // Toggle expand/collapse
+    const toggleExpand = () => {
+        setIsExpanded(!isExpanded);
+    };
+
     return (
-        <Card className="border shadow-sm py-1 gap-0">
-            <div className="p-3 border-b space-y-3">
+        <Card className="border shadow-sm py-1 gap-0 overflow-hidden">
+            <div className={cn('p-3 space-y-3', isExpanded ? 'border-b' : '')}>
+                <Tabs defaultValue="all" onValueChange={setSelectedTab} className="w-full">
+                    <div className="flex items-center w-full mb-1">
+                        <TabsList className="flex-1 h-7 bg-muted/50">
+                            <TabsTrigger value="all" className="text-xs h-6 cursor-pointer">
+                                All Types
+                            </TabsTrigger>
+                            {leverageTypes
+                                .filter((type) => type !== 'All')
+                                .map((type) => (
+                                    <TabsTrigger key={type} value={type} className="text-xs h-6 cursor-pointer">
+                                        {type}
+                                    </TabsTrigger>
+                                ))}
+                        </TabsList>
+                    </div>
+                </Tabs>
+
                 <div className="flex items-center">
                     <div className="relative flex-1">
                         <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -254,27 +284,18 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                             className="pl-9 h-8"
                         />
                     </div>
+                    <Button variant="ghost" size="sm" onClick={toggleExpand} className="ml-2 h-8 w-8 p-0">
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
                 </div>
-
-                <Tabs defaultValue="all" onValueChange={setSelectedTab} className="w-full">
-                    <TabsList className="w-full h-7 bg-muted/50">
-                        <TabsTrigger value="all" className="text-xs h-6 cursor-pointer">
-                            All Types
-                        </TabsTrigger>
-                        {leverageTypes
-                            .filter((type) => type !== 'All')
-                            .map((type) => (
-                                <TabsTrigger key={type} value={type} className="text-xs h-6 cursor-pointer">
-                                    {type}
-                                </TabsTrigger>
-                            ))}
-                    </TabsList>
-                </Tabs>
             </div>
 
             <div
                 ref={listRef}
-                className="max-h-[300px] overflow-x-auto overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent"
+                className={cn(
+                    'overflow-x-auto overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent transition-all duration-300 ease-in-out',
+                    isExpanded ? 'max-h-[300px]' : 'max-h-0'
+                )}
             >
                 {filteredETFs.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
@@ -286,8 +307,8 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                     <table className="w-full border-collapse text-sm relative">
                         <thead className="bg-card text-xs sticky top-0 z-20 shadow-sm">
                             <tr>
-                                <th className="py-2 px-2 text-center font-medium w-16">
-                                    <span className="text-[10px]">Action</span>
+                                <th className="py-2 px-2 text-center font-medium w-10">
+                                    {/* Action column - no label needed */}
                                 </th>
 
                                 <th
