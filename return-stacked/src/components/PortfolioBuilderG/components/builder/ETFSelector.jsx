@@ -35,7 +35,7 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
         });
 
         // Define preferred order of asset classes rather than alphabetical
-        const preferredOrder = ['Equities', 'Fixed Income', 'Real Estate', 'Commodities', 'Currencies'];
+        const preferredOrder = ['Equity', 'U.S. Treasuries', 'Managed Futures', 'Futures Yield', 'Gold', 'Bitcoin'];
 
         // Filter the classes that exist in our data and maintain preferred order
         const orderedClasses = preferredOrder.filter((cls) => classes.has(cls));
@@ -49,6 +49,22 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
 
         return orderedClasses;
     }, [etfCatalog]);
+
+    // Get display name for asset classes (same as in AssetClassExposureBar)
+    const getAssetClassDisplayName = (assetClass) => {
+        switch (assetClass) {
+            case 'Managed Futures':
+                return 'Trend';
+            case 'Futures Yield':
+                return 'Carry';
+            case 'U.S. Treasuries':
+                return 'T-Bonds';
+            case 'Equity':
+                return 'Equities';
+            default:
+                return assetClass;
+        }
+    };
 
     // Filter ETFs based on search term, selected tab, and existing tickers
     const filteredETFs = etfCatalog
@@ -182,16 +198,18 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
     // Get asset class color
     const getAssetClassColor = (assetClass) => {
         switch (assetClass) {
-            case 'Equities':
+            case 'Equity':
                 return 'text-blue-700';
-            case 'Fixed Income':
+            case 'U.S. Treasuries':
                 return 'text-green-700';
-            case 'Commodities':
-                return 'text-amber-700';
-            case 'Real Estate':
-                return 'text-orange-700';
-            case 'Currencies':
+            case 'Managed Futures':
+                return 'text-indigo-700';
+            case 'Futures Yield':
                 return 'text-purple-700';
+            case 'Gold':
+                return 'text-amber-700';
+            case 'Bitcoin':
+                return 'text-orange-700';
             default:
                 return 'text-slate-700';
         }
@@ -200,25 +218,27 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
     // Get asset class background color
     const getAssetClassBgColor = (assetClass) => {
         switch (assetClass) {
-            case 'Equities':
+            case 'Equity':
                 return 'bg-blue-100/50 hover:bg-blue-100';
-            case 'Fixed Income':
+            case 'U.S. Treasuries':
                 return 'bg-green-100/50 hover:bg-green-100';
-            case 'Commodities':
-                return 'bg-amber-100/50 hover:bg-amber-100';
-            case 'Real Estate':
-                return 'bg-orange-100/50 hover:bg-orange-100';
-            case 'Currencies':
+            case 'Managed Futures':
+                return 'bg-indigo-100/50 hover:bg-indigo-100';
+            case 'Futures Yield':
                 return 'bg-purple-100/50 hover:bg-purple-100';
+            case 'Gold':
+                return 'bg-amber-100/50 hover:bg-amber-100';
+            case 'Bitcoin':
+                return 'bg-orange-100/50 hover:bg-orange-100';
             default:
                 return 'bg-slate-100/50 hover:bg-slate-100';
         }
     };
 
     return (
-        <Card className="border shadow-sm">
-            <div className="p-3 border-b space-y-2">
-                <div className="flex items-center gap-2">
+        <Card className="border shadow-sm py-1 gap-0">
+            <div className="p-3 border-b space-y-3">
+                <div className="flex items-center">
                     <div className="relative flex-1">
                         <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -263,9 +283,13 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                         <p className="text-xs mt-1">Try adjusting your search or filters</p>
                     </div>
                 ) : (
-                    <table className="w-full border-collapse text-sm">
-                        <thead className="bg-muted/30 text-xs sticky top-0 z-10">
+                    <table className="w-full border-collapse text-sm relative">
+                        <thead className="bg-card text-xs sticky top-0 z-20 shadow-sm">
                             <tr>
+                                <th className="py-2 px-2 text-center font-medium w-16">
+                                    <span className="text-[10px]">Action</span>
+                                </th>
+
                                 <th
                                     className="py-2 px-3 text-left font-medium cursor-pointer hover:bg-muted/40 transition-colors"
                                     onClick={() => handleSort('ticker')}
@@ -290,7 +314,9 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                         onClick={() => handleSort(`asset_${assetClass}`)}
                                     >
                                         <div className="flex flex-col items-center">
-                                            <span className="text-[10px] mb-1">{assetClass}</span>
+                                            <span className="text-[10px] mb-1">
+                                                {getAssetClassDisplayName(assetClass)}
+                                            </span>
                                             {sortColumn === `asset_${assetClass}` && (
                                                 <ArrowUpDown
                                                     className={cn(
@@ -320,10 +346,6 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                 <th className="py-2 px-2 text-center font-medium">
                                     <span className="text-[10px]">Type</span>
                                 </th>
-
-                                <th className="py-2 px-2 text-center font-medium w-16">
-                                    <span className="text-[10px]">Action</span>
-                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -338,6 +360,20 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                     onClick={() => handleSelect(etf)}
                                     onMouseEnter={() => setHighlightedIndex(index)}
                                 >
+                                    <td className="py-1.5 px-2 text-center">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSelect(etf);
+                                            }}
+                                            className="h-6 w-6 p-0 cursor-pointer"
+                                        >
+                                            <PlusCircle className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </td>
+
                                     <td className="py-1.5 px-3 font-medium whitespace-nowrap">{etf.ticker}</td>
 
                                     {assetClasses.map((assetClass) => {
@@ -383,20 +419,6 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                         >
                                             {etf.leverageType !== 'None' ? etf.leverageType : 'Unlevered'}
                                         </Badge>
-                                    </td>
-
-                                    <td className="py-1.5 px-2 text-center">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleSelect(etf);
-                                            }}
-                                            className="h-6 w-6 p-0 cursor-pointer"
-                                        >
-                                            <PlusCircle className="h-3.5 w-3.5" />
-                                        </Button>
                                     </td>
                                 </tr>
                             ))}
