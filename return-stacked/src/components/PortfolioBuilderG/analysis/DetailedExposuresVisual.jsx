@@ -195,17 +195,14 @@ const DetailedExposuresVisual = ({
         }
 
         return (
-            <Card className="overflow-hidden bg-card shadow-sm mb-2 border-border/40">
+            <Card className="overflow-hidden bg-card shadow-sm border-border/40 gap-0 py-3">
                 <CardHeader
-                    className={cn(
-                        'cursor-pointer py-3 px-3 flex flex-row items-center justify-between',
-                        isExpanded ? 'border-b border-border/40' : ''
-                    )}
+                    className={cn('cursor-pointer py-0 px-4 flex flex-row items-center justify-between')}
                     onClick={() => toggleCategory(id)}
                 >
                     <div className="flex items-center space-x-1.5">
                         {icon}
-                        <CardTitle className="text-xs font-medium">{title}</CardTitle>
+                        <CardTitle className="text-sm font-medium">{title}</CardTitle>
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center">
                         {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
@@ -213,16 +210,11 @@ const DetailedExposuresVisual = ({
                 </CardHeader>
 
                 {isExpanded && (
-                    <CardContent className="py-3 px-4">
+                    <CardContent className="py-3 pb-2 px-4">
                         <div className="space-y-2">
                             {exposureItems.length > 0 ? (
                                 exposureItems.map(([name, value], index) => (
-                                    <div
-                                        key={index}
-                                        className={cn('space-y-1', {
-                                            'pb-2': index === exposureItems.length - 1,
-                                        })}
-                                    >
+                                    <div key={index} className={cn('space-y-1')}>
                                         <div className="flex justify-between font-medium">
                                             <span className="text-xs">{name}</span>
                                             <span className="text-xs">{value.toFixed(1)}%</span>

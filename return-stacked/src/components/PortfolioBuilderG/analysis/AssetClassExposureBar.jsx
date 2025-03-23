@@ -31,13 +31,13 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
     }
 
     return (
-        <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-card/20 to-card mb-2">
-            <CardContent className="p-3">
+        <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-card/20 to-card mb-2 py-0">
+            <CardContent className="px-4 py-3">
                 <div className="flex flex-col space-y-2">
                     <div className="flex items-center">
                         <h3 className="font-medium text-sm mr-2">Asset Allocation</h3>
-                        <Badge className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-800 text-white border-0">
-                            <span>{totalLeverage.toFixed(2)}x</span>
+                        <Badge className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0">
+                            <span>{totalLeverage.toFixed(2)}x</span> levered
                         </Badge>
                     </div>
 
@@ -86,11 +86,11 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
                             return (
                                 <div
                                     key={index}
-                                    className="flex items-center text-[10px]"
+                                    className="flex items-center text-[11px]"
                                     title={`${percentage.toFixed(1)}%`}
                                 >
                                     <div
-                                        className="w-2 h-2 rounded-sm mr-0.5 border border-white/10"
+                                        className="w-2 h-2 rounded-sm mr-0.5 mt-0.25 border border-white/10"
                                         style={{ backgroundColor: assetClassColors[assetClass] }}
                                     ></div>
                                     <span>{getDisplayName(assetClass)}</span>

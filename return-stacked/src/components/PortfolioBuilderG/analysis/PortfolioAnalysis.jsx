@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import AssetClassExposureBar from './AssetClassExposureBar';
 import DetailedExposuresVisual, { ViewToggle } from './DetailedExposuresVisual';
 import { Card, CardContent } from '@/components/ui/card';
-import { Layers, AlertCircle, BarChart3, SlidersHorizontal, Percent, GanttChart, Filter } from 'lucide-react';
+import { Layers, AlertCircle, BarChart3, SlidersHorizontal, Percent, ArrowDown10, Filter } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 // Portfolio Analysis component with modern UI
@@ -43,7 +43,7 @@ const PortfolioAnalysis = ({ portfolio }) => {
             </div>
 
             {!isPortfolioEmpty && showControls && (
-                <div className="flex flex-wrap items-center gap-3 py-1.5 px-2 bg-muted/30 rounded-md -mt-1 mb-1">
+                <div className="flex flex-wrap items-center gap-3 py-1.5 rounded-md -mt-1 mb-1">
                     <ViewToggle
                         label={showRelative ? 'Relative' : 'Absolute'}
                         icon={<Percent className="h-3 w-3 text-muted-foreground" />}
@@ -52,7 +52,7 @@ const PortfolioAnalysis = ({ portfolio }) => {
                     />
                     <ViewToggle
                         label={sortByValue ? 'Sort by Value' : 'Fixed Order'}
-                        icon={<GanttChart className="h-3 w-3 text-muted-foreground" />}
+                        icon={<ArrowDown10 className="h-3 w-3 text-muted-foreground" />}
                         isChecked={sortByValue}
                         onChange={handleSortChange}
                     />
