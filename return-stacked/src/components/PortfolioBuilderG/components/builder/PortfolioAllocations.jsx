@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, BookTemplate, EyeOff, Eye, Percent, Trash2, Save } from 'lucide-react';
+import { AlertCircle, BookTemplate, EyeOff, Eye, Percent, Trash2, Save, ChevronDown, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import PortfolioTable from './PortfolioTable';
 
 const PortfolioAllocations = ({
@@ -24,6 +26,12 @@ const PortfolioAllocations = ({
     onSavePortfolio,
     setShowPortfolioNameInput,
 }) => {
+    const [isExpanded, setIsExpanded] = useState(true);
+
+    const toggleExpand = () => {
+        setIsExpanded(!isExpanded);
+    };
+
     return (
         <>
             {isPortfolioEmpty ? (
@@ -34,55 +42,80 @@ const PortfolioAllocations = ({
                         <p className="text-sm text-muted-foreground max-w-md mb-4">
                             Start by adding ETFs above or switch to the Templates tab to use a pre-built portfolio.
                         </p>
-                        <button
+                        <Button
                             onClick={() => setActiveTab('templates')}
-                            className="flex items-center gap-1 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                            className="flex items-center gap-1"
+                            variant="default"
+                            size="sm"
                         >
                             <BookTemplate className="h-4 w-4 mr-1" />
                             <span>Browse Templates</span>
-                        </button>
+                        </Button>
                     </CardContent>
                 </Card>
             ) : (
-                <Card className="border border-border/40 py-0">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-1">
+                <Card className="border shadow-sm py-0 gap-0 overflow-hidden">
+                    <div className={cn('p-3 space-y-3', isExpanded ? 'border-b' : '')}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
                                 <h3 className="text-sm font-medium">Portfolio Allocations</h3>
-                            </div>
 
-                            <div className="flex items-center gap-2">
                                 {/* Allocation status indicator */}
                                 <div
-                                    className={`px-2.5 py-0.5 rounded-full text-xs flex items-center ${
+                                    className={cn(
+                                        'px-2.5 py-0.5 rounded-full text-xs flex items-center',
                                         Math.abs(totalAllocation - 100) <= 0.1
                                             ? 'bg-green-100 text-green-800'
                                             : 'bg-amber-100 text-amber-800'
-                                    }`}
+                                    )}
                                 >
                                     <Percent className="h-3 w-3 mr-1" />
                                     <span>{totalAllocation.toFixed(1)}%</span>
                                 </div>
+                            </div>
 
-                                <button
+                            <div className="flex items-center gap-2">
+                                <Button
                                     onClick={onToggleDetailColumns}
-                                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-xs cursor-pointer"
                                 >
                                     {showDetailColumns ? (
                                         <>
-                                            <EyeOff className="h-3 w-3" />
+                                            <EyeOff className="h-3.5 w-3.5 mr-1.5" />
                                             <span className="hidden sm:inline-block">Hide Details</span>
                                         </>
                                     ) : (
                                         <>
-                                            <Eye className="h-3 w-3" />
+                                            <Eye className="h-3.5 w-3.5 mr-1.5" />
                                             <span className="hidden sm:inline-block">Show Details</span>
                                         </>
                                     )}
-                                </button>
+                                </Button>
+
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={toggleExpand}
+                                    className="h-7 w-7 p-0 cursor-pointer"
+                                >
+                                    {isExpanded ? (
+                                        <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                        <ChevronDown className="h-4 w-4" />
+                                    )}
+                                </Button>
                             </div>
                         </div>
+                    </div>
 
+                    <div
+                        className={cn(
+                            'overflow-hidden transition-all duration-300 ease-in-out',
+                            isExpanded ? 'max-h-[800px]' : 'max-h-0'
+                        )}
+                    >
                         <PortfolioTable
                             customPortfolio={customPortfolio}
                             etfCatalog={etfCatalog}
@@ -97,16 +130,18 @@ const PortfolioAllocations = ({
                         />
 
                         {/* Action buttons */}
-                        <div className="flex items-center justify-between mt-4">
-                            <button
+                        <div className="flex items-center justify-between p-3 border-t bg-muted/10">
+                            <Button
                                 onClick={onResetPortfolio}
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-8 cursor-pointer"
                             >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-3.5 w-3.5 mr-1" />
                                 <span>Clear All</span>
-                            </button>
+                            </Button>
 
-                            <button
+                            <Button
                                 onClick={() => {
                                     if (isPortfolioValid) {
                                         if (!portfolioName.trim()) {
@@ -117,18 +152,18 @@ const PortfolioAllocations = ({
                                     }
                                 }}
                                 disabled={!isPortfolioValid}
-                                className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-md 
-                                    ${
-                                        isPortfolioValid
-                                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                            : 'bg-muted text-muted-foreground cursor-not-allowed'
-                                    } transition-colors`}
+                                variant={isPortfolioValid ? 'default' : 'outline'}
+                                size="sm"
+                                className={cn(
+                                    'text-xs h-8',
+                                    isPortfolioValid ? 'cursor-pointer' : 'cursor-not-allowed'
+                                )}
                             >
-                                <Save className="h-3 w-3" />
+                                <Save className="h-3.5 w-3.5 mr-1" />
                                 <span>Save Portfolio</span>
-                            </button>
+                            </Button>
                         </div>
-                    </CardContent>
+                    </div>
                 </Card>
             )}
         </>

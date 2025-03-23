@@ -284,7 +284,12 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                             className="pl-9 h-8"
                         />
                     </div>
-                    <Button variant="ghost" size="sm" onClick={toggleExpand} className="ml-2 h-8 w-8 p-0">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleExpand}
+                        className="ml-2 h-8 w-8 p-0 cursor-pointer"
+                    >
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </Button>
                 </div>
