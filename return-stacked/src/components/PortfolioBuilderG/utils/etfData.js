@@ -228,6 +228,36 @@ export const etfCatalog = [
         ],
         'Daily Reset'
     ),
+    createETF(
+        'UDOW',
+        [
+            {
+                exposure: {
+                    assetClass: 'Equity',
+                    marketRegion: 'U.S.',
+                    factorStyle: 'Value',
+                    sizeFactor: 'Large Cap',
+                },
+                amount: 3.0,
+            },
+        ],
+        'Daily Reset'
+    ),
+    createETF(
+        'DDM',
+        [
+            {
+                exposure: {
+                    assetClass: 'Equity',
+                    marketRegion: 'U.S.',
+                    factorStyle: 'Value',
+                    sizeFactor: 'Large Cap',
+                },
+                amount: 2.0,
+            },
+        ],
+        'Daily Reset'
+    ),
     createETF('VOO', [
         {
             exposure: {

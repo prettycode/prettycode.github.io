@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SearchIcon, FilterIcon, ArrowUpDown, PlusCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { SearchIcon, FilterIcon, ArrowUpDown, PlusCircle, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
@@ -15,6 +15,7 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
     const [sortDirection, setSortDirection] = useState('asc');
     const [sortColumn, setSortColumn] = useState('ticker');
     const [isExpanded, setIsExpanded] = useState(true);
+    const [showFilters, setShowFilters] = useState(false);
     const listRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -74,6 +75,29 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
         }
     };
 
+    // Calculate total exposure for an ETF
+    const calculateTotalExposure = (etf, asNumber = false) => {
+        let total = 0;
+        for (const [_, amount] of etf.exposures) {
+            total += amount;
+        }
+        return asNumber ? total : total.toFixed(1);
+    };
+
+    // Get exposure amount for a specific asset class in an ETF
+    const getAssetClassAmount = (etf, assetClass) => {
+        let total = 0;
+
+        for (const [key, amount] of etf.exposures) {
+            const { assetClass: ac } = parseExposureKey(key);
+            if (ac === assetClass) {
+                total += amount;
+            }
+        }
+
+        return total;
+    };
+
     // Filter ETFs based on search term, selected tab, and existing tickers
     const filteredETFs = etfCatalog
         .filter((etf) => {
@@ -86,19 +110,31 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
             return matchesSearch && notInPortfolio && matchesTab;
         })
         .sort((a, b) => {
-            if (sortColumn === 'ticker') {
-                return sortDirection === 'asc' ? a.ticker.localeCompare(b.ticker) : b.ticker.localeCompare(a.ticker);
-            } else if (sortColumn === 'leverage') {
-                const levA = calculateTotalExposure(a, true);
-                const levB = calculateTotalExposure(b, true);
-                return sortDirection === 'asc' ? levA - levB : levB - levA;
-            } else if (sortColumn.startsWith('asset_')) {
-                const assetClass = sortColumn.replace('asset_', '');
-                const amountA = getAssetClassAmount(a, assetClass);
-                const amountB = getAssetClassAmount(b, assetClass);
-                return sortDirection === 'asc' ? amountA - amountB : amountB - amountA;
+            try {
+                // If no sort column is set, return original order
+                if (!sortColumn) return 0;
+                
+                if (sortColumn === 'ticker') {
+                    return sortDirection === 'asc' ? a.ticker.localeCompare(b.ticker) : b.ticker.localeCompare(a.ticker);
+                } else if (sortColumn === 'leverage') {
+                    const levA = calculateTotalExposure(a, true);
+                    const levB = calculateTotalExposure(b, true);
+                    return sortDirection === 'asc' ? levA - levB : levB - levA;
+                } else if (sortColumn === 'type') {
+                    const typeA = a.leverageType;
+                    const typeB = b.leverageType;
+                    return sortDirection === 'asc' ? typeA.localeCompare(typeB) : typeB.localeCompare(typeA);
+                } else if (sortColumn.startsWith('asset_')) {
+                    const assetClass = sortColumn.replace('asset_', '');
+                    const amountA = getAssetClassAmount(a, assetClass);
+                    const amountB = getAssetClassAmount(b, assetClass);
+                    return sortDirection === 'asc' ? amountA - amountB : amountB - amountA;
+                }
+                return 0;
+            } catch (error) {
+                console.error('Error sorting ETFs:', error, { sortColumn, a, b });
+                return 0;
             }
-            return 0;
         });
 
     // Handle keydown events for keyboard navigation
@@ -137,36 +173,19 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
         onSelect(etf.ticker);
     };
 
-    // Calculate total exposure for an ETF
-    const calculateTotalExposure = (etf, asNumber = false) => {
-        let total = 0;
-        for (const [_, amount] of etf.exposures) {
-            total += amount;
-        }
-        return asNumber ? total : total.toFixed(1);
-    };
-
-    // Get exposure amount for a specific asset class in an ETF
-    const getAssetClassAmount = (etf, assetClass) => {
-        let total = 0;
-
-        for (const [key, amount] of etf.exposures) {
-            const { assetClass: ac } = parseExposureKey(key);
-            if (ac === assetClass) {
-                total += amount;
-            }
-        }
-
-        return total;
-    };
-
     // Handle sorting by column
     const handleSort = (column) => {
         if (column === sortColumn) {
-            setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+            // Three-state sorting: asc → desc → none
+            if (sortDirection === 'asc') {
+                setSortDirection('desc');
+            } else if (sortDirection === 'desc') {
+                setSortColumn('');
+                setSortDirection('asc');
+            }
         } else {
             setSortColumn(column);
-            setSortDirection('desc'); // Default to descending for new columns
+            setSortDirection('asc'); // Default to ascending for new columns
         }
     };
 
@@ -248,26 +267,18 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
         setIsExpanded(!isExpanded);
     };
 
+    // Toggle filters visibility
+    const toggleFilters = () => {
+        setShowFilters(!showFilters);
+        // If the card is collapsed and filter button is pressed, expand the card
+        if (!isExpanded) {
+            setIsExpanded(true);
+        }
+    };
+
     return (
         <Card className="border shadow-sm py-1 gap-0 overflow-hidden">
             <div className={cn('p-3 space-y-3', isExpanded ? 'border-b' : '')}>
-                <Tabs defaultValue="all" onValueChange={setSelectedTab} className="w-full">
-                    <div className="flex items-center w-full mb-1">
-                        <TabsList className="flex-1 h-7 bg-muted/50">
-                            <TabsTrigger value="all" className="text-xs h-6 cursor-pointer">
-                                All Types
-                            </TabsTrigger>
-                            {leverageTypes
-                                .filter((type) => type !== 'All')
-                                .map((type) => (
-                                    <TabsTrigger key={type} value={type} className="text-xs h-6 cursor-pointer">
-                                        {type}
-                                    </TabsTrigger>
-                                ))}
-                        </TabsList>
-                    </div>
-                </Tabs>
-
                 <div className="flex items-center">
                     <div className="relative flex-1">
                         <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -287,12 +298,40 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                     <Button
                         variant="ghost"
                         size="sm"
+                        onClick={toggleFilters}
+                        className="ml-2 h-8 w-8 p-0 cursor-pointer"
+                        title="Toggle filters"
+                    >
+                        <FilterIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={toggleExpand}
                         className="ml-2 h-8 w-8 p-0 cursor-pointer"
                     >
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </Button>
                 </div>
+
+                {showFilters && isExpanded && (
+                    <Tabs defaultValue="all" onValueChange={setSelectedTab} className="w-full">
+                        <div className="flex items-center w-full mb-1">
+                            <TabsList className="flex-1 h-7 bg-muted/50">
+                                <TabsTrigger value="all" className="text-xs h-6 cursor-pointer">
+                                    All Types
+                                </TabsTrigger>
+                                {leverageTypes
+                                    .filter((type) => type !== 'All')
+                                    .map((type) => (
+                                        <TabsTrigger key={type} value={type} className="text-xs h-6 cursor-pointer">
+                                            {type}
+                                        </TabsTrigger>
+                                    ))}
+                            </TabsList>
+                        </div>
+                    </Tabs>
+                )}
             </div>
 
             <div
@@ -312,20 +351,20 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                     <table className="w-full border-collapse text-sm relative">
                         <thead className="bg-card text-xs sticky top-0 z-20 shadow-sm">
                             <tr>
-                                <th className="py-2 px-2 text-center font-medium w-10">
-                                    {/* Action column - no label needed */}
-                                </th>
-
                                 <th
                                     className="py-2 px-3 text-left font-medium cursor-pointer hover:bg-muted/40 transition-colors"
                                     onClick={() => handleSort('ticker')}
                                 >
                                     <div className="flex items-center gap-1">
                                         Ticker
-                                        {sortColumn === 'ticker' && (
-                                            <ArrowUpDown
-                                                className={cn('h-3 w-3', sortDirection === 'desc' ? 'rotate-180' : '')}
-                                            />
+                                        {sortColumn === 'ticker' ? (
+                                            sortDirection === 'asc' ? (
+                                                <ArrowUp className="h-3 w-3 flex-shrink-0" />
+                                            ) : (
+                                                <ArrowDown className="h-3 w-3 flex-shrink-0" />
+                                            )
+                                        ) : (
+                                            <div className="h-3 w-3 flex-shrink-0" />
                                         )}
                                     </div>
                                 </th>
@@ -334,43 +373,68 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                     <th
                                         key={assetClass}
                                         className={cn(
-                                            'py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors',
+                                            'py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[60px]',
                                             getAssetClassColor(assetClass)
                                         )}
                                         onClick={() => handleSort(`asset_${assetClass}`)}
                                     >
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-[10px] mb-1">
-                                                {getAssetClassDisplayName(assetClass)}
-                                            </span>
-                                            {sortColumn === `asset_${assetClass}` && (
-                                                <ArrowUpDown
-                                                    className={cn(
-                                                        'h-3 w-3',
-                                                        sortDirection === 'desc' ? 'rotate-180' : ''
-                                                    )}
-                                                />
-                                            )}
+                                        <div className="flex flex-col items-center justify-center h-8">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px]">
+                                                    {getAssetClassDisplayName(assetClass)}
+                                                </span>
+                                                {sortColumn === `asset_${assetClass}` ? (
+                                                    sortDirection === 'asc' ? (
+                                                        <ArrowUp className="h-3 w-3 flex-shrink-0" />
+                                                    ) : (
+                                                        <ArrowDown className="h-3 w-3 flex-shrink-0" />
+                                                    )
+                                                ) : (
+                                                    <div className="h-3 w-3 flex-shrink-0" />
+                                                )}
+                                            </div>
                                         </div>
                                     </th>
                                 ))}
 
                                 <th
-                                    className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors"
+                                    className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[70px]"
                                     onClick={() => handleSort('leverage')}
                                 >
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-[10px] mb-1">Leverage</span>
-                                        {sortColumn === 'leverage' && (
-                                            <ArrowUpDown
-                                                className={cn('h-3 w-3', sortDirection === 'desc' ? 'rotate-180' : '')}
-                                            />
-                                        )}
+                                    <div className="flex flex-col items-center justify-center h-8">
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px]">Leverage</span>
+                                            {sortColumn === 'leverage' ? (
+                                                sortDirection === 'asc' ? (
+                                                    <ArrowUp className="h-3 w-3 flex-shrink-0" />
+                                                ) : (
+                                                    <ArrowDown className="h-3 w-3 flex-shrink-0" />
+                                                )
+                                            ) : (
+                                                <div className="h-3 w-3 flex-shrink-0" />
+                                            )}
+                                        </div>
                                     </div>
                                 </th>
 
-                                <th className="py-2 px-2 text-center font-medium">
-                                    <span className="text-[10px]">Type</span>
+                                <th 
+                                    className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[80px]"
+                                    onClick={() => handleSort('type')}
+                                >
+                                    <div className="flex flex-col items-center justify-center h-8">
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px]">Type</span>
+                                            {sortColumn === 'type' ? (
+                                                sortDirection === 'asc' ? (
+                                                    <ArrowUp className="h-3 w-3 flex-shrink-0" />
+                                                ) : (
+                                                    <ArrowDown className="h-3 w-3 flex-shrink-0" />
+                                                )
+                                            ) : (
+                                                <div className="h-3 w-3 flex-shrink-0" />
+                                            )}
+                                        </div>
+                                    </div>
                                 </th>
                             </tr>
                         </thead>
@@ -386,20 +450,6 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                     onClick={() => handleSelect(etf)}
                                     onMouseEnter={() => setHighlightedIndex(index)}
                                 >
-                                    <td className="py-1.5 px-2 text-center">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleSelect(etf);
-                                            }}
-                                            className="h-6 w-6 p-0 cursor-pointer"
-                                        >
-                                            <PlusCircle className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </td>
-
                                     <td className="py-1.5 px-3 font-medium whitespace-nowrap">{etf.ticker}</td>
 
                                     {assetClasses.map((assetClass) => {
