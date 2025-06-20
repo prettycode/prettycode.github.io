@@ -76,6 +76,38 @@ const PortfolioBuilderG = () => {
         }
     };
 
+    // Function to bulk update multiple ETF allocations at once
+    const bulkUpdateAllocations = (allocationUpdates, overrideLocks = false) => {
+        const holdings = new Map(customPortfolio.holdings);
+
+        // Apply all updates to the holdings map
+        allocationUpdates.forEach(({ ticker, percentage }) => {
+            const currentHolding = holdings.get(ticker);
+            if (currentHolding) {
+                // Skip disabled ETFs unless explicitly updating them to 0
+                if (currentHolding.disabled && percentage !== 0) return;
+                
+                // Skip locked ETFs unless overriding locks
+                if (currentHolding.locked && !overrideLocks) return;
+
+                holdings.set(ticker, {
+                    ...currentHolding,
+                    percentage,
+                });
+            }
+        });
+
+        // Round percentages to one decimal place
+        for (const [ticker, holding] of holdings.entries()) {
+            holdings.set(ticker, {
+                ...holding,
+                percentage: parseFloat(holding.percentage.toFixed(1)),
+            });
+        }
+
+        updateCustomPortfolio(holdings);
+    };
+
     // Function to toggle lock status
     const toggleLockETF = (ticker) => {
         const holdings = new Map(customPortfolio.holdings);
@@ -299,6 +331,7 @@ const PortfolioBuilderG = () => {
                             onAddETF={addETFToPortfolio}
                             onRemoveETF={removeETFFromPortfolio}
                             onUpdateAllocation={updateETFAllocation}
+                            onBulkUpdateAllocations={bulkUpdateAllocations}
                             onToggleLock={toggleLockETF}
                             onToggleDisable={toggleDisableETF}
                             onInputChange={handleInputChange}

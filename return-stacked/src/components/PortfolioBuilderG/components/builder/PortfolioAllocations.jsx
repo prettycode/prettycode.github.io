@@ -11,6 +11,7 @@ import {
     ChevronDown,
     ChevronUp,
     Layers,
+    Scale,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,7 @@ const PortfolioAllocations = ({
     portfolioName,
     onToggleDetailColumns,
     onUpdateAllocation,
+    onBulkUpdateAllocations,
     onToggleLock,
     onToggleDisable,
     onInputChange,
@@ -43,6 +45,86 @@ const PortfolioAllocations = ({
     const toggleExpand = () => {
         setIsExpanded(!isExpanded);
     };
+
+    // Handle Equal Weight (Unlocked) - distribute remaining percentage equally among unlocked, non-disabled holdings
+    const handleEqualWeightUnlocked = () => {
+        if (isPortfolioEmpty) return;
+
+        const holdings = Array.from(customPortfolio.holdings.entries());
+        const unlockedActiveHoldings = holdings.filter(([ticker, holding]) => !holding.locked && !holding.disabled);
+
+        // If no unlocked active holdings, do nothing
+        if (unlockedActiveHoldings.length === 0) return;
+
+        // Calculate total percentage used by locked or disabled holdings
+        const totalLockedOrDisabledPercentage = holdings
+            .filter(([ticker, holding]) => holding.locked || holding.disabled)
+            .reduce((sum, [ticker, holding]) => sum + holding.percentage, 0);
+        
+        // Calculate remaining percentage to distribute
+        const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
+        
+        // Calculate target percentage for each unlocked active holding
+        const targetPercentage = parseFloat((remainingPercentage / unlockedActiveHoldings.length).toFixed(1));
+
+        // Create bulk update array for unlocked active holdings
+        const allocationUpdates = unlockedActiveHoldings.map(([ticker, holding]) => ({
+            ticker,
+            percentage: targetPercentage,
+        }));
+
+        // Use bulk update without lock override - respects locked ETFs
+        onBulkUpdateAllocations(allocationUpdates, false);
+    };
+
+    // Handle Equal Weight (All) - distribute 100% equally among all non-disabled holdings, overriding locks
+    const handleEqualWeightAll = () => {
+        if (isPortfolioEmpty) return;
+
+        const holdings = Array.from(customPortfolio.holdings.entries());
+        const activeHoldings = holdings.filter(([ticker, holding]) => !holding.disabled);
+        
+        // If no active holdings, do nothing
+        if (activeHoldings.length === 0) return;
+
+        // Calculate target percentage for each active holding
+        const targetPercentage = parseFloat((100 / activeHoldings.length).toFixed(1));
+
+        // Create bulk update array for all active holdings
+        const allocationUpdates = activeHoldings.map(([ticker, holding]) => ({
+            ticker,
+            percentage: targetPercentage,
+        }));
+
+        // Use bulk update with lock override - "Equal Weight (All)" ignores lock status!
+        onBulkUpdateAllocations(allocationUpdates, true);
+    };
+
+    // Calculate helper values for button states
+    const holdings = !isPortfolioEmpty ? Array.from(customPortfolio.holdings.entries()) : [];
+    const unlockedActiveHoldings = holdings.filter(([ticker, holding]) => !holding.locked && !holding.disabled);
+    const activeHoldings = holdings.filter(([ticker, holding]) => !holding.disabled);
+    const hasMultipleUnlockedActiveHoldings = unlockedActiveHoldings.length >= 2;
+    const hasMultipleActiveHoldings = activeHoldings.length >= 2;
+
+    // Check if already at equal weight (within 0.1% tolerance for rounding)
+    const isAlreadyEqualWeightAll = hasMultipleActiveHoldings && (() => {
+        const targetPercentage = 100 / activeHoldings.length;
+        return activeHoldings.every(([ticker, holding]) => 
+            Math.abs(holding.percentage - targetPercentage) <= 0.1
+        );
+    })();
+
+    const isAlreadyEqualWeightUnlocked = hasMultipleUnlockedActiveHoldings && (() => {
+        const totalLockedOrDisabledPercentage = holdings
+            .filter(([ticker, holding]) => holding.locked || holding.disabled)
+            .reduce((sum, [ticker, holding]) => sum + holding.percentage, 0);
+        const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
+        const targetPercentage = remainingPercentage / unlockedActiveHoldings.length;
+        return unlockedActiveHoldings.every(([ticker, holding]) => 
+            Math.abs(holding.percentage - targetPercentage) <= 0.1
+        );
+    })();
 
     // Calculate total leverage using analyzePortfolio
     const { totalLeverage = 0 } = !isPortfolioEmpty ? analyzePortfolio(customPortfolio) : { totalLeverage: 0 };
@@ -150,38 +232,86 @@ const PortfolioAllocations = ({
                         />
 
                         {/* Action buttons */}
-                        <div className="flex items-center justify-between p-3 border-t bg-muted/10">
-                            <Button
-                                onClick={onResetPortfolio}
-                                variant="outline"
-                                size="sm"
-                                className="text-xs h-8 cursor-pointer"
-                            >
-                                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                <span>Clear All</span>
-                            </Button>
+                        <div className="p-3 border-t bg-muted/10">
+                            <div className="flex items-center justify-between">
+                                {/* Left side - Portfolio manipulation actions */}
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        onClick={onResetPortfolio}
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs h-8 cursor-pointer"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                        <span>Clear All</span>
+                                    </Button>
 
-                            <Button
-                                onClick={() => {
-                                    if (isPortfolioValid) {
-                                        if (!portfolioName.trim()) {
-                                            setShowPortfolioNameInput(true);
-                                        } else {
-                                            onSavePortfolio();
+                                    <Button
+                                        onClick={handleEqualWeightUnlocked}
+                                        disabled={!hasMultipleUnlockedActiveHoldings || isAlreadyEqualWeightUnlocked}
+                                        variant="outline"
+                                        size="sm"
+                                        className={cn(
+                                            'text-xs h-8',
+                                            (hasMultipleUnlockedActiveHoldings && !isAlreadyEqualWeightUnlocked) ? 'cursor-pointer' : 'cursor-not-allowed'
+                                        )}
+                                        title={
+                                            !hasMultipleUnlockedActiveHoldings 
+                                                ? "Requires 2+ unlocked, active ETFs"
+                                                : isAlreadyEqualWeightUnlocked
+                                                ? "Already at equal weight"
+                                                : "Distribute remaining portfolio equally among unlocked, active ETFs"
                                         }
-                                    }
-                                }}
-                                disabled={!isPortfolioValid}
-                                variant={isPortfolioValid ? 'default' : 'outline'}
-                                size="sm"
-                                className={cn(
-                                    'text-xs h-8',
-                                    isPortfolioValid ? 'cursor-pointer' : 'cursor-not-allowed'
-                                )}
-                            >
-                                <Save className="h-3.5 w-3.5 mr-1" />
-                                <span>Save Portfolio</span>
-                            </Button>
+                                    >
+                                        <Scale className="h-3.5 w-3.5 mr-1" />
+                                        <span>Equal Weight (Unlocked)</span>
+                                    </Button>
+                                    
+                                    <Button
+                                        onClick={handleEqualWeightAll}
+                                        disabled={!hasMultipleActiveHoldings || isAlreadyEqualWeightAll}
+                                        variant="outline"
+                                        size="sm"
+                                        className={cn(
+                                            'text-xs h-8',
+                                            (hasMultipleActiveHoldings && !isAlreadyEqualWeightAll) ? 'cursor-pointer' : 'cursor-not-allowed'
+                                        )}
+                                        title={
+                                            !hasMultipleActiveHoldings 
+                                                ? "Requires 2+ active ETFs"
+                                                : isAlreadyEqualWeightAll
+                                                ? "Already at equal weight"
+                                                : "Distribute 100% equally among all active ETFs"
+                                        }
+                                    >
+                                        <Scale className="h-3.5 w-3.5 mr-1" />
+                                        <span>Equal Weight (All)</span>
+                                    </Button>
+                                </div>
+
+                                {/* Right side - Portfolio persistence actions */}
+                                <Button
+                                    onClick={() => {
+                                        if (isPortfolioValid) {
+                                            if (!portfolioName.trim()) {
+                                                setShowPortfolioNameInput(true);
+                                            } else {
+                                                onSavePortfolio();
+                                            }
+                                        }
+                                    }}
+                                    disabled={!isPortfolioValid}
+                                    variant={isPortfolioValid ? 'default' : 'outline'}
+                                    size="sm"
+                                    className={cn(
+                                        'text-xs h-8',
+                                        isPortfolioValid ? 'cursor-pointer' : 'cursor-not-allowed'
+                                    )}
+                                >
+                                    <Save className="h-3.5 w-3.5 mr-1" />
+                                    <span>Save Portfolio</span>
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </Card>

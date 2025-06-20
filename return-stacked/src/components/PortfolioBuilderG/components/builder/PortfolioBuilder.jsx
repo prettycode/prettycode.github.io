@@ -35,6 +35,7 @@ const PortfolioBuilder = ({
     onAddETF,
     onRemoveETF,
     onUpdateAllocation,
+    onBulkUpdateAllocations,
     onToggleLock,
     onToggleDisable,
     onInputChange,
@@ -228,6 +229,7 @@ const PortfolioBuilder = ({
                             portfolioName={portfolioName}
                             onToggleDetailColumns={onToggleDetailColumns}
                             onUpdateAllocation={onUpdateAllocation}
+                            onBulkUpdateAllocations={onBulkUpdateAllocations}
                             onToggleLock={onToggleLock}
                             onToggleDisable={onToggleDisable}
                             onInputChange={onInputChange}
