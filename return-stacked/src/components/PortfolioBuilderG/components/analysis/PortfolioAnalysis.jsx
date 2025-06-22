@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import AssetClassExposureBar from './AssetClassExposureBar';
+import AssetClassExposureBarB from './AssetClassExposureBarB';
 import DetailedExposuresVisual, { ViewToggle } from './DetailedExposuresVisual';
 import { Card, CardContent } from '@/components/ui/card';
 import { Layers, AlertCircle, BarChart3, SlidersHorizontal, Percent, ArrowDown10, Filter } from 'lucide-react';
@@ -77,6 +78,11 @@ const PortfolioAnalysis = ({ portfolio }) => {
             ) : (
                 <div className="space-y-3">
                     <AssetClassExposureBar
+                        portfolio={portfolio}
+                        sortByValue={sortByValue}
+                        showRelative={showRelative}
+                    />
+                    <AssetClassExposureBarB
                         portfolio={portfolio}
                         sortByValue={sortByValue}
                         showRelative={showRelative}
