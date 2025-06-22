@@ -44,7 +44,7 @@ const PortfolioTable = ({
                                 'w-[80%]': !showDetailColumns,
                             })}
                         >
-                            Allocation (%)
+                            Allocation
                         </TableHead>
                         <TableHead
                             className={cn('text-right font-medium text-xs py-2', {
