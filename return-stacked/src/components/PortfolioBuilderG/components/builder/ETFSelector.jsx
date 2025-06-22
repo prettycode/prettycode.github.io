@@ -5,7 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SearchIcon, FilterIcon, ArrowUpDown, PlusCircle, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+    SearchIcon,
+    FilterIcon,
+    ArrowUpDown,
+    PlusCircle,
+    ChevronDown,
+    ChevronUp,
+    ArrowUp,
+    ArrowDown,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
@@ -113,9 +122,11 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
             try {
                 // If no sort column is set, return original order
                 if (!sortColumn) return 0;
-                
+
                 if (sortColumn === 'ticker') {
-                    return sortDirection === 'asc' ? a.ticker.localeCompare(b.ticker) : b.ticker.localeCompare(a.ticker);
+                    return sortDirection === 'asc'
+                        ? a.ticker.localeCompare(b.ticker)
+                        : b.ticker.localeCompare(a.ticker);
                 } else if (sortColumn === 'leverage') {
                     const levA = calculateTotalExposure(a, true);
                     const levB = calculateTotalExposure(b, true);
@@ -352,11 +363,11 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                         <thead className="bg-card text-xs sticky top-0 z-20 shadow-sm">
                             <tr>
                                 <th
-                                    className="py-2 px-3 text-left font-medium cursor-pointer hover:bg-muted/40 transition-colors"
+                                    className="px-3 text-left font-medium cursor-pointer hover:bg-muted/40 transition-colors"
                                     onClick={() => handleSort('ticker')}
                                 >
                                     <div className="flex items-center gap-1">
-                                        Ticker
+                                        <span>Ticker</span>
                                         {sortColumn === 'ticker' ? (
                                             sortDirection === 'asc' ? (
                                                 <ArrowUp className="h-3 w-3 flex-shrink-0" />
@@ -373,16 +384,14 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                     <th
                                         key={assetClass}
                                         className={cn(
-                                            'py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[60px]',
+                                            'text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[60px]',
                                             getAssetClassColor(assetClass)
                                         )}
                                         onClick={() => handleSort(`asset_${assetClass}`)}
                                     >
-                                        <div className="flex flex-col items-center justify-center h-8">
+                                        <div className="flex flex-col items-center justify-center">
                                             <div className="flex items-center gap-1">
-                                                <span className="text-[10px]">
-                                                    {getAssetClassDisplayName(assetClass)}
-                                                </span>
+                                                <span>{getAssetClassDisplayName(assetClass)}</span>
                                                 {sortColumn === `asset_${assetClass}` ? (
                                                     sortDirection === 'asc' ? (
                                                         <ArrowUp className="h-3 w-3 flex-shrink-0" />
@@ -401,9 +410,9 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                     className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[70px]"
                                     onClick={() => handleSort('leverage')}
                                 >
-                                    <div className="flex flex-col items-center justify-center h-8">
+                                    <div className="flex flex-col items-center justify-center">
                                         <div className="flex items-center gap-1">
-                                            <span className="text-[10px]">Leverage</span>
+                                            <span>Leverage</span>
                                             {sortColumn === 'leverage' ? (
                                                 sortDirection === 'asc' ? (
                                                     <ArrowUp className="h-3 w-3 flex-shrink-0" />
@@ -417,13 +426,13 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                                     </div>
                                 </th>
 
-                                <th 
+                                <th
                                     className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[80px]"
                                     onClick={() => handleSort('type')}
                                 >
-                                    <div className="flex flex-col items-center justify-center h-8">
+                                    <div className="flex flex-col items-center justify-center">
                                         <div className="flex items-center gap-1">
-                                            <span className="text-[10px]">Type</span>
+                                            <span>Type</span>
                                             {sortColumn === 'type' ? (
                                                 sortDirection === 'asc' ? (
                                                     <ArrowUp className="h-3 w-3 flex-shrink-0" />

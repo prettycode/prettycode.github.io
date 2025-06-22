@@ -145,22 +145,14 @@ const PortfolioAllocations = ({
     return (
         <>
             {isPortfolioEmpty ? (
-                <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border/40 py-0">
+                <Card className="border border-border/40 py-0">
                     <CardContent className="p-6 flex flex-col items-center justify-center h-[220px] text-center">
                         <AlertCircle className="h-10 w-10 text-muted-foreground/60 mb-4" />
-                        <h3 className="text-lg font-medium text-foreground mb-2">Your Portfolio is Empty</h3>
+                        <h3 className="text-lg font-medium text-foreground mb-2">This Portfolio is Empty</h3>
                         <p className="text-sm text-muted-foreground max-w-md mb-4">
-                            Start by adding ETFs above or switch to the Templates tab to use a pre-built portfolio.
+                            Start by adding ETFs from the list below, or switch to the Templates tab to use a pre-built
+                            portfolio.
                         </p>
-                        <Button
-                            onClick={() => setActiveTab('templates')}
-                            className="flex items-center gap-1"
-                            variant="default"
-                            size="sm"
-                        >
-                            <BookTemplate className="h-4 w-4 mr-1" />
-                            <span>Browse Templates</span>
-                        </Button>
                     </CardContent>
                 </Card>
             ) : (

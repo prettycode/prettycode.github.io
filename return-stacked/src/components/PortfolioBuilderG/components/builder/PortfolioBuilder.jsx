@@ -209,13 +209,6 @@ const PortfolioBuilder = ({
                 {/* Build Tab */}
                 <TabsContent value="build">
                     <div className="space-y-3">
-                        {/* ETF Selection */}
-                        <ETFSelector
-                            etfCatalog={etfCatalog}
-                            onSelect={onAddETF}
-                            existingTickers={Array.from(customPortfolio.holdings.keys())}
-                        />
-
                         {/* Portfolio Allocations */}
                         <PortfolioAllocations
                             isPortfolioEmpty={isPortfolioEmpty}
@@ -238,6 +231,13 @@ const PortfolioBuilder = ({
                             onResetPortfolio={onResetPortfolio}
                             onSavePortfolio={onSavePortfolio}
                             setShowPortfolioNameInput={setShowPortfolioNameInput}
+                        />
+
+                        {/* ETF Selection */}
+                        <ETFSelector
+                            etfCatalog={etfCatalog}
+                            onSelect={onAddETF}
+                            existingTickers={Array.from(customPortfolio.holdings.keys())}
                         />
                     </div>
                 </TabsContent>
