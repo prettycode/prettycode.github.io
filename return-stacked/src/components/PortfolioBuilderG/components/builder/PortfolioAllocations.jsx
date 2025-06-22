@@ -243,7 +243,7 @@ const PortfolioAllocations = ({
                                         className="text-xs h-8 cursor-pointer"
                                     >
                                         <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                        <span>Clear All</span>
+                                        <span>Reset to Empty</span>
                                     </Button>
 
                                     <Button
@@ -289,7 +289,7 @@ const PortfolioAllocations = ({
                                         }
                                     >
                                         <Scale className="h-3.5 w-3.5 mr-1" />
-                                        <span>Equal Weight (All)</span>
+                                        <span>Equal Weight (Unlocked & Locked)</span>
                                     </Button>
                                 </div>
 
