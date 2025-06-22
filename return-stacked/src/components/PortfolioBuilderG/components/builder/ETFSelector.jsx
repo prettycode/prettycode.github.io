@@ -324,18 +324,20 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </Button>
                 </div>
+            </div>
 
+            <div className={cn(isExpanded ? 'border-b' : '')}>
                 {showFilters && isExpanded && (
                     <Tabs defaultValue="all" onValueChange={setSelectedTab} className="w-full">
-                        <div className="flex items-center w-full mb-1">
-                            <TabsList className="flex-1 h-7 bg-muted/50">
-                                <TabsTrigger value="all" className="text-xs h-6 cursor-pointer">
-                                    All Types
+                        <div className="flex items-center w-full">
+                            <TabsList className="flex-1 bg-muted/50 rounded-none">
+                                <TabsTrigger value="all" className="text-xs cursor-pointer">
+                                    All
                                 </TabsTrigger>
                                 {leverageTypes
                                     .filter((type) => type !== 'All')
                                     .map((type) => (
-                                        <TabsTrigger key={type} value={type} className="text-xs h-6 cursor-pointer">
+                                        <TabsTrigger key={type} value={type} className="text-xs cursor-pointer">
                                             {type}
                                         </TabsTrigger>
                                     ))}
@@ -360,7 +362,7 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
                     </div>
                 ) : (
                     <table className="w-full border-collapse text-sm relative">
-                        <thead className="bg-card text-xs sticky top-0 z-20 shadow-sm">
+                        <thead className="bg-[#fbfbfc] text-xs sticky top-0 z-20 shadow-sm">
                             <tr>
                                 <th
                                     className="px-3 text-left font-medium cursor-pointer hover:bg-muted/40 transition-colors"

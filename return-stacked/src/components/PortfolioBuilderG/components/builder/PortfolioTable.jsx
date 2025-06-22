@@ -26,7 +26,7 @@ const PortfolioTable = ({
                 <TableHeader className="bg-muted/30">
                     <TableRow className="hover:bg-transparent">
                         <TableHead
-                            className={cn('font-medium text-xs py-2', {
+                            className={cn('font-medium text-xs h-8 px-3', {
                                 'w-[8%]': !showDetailColumns,
                             })}
                         >
@@ -34,20 +34,20 @@ const PortfolioTable = ({
                         </TableHead>
                         {showDetailColumns && (
                             <>
-                                <TableHead className="font-medium text-xs py-2">Constituents</TableHead>
-                                <TableHead className="font-medium text-xs py-2">Leverage</TableHead>
-                                <TableHead className="font-medium text-xs py-2">Leverage Type</TableHead>
+                                <TableHead className="font-medium text-xs h-8">Constituents</TableHead>
+                                <TableHead className="font-medium text-xs h-8">Leverage</TableHead>
+                                <TableHead className="font-medium text-xs h-8">Leverage Type</TableHead>
                             </>
                         )}
                         <TableHead
-                            className={cn('font-medium text-xs py-2', {
+                            className={cn('font-medium text-xs h-8', {
                                 'w-[80%]': !showDetailColumns,
                             })}
                         >
                             Allocation
                         </TableHead>
                         <TableHead
-                            className={cn('text-right font-medium text-xs py-2', {
+                            className={cn('text-right font-medium text-xs h-8 px-2', {
                                 'w-[12%]': !showDetailColumns,
                             })}
                         >
@@ -101,7 +101,7 @@ const PortfolioTable = ({
                                     disabled ? 'hover:bg-muted/20' : 'hover:bg-accent/20'
                                 )}
                             >
-                                <TableCell className="font-medium py-1.5">
+                                <TableCell className="font-medium py-1.5 px-3">
                                     {!showDetailColumns ? (
                                         <div className="flex items-center">
                                             <span className={cn(disabled && 'text-muted-foreground')}>{ticker}</span>
@@ -201,7 +201,7 @@ const PortfolioTable = ({
                                         </div>
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-right py-1.5">
+                                <TableCell className="text-right py-1.5 px-2">
                                     <div className="flex gap-1 justify-end">
                                         <Button
                                             onClick={() => onToggleLock(ticker)}
