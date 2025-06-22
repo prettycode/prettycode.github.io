@@ -6,9 +6,33 @@ import PortfolioBuilder from './components/builder/PortfolioBuilder';
 import SavePortfolioModal from './components/builder/SavePortfolioModal';
 import PortfolioAnalysis from './components/analysis/PortfolioAnalysis';
 
+// Helper function to convert example portfolio to custom portfolio format
+const convertExampleToCustomPortfolio = (examplePortfolio) => {
+    const holdings = new Map();
+
+    for (const [ticker, percentage] of examplePortfolio.holdings) {
+        holdings.set(ticker, {
+            percentage,
+            locked: false,
+            disabled: false,
+        });
+    }
+
+    return {
+        name: examplePortfolio.name,
+        holdings,
+    };
+};
+
 // Main component
 const PortfolioBuilderG = () => {
-    const [customPortfolio, setCustomPortfolio] = useState(createPortfolio('My Custom Portfolio', []));
+    // Initialize with an example portfolio based on current time seconds
+    const defaultPortfolio =
+        examplePortfolios.length > 0
+            ? convertExampleToCustomPortfolio(examplePortfolios[new Date().getSeconds() % examplePortfolios.length])
+            : createPortfolio('My Custom Portfolio', []);
+
+    const [customPortfolio, setCustomPortfolio] = useState(defaultPortfolio);
     const [tempInputs, setTempInputs] = useState({});
     const [showDetailColumns, setShowDetailColumns] = useState(false);
     const [savedPortfolios, setSavedPortfolios] = useState([]);

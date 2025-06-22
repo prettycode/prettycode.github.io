@@ -243,7 +243,7 @@ const PortfolioAllocations = ({
                                         className="text-xs h-8 cursor-pointer"
                                     >
                                         <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                        <span>Reset to Empty</span>
+                                        <span>Remove all</span>
                                     </Button>
 
                                     <Button
