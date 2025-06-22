@@ -86,7 +86,7 @@ const PortfolioBuilderG = () => {
             if (currentHolding) {
                 // Skip disabled ETFs unless explicitly updating them to 0
                 if (currentHolding.disabled && percentage !== 0) return;
-                
+
                 // Skip locked ETFs unless overriding locks
                 if (currentHolding.locked && !overrideLocks) return;
 
@@ -313,8 +313,6 @@ const PortfolioBuilderG = () => {
     // Render the component
     return (
         <div className="max-w-full mx-auto p-6 bg-gray-50">
-            <h1 className="text-2xl font-bold mb-6 text-gray-800">Portfolio Exposure</h1>
-
             <div className="flex flex-col md:flex-row gap-6">
                 {/* LEFT COLUMN - Portfolio Selection and Building */}
                 <div className="md:w-11/20 flex flex-col">

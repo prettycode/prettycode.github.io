@@ -25,18 +25,17 @@ const PortfolioAnalysis = ({ portfolio }) => {
         <div className="space-y-3">
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-1">
-                    <BarChart3 className="h-4 w-4 text-primary" />
                     <h2 className="text-lg font-bold">Portfolio Analysis</h2>
                 </div>
 
                 {!isPortfolioEmpty && (
                     <button
                         onClick={() => setShowControls(!showControls)}
-                        className="flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     >
                         <SlidersHorizontal className="h-3 w-3" />
                         <span className="hidden sm:inline-block">
-                            {showControls ? 'Hide Controls' : 'View Options'}
+                            {showControls ? 'Hide View Options' : 'Show View Options'}
                         </span>
                     </button>
                 )}
