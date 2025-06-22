@@ -266,9 +266,9 @@ const PortfolioBuilder = ({
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {savedPortfolios.map((portfolio) => (
+                                    {savedPortfolios.map((portfolio, index) => (
                                         <div
-                                            key={portfolio.id}
+                                            key={`${portfolio.name}-${index}`}
                                             className="border border-border/40 rounded-lg overflow-hidden group"
                                         >
                                             <div className="p-4">
@@ -277,12 +277,16 @@ const PortfolioBuilder = ({
                                                 </h4>
                                                 <p className="text-xs text-muted-foreground mb-3">
                                                     {portfolio.description ||
-                                                        `Created on ${new Date(
-                                                            portfolio.createdAt
-                                                        ).toLocaleDateString()}`}
+                                                        (portfolio.createdAt
+                                                            ? `Created on ${new Date(
+                                                                  portfolio.createdAt
+                                                              ).toLocaleDateString()}`
+                                                            : 'No creation date available')}
                                                 </p>
                                                 <div className="text-xs text-muted-foreground mb-3">
-                                                    {portfolio.etfCount || '?'} ETFs
+                                                    {portfolio.etfCount ||
+                                                        (portfolio.holdings ? portfolio.holdings.length : '?')}{' '}
+                                                    ETFs
                                                 </div>
                                             </div>
 
@@ -295,7 +299,7 @@ const PortfolioBuilder = ({
                                                 </button>
                                                 <div className="w-px bg-border/40"></div>
                                                 <button
-                                                    onClick={() => onDeletePortfolio(portfolio.id)}
+                                                    onClick={() => onDeletePortfolio(portfolio.name)}
                                                     className="flex-1 py-2 text-xs font-medium text-center hover:bg-red-50 hover:text-red-600 transition-colors text-muted-foreground cursor-pointer"
                                                 >
                                                     Delete

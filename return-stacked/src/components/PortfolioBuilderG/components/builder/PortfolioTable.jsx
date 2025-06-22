@@ -178,7 +178,7 @@ const PortfolioTable = ({
                                             />
                                         )}
                                         <div className="flex-shrink-0 flex items-center">
-                                            <div className="relative w-20">
+                                            <div className="relative w-21">
                                                 <Input
                                                     type="number"
                                                     min="0"

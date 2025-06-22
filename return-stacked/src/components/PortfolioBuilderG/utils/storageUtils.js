@@ -15,6 +15,8 @@ export const savePortfolio = (portfolio) => {
         const serializablePortfolio = {
             ...portfolio,
             holdings: Array.from(portfolio.holdings.entries()),
+            createdAt: portfolio.createdAt || Date.now(),
+            etfCount: portfolio.holdings ? portfolio.holdings.size : 0,
         };
 
         // Get existing saved portfolios
