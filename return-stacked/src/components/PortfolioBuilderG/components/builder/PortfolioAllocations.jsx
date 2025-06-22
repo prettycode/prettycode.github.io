@@ -14,9 +14,13 @@ import {
     Scale,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import PortfolioTable from './PortfolioTable';
 import { analyzePortfolio } from '../../utils/etfData';
+
+// Animation duration for expand/collapse transition
+const EXPAND_COLLAPSE_DURATION_MS = 300;
 
 const PortfolioAllocations = ({
     isPortfolioEmpty,
@@ -60,10 +64,10 @@ const PortfolioAllocations = ({
         const totalLockedOrDisabledPercentage = holdings
             .filter(([ticker, holding]) => holding.locked || holding.disabled)
             .reduce((sum, [ticker, holding]) => sum + holding.percentage, 0);
-        
+
         // Calculate remaining percentage to distribute
         const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
-        
+
         // Calculate target percentage for each unlocked active holding
         const targetPercentage = parseFloat((remainingPercentage / unlockedActiveHoldings.length).toFixed(1));
 
@@ -83,7 +87,7 @@ const PortfolioAllocations = ({
 
         const holdings = Array.from(customPortfolio.holdings.entries());
         const activeHoldings = holdings.filter(([ticker, holding]) => !holding.disabled);
-        
+
         // If no active holdings, do nothing
         if (activeHoldings.length === 0) return;
 
@@ -108,23 +112,25 @@ const PortfolioAllocations = ({
     const hasMultipleActiveHoldings = activeHoldings.length >= 2;
 
     // Check if already at equal weight (within 0.1% tolerance for rounding)
-    const isAlreadyEqualWeightAll = hasMultipleActiveHoldings && (() => {
-        const targetPercentage = 100 / activeHoldings.length;
-        return activeHoldings.every(([ticker, holding]) => 
-            Math.abs(holding.percentage - targetPercentage) <= 0.1
-        );
-    })();
+    const isAlreadyEqualWeightAll =
+        hasMultipleActiveHoldings &&
+        (() => {
+            const targetPercentage = 100 / activeHoldings.length;
+            return activeHoldings.every(([ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1);
+        })();
 
-    const isAlreadyEqualWeightUnlocked = hasMultipleUnlockedActiveHoldings && (() => {
-        const totalLockedOrDisabledPercentage = holdings
-            .filter(([ticker, holding]) => holding.locked || holding.disabled)
-            .reduce((sum, [ticker, holding]) => sum + holding.percentage, 0);
-        const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
-        const targetPercentage = remainingPercentage / unlockedActiveHoldings.length;
-        return unlockedActiveHoldings.every(([ticker, holding]) => 
-            Math.abs(holding.percentage - targetPercentage) <= 0.1
-        );
-    })();
+    const isAlreadyEqualWeightUnlocked =
+        hasMultipleUnlockedActiveHoldings &&
+        (() => {
+            const totalLockedOrDisabledPercentage = holdings
+                .filter(([ticker, holding]) => holding.locked || holding.disabled)
+                .reduce((sum, [ticker, holding]) => sum + holding.percentage, 0);
+            const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
+            const targetPercentage = remainingPercentage / unlockedActiveHoldings.length;
+            return unlockedActiveHoldings.every(
+                ([ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1
+            );
+        })();
 
     // Calculate total leverage using analyzePortfolio
     const { totalLeverage = 0 } = !isPortfolioEmpty ? analyzePortfolio(customPortfolio) : { totalLeverage: 0 };
@@ -162,7 +168,7 @@ const PortfolioAllocations = ({
                     <div className={cn('p-3 space-y-3', isExpanded ? 'border-b' : '')}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
-                                <h3 className="text-sm font-medium">Asset Allocation</h3>
+                                <h3 className="text-sm font-medium">Portfolio Composition</h3>
 
                                 {/* Leverage indicator instead of allocation percentage */}
                                 <div
@@ -171,30 +177,31 @@ const PortfolioAllocations = ({
                                         getLeverageColor(totalLeverage)
                                     )}
                                 >
-                                    <Layers className="h-3 w-3 mr-1" />
-                                    <span>{totalLeverage.toFixed(2)}x</span>
+                                    <span className="font-bold">{totalLeverage.toFixed(2)}x</span>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <Button
-                                    onClick={onToggleDetailColumns}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 text-xs cursor-pointer"
-                                >
-                                    {showDetailColumns ? (
-                                        <>
-                                            <EyeOff className="h-3.5 w-3.5 mr-1.5" />
-                                            <span className="hidden sm:inline-block">Hide Details</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Eye className="h-3.5 w-3.5 mr-1.5" />
-                                            <span className="hidden sm:inline-block">Show Details</span>
-                                        </>
+                                <div
+                                    className={cn(
+                                        'flex items-center gap-2 transition-opacity ease-in-out',
+                                        isExpanded ? 'opacity-100' : 'opacity-0'
                                     )}
-                                </Button>
+                                    style={{ transitionDuration: `${EXPAND_COLLAPSE_DURATION_MS}ms` }}
+                                >
+                                    <Switch
+                                        checked={showDetailColumns}
+                                        onCheckedChange={onToggleDetailColumns}
+                                        className="data-[state=checked]:bg-blue-500"
+                                    />
+                                    <label
+                                        className="text-xs text-muted-foreground cursor-pointer"
+                                        onClick={onToggleDetailColumns}
+                                    >
+                                        <span className="hidden sm:inline-block">Detailed View</span>
+                                        <span className="sm:hidden">Details</span>
+                                    </label>
+                                </div>
 
                                 <Button
                                     variant="ghost"
@@ -214,9 +221,10 @@ const PortfolioAllocations = ({
 
                     <div
                         className={cn(
-                            'overflow-hidden transition-all duration-300 ease-in-out',
+                            'overflow-hidden transition-all ease-in-out',
                             isExpanded ? 'max-h-[800px]' : 'max-h-0'
                         )}
+                        style={{ transitionDuration: `${EXPAND_COLLAPSE_DURATION_MS}ms` }}
                     >
                         <PortfolioTable
                             customPortfolio={customPortfolio}
@@ -253,20 +261,22 @@ const PortfolioAllocations = ({
                                         size="sm"
                                         className={cn(
                                             'text-xs h-8',
-                                            (hasMultipleUnlockedActiveHoldings && !isAlreadyEqualWeightUnlocked) ? 'cursor-pointer' : 'cursor-not-allowed'
+                                            hasMultipleUnlockedActiveHoldings && !isAlreadyEqualWeightUnlocked
+                                                ? 'cursor-pointer'
+                                                : 'cursor-not-allowed'
                                         )}
                                         title={
-                                            !hasMultipleUnlockedActiveHoldings 
-                                                ? "Requires 2+ unlocked, active ETFs"
+                                            !hasMultipleUnlockedActiveHoldings
+                                                ? 'Requires 2+ unlocked, active ETFs'
                                                 : isAlreadyEqualWeightUnlocked
-                                                ? "Already at equal weight"
-                                                : "Distribute remaining portfolio equally among unlocked, active ETFs"
+                                                ? 'Already at equal weight'
+                                                : 'Distribute remaining portfolio equally among unlocked, active ETFs'
                                         }
                                     >
                                         <Scale className="h-3.5 w-3.5 mr-1" />
                                         <span>Equal Weight (Unlocked)</span>
                                     </Button>
-                                    
+
                                     <Button
                                         onClick={handleEqualWeightAll}
                                         disabled={!hasMultipleActiveHoldings || isAlreadyEqualWeightAll}
@@ -274,14 +284,16 @@ const PortfolioAllocations = ({
                                         size="sm"
                                         className={cn(
                                             'text-xs h-8',
-                                            (hasMultipleActiveHoldings && !isAlreadyEqualWeightAll) ? 'cursor-pointer' : 'cursor-not-allowed'
+                                            hasMultipleActiveHoldings && !isAlreadyEqualWeightAll
+                                                ? 'cursor-pointer'
+                                                : 'cursor-not-allowed'
                                         )}
                                         title={
-                                            !hasMultipleActiveHoldings 
-                                                ? "Requires 2+ active ETFs"
+                                            !hasMultipleActiveHoldings
+                                                ? 'Requires 2+ active ETFs'
                                                 : isAlreadyEqualWeightAll
-                                                ? "Already at equal weight"
-                                                : "Distribute 100% equally among all active ETFs"
+                                                ? 'Already at equal weight'
+                                                : 'Distribute 100% equally among all active ETFs'
                                         }
                                     >
                                         <Scale className="h-3.5 w-3.5 mr-1" />
