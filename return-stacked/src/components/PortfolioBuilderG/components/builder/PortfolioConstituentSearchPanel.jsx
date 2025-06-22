@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
+const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTab, setSelectedTab] = useState('all');
     const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -525,4 +525,4 @@ const ETFSelector = ({ etfCatalog, onSelect, existingTickers }) => {
     );
 };
 
-export default ETFSelector;
+export default PortfolioConstituentSearchPanel;

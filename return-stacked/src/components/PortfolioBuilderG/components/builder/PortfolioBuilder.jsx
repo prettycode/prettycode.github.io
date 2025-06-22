@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { parseExposureKey, deserializePortfolio } from '../../utils';
-import ETFSelector from './ETFSelector';
+import PortfolioConstituentSearchPanel from './PortfolioConstituentSearchPanel';
 import PortfolioControls from './PortfolioControls';
 import PortfolioTable from './PortfolioTable';
-import PortfolioAllocations from './PortfolioAllocations';
+import PortfolioCompositionPanel from './PortfolioCompositionPanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -119,38 +119,6 @@ const PortfolioBuilder = ({
                 <div className="flex items-center space-x-2">
                     <h2 className="text-xl font-bold">Portfolio Builder</h2>
                 </div>
-
-                {/* Portfolio name display/edit when in build mode */}
-                {activeTab === 'build' && !isPortfolioEmpty && (
-                    <div className="flex items-center gap-2">
-                        {showPortfolioNameInput ? (
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    value={portfolioName}
-                                    onChange={(e) => setPortfolioName(e.target.value)}
-                                    className="px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
-                                    placeholder="Portfolio name"
-                                />
-                                <button
-                                    onClick={handleSaveWithName}
-                                    className="flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
-                                >
-                                    <CheckCircle className="h-3 w-3" />
-                                    <span>Confirm</span>
-                                </button>
-                            </div>
-                        ) : (
-                            <div
-                                onClick={() => setShowPortfolioNameInput(true)}
-                                className="flex items-center gap-1 px-3 py-1 text-sm rounded-md bg-muted hover:bg-muted/80 cursor-pointer"
-                            >
-                                <span className="font-medium">{portfolioName || 'Unnamed Portfolio'}</span>
-                                <Settings className="h-3 w-3 ml-1 text-muted-foreground" />
-                            </div>
-                        )}
-                    </div>
-                )}
             </div>
 
             {/* Main tabbed interface */}
@@ -210,7 +178,7 @@ const PortfolioBuilder = ({
                 <TabsContent value="build">
                     <div className="space-y-3">
                         {/* Portfolio Allocations */}
-                        <PortfolioAllocations
+                        <PortfolioCompositionPanel
                             isPortfolioEmpty={isPortfolioEmpty}
                             setActiveTab={setActiveTab}
                             customPortfolio={customPortfolio}
@@ -234,7 +202,7 @@ const PortfolioBuilder = ({
                         />
 
                         {/* ETF Selection */}
-                        <ETFSelector
+                        <PortfolioConstituentSearchPanel
                             etfCatalog={etfCatalog}
                             onSelect={onAddETF}
                             existingTickers={Array.from(customPortfolio.holdings.keys())}

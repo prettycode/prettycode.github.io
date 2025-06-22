@@ -22,7 +22,7 @@ import { analyzePortfolio } from '../../utils/etfData';
 // Animation duration for expand/collapse transition
 const EXPAND_COLLAPSE_DURATION_MS = 300;
 
-const PortfolioAllocations = ({
+const PortfolioCompositionPanel = ({
     isPortfolioEmpty,
     setActiveTab,
     customPortfolio,
@@ -160,7 +160,8 @@ const PortfolioAllocations = ({
                     <div className={cn('p-3 space-y-3', isExpanded ? 'border-b' : '')}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
-                                <h3 className="text-sm font-medium">Portfolio Composition</h3>
+                                <h1 className="text-lg font-medium">{portfolioName}</h1>
+                                <h3 className="text-sm font-medium">Composition</h3>
 
                                 {/* Leverage indicator instead of allocation percentage */}
                                 <div
@@ -324,4 +325,4 @@ const PortfolioAllocations = ({
     );
 };
 
-export default PortfolioAllocations;
+export default PortfolioCompositionPanel;
