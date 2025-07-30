@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useReducer } from 'react';
 import { createPortfolio } from '../utils/etfData';
+import { DEFAULT_PORTFOLIO_NAME } from '../utils';
 
 // Initial state
 const initialState = {
-    portfolio: createPortfolio('My Custom Portfolio', []),
+    portfolio: createPortfolio(DEFAULT_PORTFOLIO_NAME, []),
     showDetailColumns: false,
     tempInputs: {},
 };
@@ -421,7 +422,7 @@ const portfolioReducer = (state, action) => {
         case ACTIONS.RESET_PORTFOLIO:
             return {
                 ...state,
-                portfolio: createPortfolio('My Custom Portfolio', 'Build your own portfolio', []),
+                portfolio: createPortfolio(DEFAULT_PORTFOLIO_NAME, []),
             };
 
         default:

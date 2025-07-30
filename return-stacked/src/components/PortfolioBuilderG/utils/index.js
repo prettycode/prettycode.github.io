@@ -2,6 +2,9 @@
  * Utility exports
  */
 
+// Constants
+export const DEFAULT_PORTFOLIO_NAME = 'New, Unsaved Portfolio';
+
 // Re-export everything from etfData
 export * from './etfData';
 

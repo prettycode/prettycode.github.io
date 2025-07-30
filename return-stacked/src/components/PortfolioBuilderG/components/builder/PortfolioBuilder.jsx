@@ -51,6 +51,11 @@ const PortfolioBuilder = ({
     const [showPortfolioNameInput, setShowPortfolioNameInput] = useState(false);
     const [portfolioName, setPortfolioName] = useState(customPortfolio.name || '');
 
+    // Sync portfolioName with customPortfolio.name when it changes
+    React.useEffect(() => {
+        setPortfolioName(customPortfolio.name);
+    }, [customPortfolio.name]);
+
     // Function to load a portfolio (example or saved)
     const loadPortfolio = (portfolio, isSaved = false) => {
         try {

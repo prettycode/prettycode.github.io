@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { etfCatalog, examplePortfolios, createPortfolio, parseExposureKey } from './utils';
+import { etfCatalog, examplePortfolios, createPortfolio, parseExposureKey, DEFAULT_PORTFOLIO_NAME } from './utils';
 import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils';
 import { savePortfolio, getSavedPortfolios, deserializePortfolio, deletePortfolio } from './utils';
 import PortfolioBuilder from './components/builder/PortfolioBuilder';
@@ -30,7 +30,7 @@ const PortfolioBuilderG = () => {
     const defaultPortfolio =
         examplePortfolios.length > 0
             ? convertExampleToCustomPortfolio(examplePortfolios[new Date().getSeconds() % examplePortfolios.length])
-            : createPortfolio('My Custom Portfolio', []);
+            : createPortfolio(DEFAULT_PORTFOLIO_NAME, []);
 
     const [customPortfolio, setCustomPortfolio] = useState(defaultPortfolio);
     const [tempInputs, setTempInputs] = useState({});
@@ -270,7 +270,7 @@ const PortfolioBuilderG = () => {
 
     // Function to reset the portfolio builder (clear all ETFs)
     const resetPortfolio = () => {
-        setCustomPortfolio(createPortfolio('My Custom Portfolio', []));
+        setCustomPortfolio(createPortfolio(DEFAULT_PORTFOLIO_NAME, []));
     };
 
     // Function to handle temp input state for number fields
@@ -378,7 +378,7 @@ const PortfolioBuilderG = () => {
                 isOpen={showSaveModal}
                 onClose={() => setShowSaveModal(false)}
                 onSave={saveCustomPortfolio}
-                initialName={customPortfolio.name !== 'My Custom Portfolio' ? customPortfolio.name : ''}
+                initialName={customPortfolio.name !== DEFAULT_PORTFOLIO_NAME ? customPortfolio.name : ''}
             />
         </div>
     );

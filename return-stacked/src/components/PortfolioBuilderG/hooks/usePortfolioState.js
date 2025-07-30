@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { DEFAULT_PORTFOLIO_NAME } from '../utils';
 
 export const usePortfolioState = (initialPortfolio) => {
     const [portfolio, setPortfolio] = useState(initialPortfolio);
@@ -354,7 +355,7 @@ export const usePortfolioState = (initialPortfolio) => {
 
     // Function to reset the portfolio builder (clear all ETFs)
     const resetPortfolio = useCallback((createPortfolio) => {
-        setPortfolio(createPortfolio('My Custom Portfolio', 'Build your own portfolio', []));
+        setPortfolio(createPortfolio(DEFAULT_PORTFOLIO_NAME, []));
     }, []);
 
     // Function to handle temp input state for number fields
