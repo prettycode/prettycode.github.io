@@ -66,6 +66,24 @@ export const etfCatalog = [
     ),
 
     createETF(
+        'RSSX',
+        [
+            {
+                exposure: {
+                    assetClass: 'Equity',
+                    marketRegion: 'U.S.',
+                    factorStyle: 'Blend',
+                    sizeFactor: 'Large Cap',
+                },
+                amount: 1.0,
+            },
+            { exposure: { assetClass: 'Gold' }, amount: 0.8 },
+            { exposure: { assetClass: 'Bitcoin' }, amount: 0.2 },
+        ],
+        'Stacked'
+    ),
+
+    createETF(
         'RSBT',
         [
             { exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.0 },
@@ -258,6 +276,14 @@ export const etfCatalog = [
         ],
         'Daily Reset'
     ),
+    createETF('HFMF', [
+        {
+            exposure: {
+                assetClass: 'Managed Futures',
+            },
+            amount: 2.0,
+        },
+    ]),
     createETF('VOO', [
         {
             exposure: {
