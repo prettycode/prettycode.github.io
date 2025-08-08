@@ -284,6 +284,55 @@ export const etfCatalog = [
             amount: 2.0,
         },
     ]),
+    createETF('VT', [
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'U.S.',
+                factorStyle: 'Blend',
+                sizeFactor: 'Large Cap',
+            },
+            amount: 0.6,
+        },
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'International Developed',
+                factorStyle: 'Blend',
+                sizeFactor: 'Large Cap',
+            },
+            amount: 0.3,
+        },
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'Emerging',
+                factorStyle: 'Blend',
+                sizeFactor: 'Large Cap',
+            },
+            amount: 0.1,
+        },
+    ]),
+    createETF('VXUS', [
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'International Developed',
+                factorStyle: 'Blend',
+                sizeFactor: 'Large Cap',
+            },
+            amount: 0.66,
+        },
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'Emerging',
+                factorStyle: 'Blend',
+                sizeFactor: 'Large Cap',
+            },
+            amount: 0.34,
+        },
+    ]),
     createETF('VOO', [
         {
             exposure: {
@@ -439,6 +488,14 @@ export const examplePortfolios = [
         { ticker: 'AVDV', percentage: 17.5 }, // International Developed Small Cap Value
         { ticker: 'DGS', percentage: 17.5 }, // Emerging Markets Small Cap Value
         { ticker: 'AVUV', percentage: 15 }, // U.S. Small Cap Value
+    ]),
+    createPortfolio('Return Stacked® Ultimate', [
+        { ticker: 'RSSY', percentage: 17.5 },
+        { ticker: 'RSST', percentage: 17.5 },
+        { ticker: 'RSSB', percentage: 17.5 },
+        { ticker: 'RSSX', percentage: 17.5 },
+        { ticker: 'AVDV', percentage: 15 },
+        { ticker: 'AVEE', percentage: 15 },
     ]),
 ];
 
