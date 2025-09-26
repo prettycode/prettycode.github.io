@@ -38,7 +38,10 @@ const AssetClassExposureBarB = ({ portfolio, sortByValue = false, showRelative =
                 <div className="flex flex-col space-y-2">
                     <div className="flex items-center">
                         <h3 className="font-medium text-sm mr-2">Asset Allocation</h3>
-                        <Badge className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0">
+                        <Badge
+                            className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0 cursor-help"
+                            title={`Total Leverage: ${totalLeverage.toFixed(4)}x`}
+                        >
                             <span>{totalLeverage.toFixed(2)}x</span> levered
                         </Badge>
                     </div>
@@ -68,7 +71,9 @@ const AssetClassExposureBarB = ({ portfolio, sortByValue = false, showRelative =
                                             <div className="flex-1 relative">
                                                 <div
                                                     className="relative h-6 bg-muted rounded-sm overflow-hidden cursor-pointer"
-                                                    title={`${assetClass}: ${roundForDisplay(amount * 100)}%`}
+                                                    title={`${assetClass}: ${(amount * 100).toFixed(4)}% (${
+                                                        showRelative ? 'relative' : 'absolute'
+                                                    })`}
                                                 >
                                                     <div
                                                         className="absolute inset-y-0 left-0 rounded-sm"
@@ -83,7 +88,14 @@ const AssetClassExposureBarB = ({ portfolio, sortByValue = false, showRelative =
 
                                             {/* Percentage always on the right */}
                                             <div className="flex-shrink-0 w-10 text-right">
-                                                <span className="text-xs font-medium text-muted-foreground">
+                                                <span
+                                                    className="text-xs font-medium text-muted-foreground cursor-help"
+                                                    title={`${
+                                                        showRelative
+                                                            ? ((amount / totalLeverage) * 100).toFixed(4)
+                                                            : (amount * 100).toFixed(4)
+                                                    }%`}
+                                                >
                                                     {Math.round(percentage)}%
                                                 </span>
                                             </div>

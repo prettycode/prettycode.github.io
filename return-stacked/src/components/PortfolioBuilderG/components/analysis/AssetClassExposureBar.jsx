@@ -36,7 +36,10 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
                 <div className="flex flex-col space-y-2">
                     <div className="flex items-center">
                         <h3 className="font-medium text-sm mr-2">Asset Allocation</h3>
-                        <Badge className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0">
+                        <Badge
+                            className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0 cursor-help"
+                            title={`Total Leverage: ${totalLeverage.toFixed(4)}x`}
+                        >
                             <span>{totalLeverage.toFixed(2)}x</span> levered
                         </Badge>
                     </div>
@@ -58,15 +61,29 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
                                             backgroundColor: assetClassColors[assetClass],
                                         }}
                                         className="flex items-center justify-center h-full"
-                                        title={`${assetClass}: ${(amount * 100).toFixed(1)}%`}
+                                        title={`${assetClass}: ${(amount * 100).toFixed(4)}% (${
+                                            showRelative ? 'relative' : 'absolute'
+                                        })`}
                                     >
                                         {percentage >= 15 ? (
-                                            <span className="text-[10px] text-white drop-shadow-md font-medium z-10">
+                                            <span
+                                                className="text-[10px] text-white drop-shadow-md font-medium z-10 cursor-help"
+                                                title={`${(showRelative
+                                                    ? (amount / totalLeverage) * 100
+                                                    : amount * 100
+                                                ).toFixed(4)}%`}
+                                            >
                                                 {displayName} {percentage.toFixed(0)}%
                                             </span>
                                         ) : (
                                             percentage >= 5 && (
-                                                <span className="text-[10px] text-white drop-shadow-md font-medium z-10">
+                                                <span
+                                                    className="text-[10px] text-white drop-shadow-md font-medium z-10 cursor-help"
+                                                    title={`${(showRelative
+                                                        ? (amount / totalLeverage) * 100
+                                                        : amount * 100
+                                                    ).toFixed(4)}%`}
+                                                >
                                                     {percentage.toFixed(0)}%
                                                 </span>
                                             )
@@ -87,7 +104,9 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
                                 <div
                                     key={index}
                                     className="flex items-center text-[11px]"
-                                    title={`${percentage.toFixed(1)}%`}
+                                    title={`${getDisplayName(assetClass)}: ${(amount * 100).toFixed(4)}% (${
+                                        showRelative ? 'relative' : 'absolute'
+                                    })`}
                                 >
                                     <div
                                         className="w-2 h-2 rounded-sm mr-0.5 mt-0.25 border border-white/10"

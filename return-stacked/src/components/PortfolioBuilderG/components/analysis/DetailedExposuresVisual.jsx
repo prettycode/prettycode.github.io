@@ -217,7 +217,14 @@ const DetailedExposuresVisual = ({
                                     <div key={index} className={cn('space-y-1')}>
                                         <div className="flex justify-between font-medium">
                                             <span className="text-xs">{name}</span>
-                                            <span className="text-xs">{value.toFixed(1)}%</span>
+                                            <span
+                                                className="text-xs cursor-help"
+                                                title={`${value.toFixed(4)}% (${
+                                                    showRelative ? 'relative' : 'absolute'
+                                                })`}
+                                            >
+                                                {value.toFixed(1)}%
+                                            </span>
                                         </div>
                                         <div className="relative h-1.5">
                                             <Progress

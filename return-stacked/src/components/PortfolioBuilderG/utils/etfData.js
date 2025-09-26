@@ -468,12 +468,12 @@ export const createPortfolio = (name, allocations) => {
 
 // Define example portfolios
 export const examplePortfolios = [
-    createPortfolio('Levered 4:3:2:1', [
+    createPortfolio('Levered 4:3:2:1 2.1x', [
         { ticker: 'RSST', percentage: 60 }, // Stacked leverage: Equity + Managed Futures
         { ticker: 'GDE', percentage: 25 }, // Stacked leverage: Equity + Gold
         { ticker: 'TMF', percentage: 15 }, // 3x Leveraged Treasuries
     ]),
-    createPortfolio('Return Stacked® 4:3:2:1', [
+    createPortfolio('Return Stacked® 4:3:2:1 1.875x', [
         { ticker: 'RSST', percentage: 57 },
         { ticker: 'GOVZ', percentage: 25 },
         { ticker: 'RSSX', percentage: 18 },
