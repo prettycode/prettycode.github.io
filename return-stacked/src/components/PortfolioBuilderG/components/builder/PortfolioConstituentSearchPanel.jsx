@@ -182,6 +182,12 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
     // Handle selection of an ETF
     const handleSelect = (etf) => {
         onSelect(etf.ticker);
+
+        // Clear search field if there was only one ETF matching the search
+        if (filteredETFs.length === 1) {
+            setSearchTerm('');
+            setHighlightedIndex(0);
+        }
     };
 
     // Handle sorting by column

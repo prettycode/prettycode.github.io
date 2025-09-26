@@ -452,6 +452,7 @@ export const etfCatalog = [
             amount: 1.0,
         },
     ]),
+    createETF('CTA', [{ exposure: { assetClass: 'Managed Futures' }, amount: 1.0 }]),
 ];
 
 // Function to create a portfolio
