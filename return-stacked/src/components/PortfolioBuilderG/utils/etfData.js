@@ -154,7 +154,7 @@ export const etfCatalog = [
     ),
 
     createETF('TMF', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 3.0 }], 'Daily Reset'),
-    createETF('GOVZ', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.5 }], 'Extended Duration'),
+    createETF('ZROZ', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.5 }], 'Extended Duration'),
     createETF('TLT', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.0 }]),
     createETF('UGL', [{ exposure: { assetClass: 'Gold' }, amount: 2.0 }], 'Daily Reset'),
     createETF('GLDM', [{ exposure: { assetClass: 'Gold' }, amount: 1.0 }]),
@@ -468,34 +468,52 @@ export const createPortfolio = (name, allocations) => {
 
 // Define example portfolios
 export const examplePortfolios = [
-    createPortfolio('Levered 4:3:2:1 2.1x', [
+    createPortfolio('2.1x 4/3/2/1', [
         { ticker: 'RSST', percentage: 60 }, // Stacked leverage: Equity + Managed Futures
         { ticker: 'GDE', percentage: 25 }, // Stacked leverage: Equity + Gold
         { ticker: 'TMF', percentage: 15 }, // 3x Leveraged Treasuries
     ]),
-    createPortfolio('Return Stacked® 4:3:2:1 1.875x', [
+    createPortfolio('1.875x Return Stacked® 4/3/2/1', [
         { ticker: 'RSST', percentage: 57 },
-        { ticker: 'GOVZ', percentage: 25 },
+        { ticker: 'ZROZ', percentage: 25 },
         { ticker: 'RSSX', percentage: 18 },
     ]),
-    createPortfolio('SSO/ZROZ/GLD', [
+    createPortfolio('1.65x SSO/ZROZ/GLD', [
         { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
-        { ticker: 'GOVZ', percentage: 25 }, // Extended Duration Treasuries
-        { ticker: 'GLDM', percentage: 25 }, // Gold exposure
+        { ticker: 'ZROZ', percentage: 30 }, // Extended Duration Treasuries
+        { ticker: 'GLDM', percentage: 20 }, // Gold exposure
+    ]),
+    createPortfolio('1.65x SSO/ZROZ/DBMF', [
+        { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
+        { ticker: 'ZROZ', percentage: 30 }, // Extended Duration Treasuries
+        { ticker: 'KMLM', percentage: 20 / 3 }, // Managed Futures for trend following
+        { ticker: 'CTA', percentage: 20 / 3 }, // Managed Futures for trend following
+        { ticker: 'HFMF', percentage: 20 / 3 }, // Managed Futures for trend following
+    ]),
+    createPortfolio('1.65x SSO/ZROZ/GLD/DBMF', [
+        { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
+        { ticker: 'ZROZ', percentage: 15 }, // Extended Duration Treasuries
+        { ticker: 'UGL', percentage: 7.5 }, // Gold exposure
+        { ticker: 'GLDM', percentage: 7.5 }, // Gold exposure
+        { ticker: 'KMLM', percentage: 20 / 3 }, // Managed Futures for trend following
+        { ticker: 'CTA', percentage: 20 / 3 }, // Managed Futures for trend following
+        { ticker: 'HFMF', percentage: 20 / 3 }, // Managed Futures for trend following
     ]),
     createPortfolio('YOLO', [
         { ticker: 'UPRO', percentage: 45 }, // 3x Leveraged S&P 500
-        { ticker: 'KMLM', percentage: 30 }, // Managed Futures for trend following
         { ticker: 'TMF', percentage: 25 }, // 3x Leveraged Treasuries
+        { ticker: 'KMLM', percentage: 10 }, // Managed Futures for trend following
+        { ticker: 'CTA', percentage: 10 }, // Managed Futures for trend following
+        { ticker: 'HFMF', percentage: 10 }, // Managed Futures for trend following
     ]),
-    createPortfolio('Levered Value Barbell', [
+    createPortfolio('1.5x Value Barbell', [
         { ticker: 'RSST', percentage: 25 }, // Stacked leverage: Equity + Managed Futures
         { ticker: 'RSSB', percentage: 25 }, // Stacked leverage: Global Equity + Treasuries
-        { ticker: 'AVDV', percentage: 17.5 }, // International Developed Small Cap Value
-        { ticker: 'DGS', percentage: 17.5 }, // Emerging Markets Small Cap Value
-        { ticker: 'AVUV', percentage: 15 }, // U.S. Small Cap Value
+        { ticker: 'AVDV', percentage: 50 / 3 }, // International Developed Small Cap Value
+        { ticker: 'DGS', percentage: 50 / 3 }, // Emerging Markets Small Cap Value
+        { ticker: 'AVUV', percentage: 50 / 3 }, // U.S. Small Cap Value
     ]),
-    createPortfolio('Return Stacked® Ultimate', [
+    createPortfolio('1.7x Return Stacked® Ultimate', [
         { ticker: 'RSSY', percentage: 17.5 },
         { ticker: 'RSST', percentage: 17.5 },
         { ticker: 'RSSB', percentage: 17.5 },
