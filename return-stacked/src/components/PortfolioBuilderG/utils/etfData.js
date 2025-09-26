@@ -154,7 +154,7 @@ export const etfCatalog = [
     ),
 
     createETF('TMF', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 3.0 }], 'Daily Reset'),
-    createETF('GOVZ', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.6 }], 'Extended Duration'),
+    createETF('GOVZ', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.5 }], 'Extended Duration'),
     createETF('TLT', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.0 }]),
     createETF('UGL', [{ exposure: { assetClass: 'Gold' }, amount: 2.0 }], 'Daily Reset'),
     createETF('GLDM', [{ exposure: { assetClass: 'Gold' }, amount: 1.0 }]),
@@ -281,7 +281,7 @@ export const etfCatalog = [
             exposure: {
                 assetClass: 'Managed Futures',
             },
-            amount: 2.0,
+            amount: 1.0,
         },
     ]),
     createETF('VT', [
@@ -377,7 +377,7 @@ export const etfCatalog = [
             amount: 1.0,
         },
     ]),
-    createETF('AVEM', [
+    createETF('VWO', [
         {
             exposure: {
                 assetClass: 'Equity',
