@@ -473,6 +473,11 @@ export const examplePortfolios = [
         { ticker: 'GDE', percentage: 25 }, // Stacked leverage: Equity + Gold
         { ticker: 'TMF', percentage: 15 }, // 3x Leveraged Treasuries
     ]),
+    createPortfolio('Return Stacked® 4:3:2:1', [
+        { ticker: 'RSST', percentage: 57 },
+        { ticker: 'GOVZ', percentage: 25 },
+        { ticker: 'RSSX', percentage: 18 },
+    ]),
     createPortfolio('SSO/ZROZ/GLD', [
         { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
         { ticker: 'GOVZ', percentage: 25 }, // Extended Duration Treasuries
@@ -535,6 +540,21 @@ export const analyzePortfolio = (portfolio) => {
 
             totalExposure += weightedAmount;
         }
+    }
+
+    // Prepare data for console logging with decimal points
+    const assetAllocationTable = {};
+    for (const [assetClass, amount] of assetClasses) {
+        assetAllocationTable[assetClass] = {
+            'Absolute Exposure': (amount * 100).toFixed(2) + '%',
+            'Relative Exposure': ((amount / totalExposure) * 100).toFixed(2) + '%',
+            'Raw Value': amount.toFixed(4),
+        };
+    }
+
+    // Log the asset allocation analysis to console
+    if (Object.keys(assetAllocationTable).length > 0) {
+        console.table(assetAllocationTable);
     }
 
     return {
