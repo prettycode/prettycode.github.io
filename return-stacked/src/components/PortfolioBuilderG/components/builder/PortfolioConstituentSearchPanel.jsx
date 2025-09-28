@@ -614,7 +614,7 @@ const PortfolioConstituentSearchPanel = ({
 
                                             {isEquity && (
                                                 <>
-                                                    <th 
+                                                    <th
                                                         className="py-2 px-1 text-center font-medium min-w-[50px] whitespace-nowrap bg-blue-50/20 cursor-pointer hover:bg-blue-100/30 transition-colors"
                                                         onClick={() => handleSort('regional_us')}
                                                     >
@@ -634,7 +634,7 @@ const PortfolioConstituentSearchPanel = ({
                                                         </div>
                                                     </th>
 
-                                                    <th 
+                                                    <th
                                                         className="py-2 px-1 text-center font-medium min-w-[50px] whitespace-nowrap bg-blue-50/20 cursor-pointer hover:bg-blue-100/30 transition-colors"
                                                         onClick={() => handleSort('regional_intl')}
                                                     >
@@ -654,7 +654,7 @@ const PortfolioConstituentSearchPanel = ({
                                                         </div>
                                                     </th>
 
-                                                    <th 
+                                                    <th
                                                         className="py-2 px-1 text-center font-medium min-w-[45px] whitespace-nowrap bg-blue-50/20 cursor-pointer hover:bg-blue-100/30 transition-colors"
                                                         onClick={() => handleSort('regional_em')}
                                                     >
@@ -679,25 +679,27 @@ const PortfolioConstituentSearchPanel = ({
                                     );
                                 })}
 
-                                <th
-                                    className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[75px] whitespace-nowrap"
-                                    onClick={() => handleSort('type')}
-                                >
-                                    <div className="flex flex-col items-center justify-center">
-                                        <div className="flex items-center gap-1">
-                                            <span>Type</span>
-                                            {sortColumn === 'type' ? (
-                                                sortDirection === 'asc' ? (
-                                                    <ArrowUp className="h-3 w-3 flex-shrink-0" />
+                                {mode !== 'templates' && (
+                                    <th
+                                        className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[75px] whitespace-nowrap"
+                                        onClick={() => handleSort('type')}
+                                    >
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="flex items-center gap-1">
+                                                <span>Type</span>
+                                                {sortColumn === 'type' ? (
+                                                    sortDirection === 'asc' ? (
+                                                        <ArrowUp className="h-3 w-3 flex-shrink-0" />
+                                                    ) : (
+                                                        <ArrowDown className="h-3 w-3 flex-shrink-0" />
+                                                    )
                                                 ) : (
-                                                    <ArrowDown className="h-3 w-3 flex-shrink-0" />
-                                                )
-                                            ) : (
-                                                <div className="h-3 w-3 flex-shrink-0" />
-                                            )}
+                                                    <div className="h-3 w-3 flex-shrink-0" />
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                </th>
+                                    </th>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
@@ -787,21 +789,23 @@ const PortfolioConstituentSearchPanel = ({
                                         });
                                     })()}
 
-                                    <td className="py-1.5 px-2 text-center">
-                                        {item.leverageType === 'None' ? (
-                                            <span className="text-xs text-muted-foreground">-</span>
-                                        ) : (
-                                            <Badge
-                                                variant="outline"
-                                                className={cn(
-                                                    'text-[10px] px-1.5 py-0 font-medium',
-                                                    getLeverageTypeColor(item.leverageType)
-                                                )}
-                                            >
-                                                {item.leverageType}
-                                            </Badge>
-                                        )}
-                                    </td>
+                                    {mode !== 'templates' && (
+                                        <td className="py-1.5 px-2 text-center">
+                                            {item.leverageType === 'None' ? (
+                                                <span className="text-xs text-muted-foreground">-</span>
+                                            ) : (
+                                                <Badge
+                                                    variant="outline"
+                                                    className={cn(
+                                                        'text-[10px] px-1.5 py-0 font-medium',
+                                                        getLeverageTypeColor(item.leverageType)
+                                                    )}
+                                                >
+                                                    {item.leverageType}
+                                                </Badge>
+                                            )}
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>
