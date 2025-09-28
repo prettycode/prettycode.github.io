@@ -4,7 +4,6 @@ import PortfolioConstituentSearchPanel from './PortfolioConstituentSearchPanel';
 import PortfolioControls from './PortfolioControls';
 import PortfolioTable from './PortfolioTable';
 import PortfolioCompositionPanel from './PortfolioCompositionPanel';
-import PortfolioTemplatesTable from './PortfolioTemplatesTable';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -134,13 +133,13 @@ const PortfolioBuilder = ({
                         <Plus className="h-4 w-4" />
                         <span>Build</span>
                     </TabsTrigger>
-                    <TabsTrigger value="saved" className="flex items-center gap-1 cursor-pointer">
-                        <Folder className="h-4 w-4" />
-                        <span>Saved</span>
-                    </TabsTrigger>
                     <TabsTrigger value="templates" className="flex items-center gap-1 cursor-pointer">
                         <BookTemplate className="h-4 w-4" />
                         <span>Templates</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="saved" className="flex items-center gap-1 cursor-pointer">
+                        <Folder className="h-4 w-4" />
+                        <span>Saved</span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -151,15 +150,16 @@ const PortfolioBuilder = ({
                             <div className="mb-6">
                                 <h3 className="text-lg font-medium mb-2">Portfolio Templates</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Choose a pre-built portfolio to start with, then customize it to your needs. Each
-                                    template shows detailed information about leverage, asset classes, and ETF
-                                    composition.
+                                    Choose a pre-built portfolio to start with, then customize it to your needs.
                                 </p>
                             </div>
 
-                            <PortfolioTemplatesTable
-                                examplePortfolios={examplePortfolios}
-                                onSelectTemplate={loadPortfolio}
+                            <PortfolioConstituentSearchPanel
+                                mode="templates"
+                                templates={examplePortfolios}
+                                onSelect={loadPortfolio}
+                                title="Search Templates..."
+                                etfCatalog={etfCatalog}
                             />
                         </CardContent>
                     </Card>

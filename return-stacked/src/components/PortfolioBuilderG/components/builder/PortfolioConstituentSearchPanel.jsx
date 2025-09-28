@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { parseExposureKey } from '../../utils/etfData';
+import { parseExposureKey, getTemplateDetails } from '../../utils/etfData';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,22 +17,98 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers }) => {
+const PortfolioConstituentSearchPanel = ({
+    etfCatalog,
+    onSelect,
+    existingTickers,
+    mode = 'etfs', // 'etfs' or 'templates'
+    templates = [], // portfolio templates when mode is 'templates'
+    title = 'Search ETFs...', // customizable title
+}) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTab, setSelectedTab] = useState('all');
     const [highlightedIndex, setHighlightedIndex] = useState(0);
     const [sortDirection, setSortDirection] = useState('asc');
     const [sortColumn, setSortColumn] = useState('ticker');
     const [isExpanded, setIsExpanded] = useState(true);
+
+    // For templates mode, always keep expanded
+    const shouldShowExpanded = mode === 'templates' ? true : isExpanded;
     const [showFilters, setShowFilters] = useState(false);
     const listRef = useRef(null);
     const inputRef = useRef(null);
 
+    // Calculate total exposure for an ETF
+    const calculateTotalExposure = (etf, asNumber = false) => {
+        let total = 0;
+        for (const [_, amount] of etf.exposures) {
+            total += amount;
+        }
+        return asNumber ? total : total.toFixed(1);
+    };
+
+    // Calculate leverage types by allocation for templates
+    const calculateLeverageTypesByAllocation = (template) => {
+        const leverageTypes = new Map();
+
+        for (const [ticker, percentage] of template.holdings) {
+            const etf = etfCatalog.find((e) => e.ticker === ticker);
+            if (!etf) continue;
+
+            const leverageType = etf.leverageType === 'None' ? 'Unlevered' : etf.leverageType;
+            const currentAllocation = leverageTypes.get(leverageType) || 0;
+            leverageTypes.set(leverageType, currentAllocation + percentage);
+        }
+
+        // Sort by allocation (highest to lowest)
+        return Array.from(leverageTypes.entries())
+            .sort((a, b) => b[1] - a[1])
+            .map(([type, allocation]) => ({ type, allocation }));
+    };
+
+    // Prepare unified data based on mode
+    const items = useMemo(() => {
+        if (mode === 'templates') {
+            return templates.map((template) => {
+                const details = getTemplateDetails(template);
+                const leverageTypesByAllocation = calculateLeverageTypesByAllocation(template);
+
+                return {
+                    id: template.name,
+                    name: template.name,
+                    type: 'template',
+                    leverageType: details.isLevered ? 'Mixed' : 'None',
+                    leverageTypesByAllocation: leverageTypesByAllocation,
+                    totalLeverage: details.totalLeverage,
+                    exposures: details.analysis.assetClasses, // Use template's calculated asset class exposures
+                    template: template,
+                    details: details,
+                };
+            });
+        } else {
+            return etfCatalog.map((etf) => ({
+                id: etf.ticker,
+                name: etf.ticker,
+                type: 'etf',
+                leverageType: etf.leverageType,
+                totalLeverage: calculateTotalExposure({ exposures: etf.exposures }, true),
+                exposures: etf.exposures,
+                etf: etf,
+            }));
+        }
+    }, [mode, templates, etfCatalog]);
+
     // Get unique leverage types for tabs
-    const leverageTypes = [
-        'All',
-        ...new Set(etfCatalog.map((etf) => (etf.leverageType === 'None' ? 'Unlevered' : etf.leverageType))),
-    ];
+    const leverageTypes = useMemo(() => {
+        if (mode === 'templates') {
+            return ['All', 'Levered', 'Unlevered'];
+        } else {
+            return [
+                'All',
+                ...new Set(etfCatalog.map((etf) => (etf.leverageType === 'None' ? 'Unlevered' : etf.leverageType))),
+            ];
+        }
+    }, [mode, etfCatalog]);
 
     // Get all unique asset classes from all ETFs
     const assetClasses = useMemo(() => {
@@ -61,12 +137,12 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
         return orderedClasses;
     }, [etfCatalog]);
 
-    // Auto-expand when user starts typing
+    // Auto-expand when user starts typing (only for ETF mode)
     useEffect(() => {
-        if (searchTerm.length > 0 && !isExpanded) {
+        if (mode === 'etfs' && searchTerm.length > 0 && !isExpanded) {
             setIsExpanded(true);
         }
-    }, [searchTerm]);
+    }, [searchTerm, mode, isExpanded]);
 
     // Get display name for asset classes (same as in AssetClassExposureBar)
     const getAssetClassDisplayName = (assetClass) => {
@@ -84,37 +160,114 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
         }
     };
 
-    // Calculate total exposure for an ETF
-    const calculateTotalExposure = (etf, asNumber = false) => {
-        let total = 0;
-        for (const [_, amount] of etf.exposures) {
-            total += amount;
-        }
-        return asNumber ? total : total.toFixed(1);
-    };
-
-    // Get exposure amount for a specific asset class in an ETF
-    const getAssetClassAmount = (etf, assetClass) => {
-        let total = 0;
-
-        for (const [key, amount] of etf.exposures) {
-            const { assetClass: ac } = parseExposureKey(key);
-            if (ac === assetClass) {
-                total += amount;
+    // Get exposure amount for a specific asset class (works for both ETFs and templates)
+    const getAssetClassAmount = (item, assetClass) => {
+        if (item.type === 'template') {
+            // For templates, get the amount directly from the asset class exposures
+            return item.exposures.get(assetClass) || 0;
+        } else {
+            // For ETFs, parse the exposure keys to find matching asset class
+            let total = 0;
+            for (const [key, amount] of item.etf.exposures) {
+                const { assetClass: ac } = parseExposureKey(key);
+                if (ac === assetClass) {
+                    total += amount;
+                }
             }
+            return total;
         }
-
-        return total;
     };
 
-    // Filter ETFs based on search term, selected tab, and existing tickers
-    const filteredETFs = etfCatalog
-        .filter((etf) => {
-            const matchesSearch = etf.ticker.toLowerCase().includes(searchTerm.toLowerCase());
-            const notInPortfolio = !existingTickers.includes(etf.ticker);
-            const matchesTab =
-                selectedTab === 'all' ||
-                (selectedTab === 'Unlevered' ? etf.leverageType === 'None' : etf.leverageType === selectedTab);
+    // Calculate regional equity breakdown for an item
+    const getRegionalEquityBreakdown = (item) => {
+        if (item.type === 'template') {
+            // For templates, calculate regional breakdown from the portfolio analysis
+            let usEquityExposure = 0;
+            let intlEquityExposure = 0;
+            let emEquityExposure = 0;
+
+            for (const [ticker, percentage] of item.template.holdings) {
+                const etf = etfCatalog.find((e) => e.ticker === ticker);
+                if (!etf) continue;
+
+                const weight = percentage / 100;
+
+                for (const [exposureKey, amount] of etf.exposures) {
+                    const parsed = parseExposureKey(exposureKey);
+                    if (parsed.assetClass === 'Equity') {
+                        const weightedAmount = amount * weight;
+
+                        if (parsed.marketRegion === 'U.S.') {
+                            usEquityExposure += weightedAmount;
+                        } else if (parsed.marketRegion === 'International Developed') {
+                            intlEquityExposure += weightedAmount;
+                        } else if (parsed.marketRegion === 'Emerging') {
+                            emEquityExposure += weightedAmount;
+                        }
+                    }
+                }
+            }
+
+            return {
+                us: usEquityExposure,
+                intl: intlEquityExposure,
+                em: emEquityExposure,
+                total: usEquityExposure + intlEquityExposure + emEquityExposure,
+            };
+        } else {
+            // For ETFs, calculate regional equity exposure
+            let usEquityExposure = 0;
+            let intlEquityExposure = 0;
+            let emEquityExposure = 0;
+
+            for (const [key, amount] of item.etf.exposures) {
+                const parsed = parseExposureKey(key);
+                if (parsed.assetClass === 'Equity') {
+                    if (parsed.marketRegion === 'U.S.') {
+                        usEquityExposure += amount;
+                    } else if (parsed.marketRegion === 'International Developed') {
+                        intlEquityExposure += amount;
+                    } else if (parsed.marketRegion === 'Emerging') {
+                        emEquityExposure += amount;
+                    }
+                }
+            }
+
+            return {
+                us: usEquityExposure,
+                intl: intlEquityExposure,
+                em: emEquityExposure,
+                total: usEquityExposure + intlEquityExposure + emEquityExposure,
+            };
+        }
+    };
+
+    // Format regional equity exposure as percentage
+    const formatRegionalEquity = (amount, total) => {
+        if (total === 0 || amount === 0) return '-';
+        const percent = Math.round((amount / total) * 100);
+        return `${percent}%`;
+    };
+
+    // Filter items based on search term, selected tab, and existing tickers
+    const filteredItems = items
+        .filter((item) => {
+            const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const notInPortfolio = mode === 'templates' ? true : !existingTickers.includes(item.id);
+
+            let matchesTab = selectedTab === 'all';
+            if (!matchesTab) {
+                if (mode === 'templates') {
+                    if (selectedTab === 'Levered') {
+                        matchesTab = item.details.isLevered;
+                    } else if (selectedTab === 'Unlevered') {
+                        matchesTab = !item.details.isLevered;
+                    }
+                } else {
+                    matchesTab =
+                        selectedTab === 'Unlevered' ? item.leverageType === 'None' : item.leverageType === selectedTab;
+                }
+            }
 
             return matchesSearch && notInPortfolio && matchesTab;
         })
@@ -123,13 +276,11 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
                 // If no sort column is set, return original order
                 if (!sortColumn) return 0;
 
-                if (sortColumn === 'ticker') {
-                    return sortDirection === 'asc'
-                        ? a.ticker.localeCompare(b.ticker)
-                        : b.ticker.localeCompare(a.ticker);
+                if (sortColumn === 'ticker' || sortColumn === 'name') {
+                    return sortDirection === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
                 } else if (sortColumn === 'leverage') {
-                    const levA = calculateTotalExposure(a, true);
-                    const levB = calculateTotalExposure(b, true);
+                    const levA = a.totalLeverage;
+                    const levB = b.totalLeverage;
                     return sortDirection === 'asc' ? levA - levB : levB - levA;
                 } else if (sortColumn === 'type') {
                     const typeA = a.leverageType;
@@ -140,6 +291,24 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
                     const amountA = getAssetClassAmount(a, assetClass);
                     const amountB = getAssetClassAmount(b, assetClass);
                     return sortDirection === 'asc' ? amountA - amountB : amountB - amountA;
+                } else if (sortColumn.startsWith('regional_')) {
+                    const breakdownA = getRegionalEquityBreakdown(a);
+                    const breakdownB = getRegionalEquityBreakdown(b);
+                    let valueA = 0;
+                    let valueB = 0;
+
+                    if (sortColumn === 'regional_us') {
+                        valueA = breakdownA.total > 0 ? breakdownA.us / breakdownA.total : 0;
+                        valueB = breakdownB.total > 0 ? breakdownB.us / breakdownB.total : 0;
+                    } else if (sortColumn === 'regional_intl') {
+                        valueA = breakdownA.total > 0 ? breakdownA.intl / breakdownA.total : 0;
+                        valueB = breakdownB.total > 0 ? breakdownB.intl / breakdownB.total : 0;
+                    } else if (sortColumn === 'regional_em') {
+                        valueA = breakdownA.total > 0 ? breakdownA.em / breakdownA.total : 0;
+                        valueB = breakdownB.total > 0 ? breakdownB.em / breakdownB.total : 0;
+                    }
+
+                    return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
                 }
                 return 0;
             } catch (error) {
@@ -153,15 +322,15 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
         switch (e.key) {
             case 'ArrowDown':
                 e.preventDefault();
-                setHighlightedIndex((prev) => (prev < filteredETFs.length - 1 ? prev + 1 : prev));
+                setHighlightedIndex((prev) => (prev < filteredItems.length - 1 ? prev + 1 : prev));
                 break;
             case 'ArrowUp':
                 e.preventDefault();
                 setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : 0));
                 break;
             case 'Enter':
-                if (filteredETFs[highlightedIndex]) {
-                    handleSelect(filteredETFs[highlightedIndex]);
+                if (filteredItems[highlightedIndex]) {
+                    handleSelect(filteredItems[highlightedIndex]);
                 }
                 break;
             default:
@@ -171,7 +340,7 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
 
     // Scroll to highlighted item
     useEffect(() => {
-        if (listRef.current && filteredETFs.length > 0) {
+        if (listRef.current && filteredItems.length > 0) {
             const highlighted = listRef.current.querySelector(`[data-index="${highlightedIndex}"]`);
             if (highlighted) {
                 highlighted.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -179,12 +348,16 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
         }
     }, [highlightedIndex]);
 
-    // Handle selection of an ETF
-    const handleSelect = (etf) => {
-        onSelect(etf.ticker);
+    // Handle selection of an item
+    const handleSelect = (item) => {
+        if (mode === 'templates') {
+            onSelect(item.template);
+        } else {
+            onSelect(item.id);
+        }
 
-        // Clear search field if there was only one ETF matching the search
-        if (filteredETFs.length === 1) {
+        // Clear search field if there was only one item matching the search
+        if (filteredItems.length === 1) {
             setSearchTerm('');
             setHighlightedIndex(0);
         }
@@ -287,15 +460,15 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
     // Toggle filters visibility
     const toggleFilters = () => {
         setShowFilters(!showFilters);
-        // If the card is collapsed and filter button is pressed, expand the card
-        if (!isExpanded) {
+        // If the card is collapsed and filter button is pressed, expand the card (ETF mode only)
+        if (mode === 'etfs' && !isExpanded) {
             setIsExpanded(true);
         }
     };
 
     return (
         <Card className="border shadow-sm py-1 gap-0 overflow-hidden">
-            <div className={cn('p-3 space-y-3', isExpanded ? 'border-b' : '')}>
+            <div className={cn('p-3 space-y-3', shouldShowExpanded ? 'border-b' : '')}>
                 <div className="flex items-center">
                     <div className="relative flex-1">
                         <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -308,27 +481,31 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
                                 setHighlightedIndex(0);
                             }}
                             onKeyDown={handleKeyDown}
-                            placeholder="Search ETFs..."
+                            placeholder={title}
                             className="pl-9 h-8"
                         />
                     </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleFilters}
-                        className="ml-2 h-8 w-8 p-0 cursor-pointer"
-                        title="Toggle filters"
-                    >
-                        <FilterIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleExpand}
-                        className="ml-2 h-8 w-8 p-0 cursor-pointer"
-                    >
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </Button>
+                    {mode === 'etfs' && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleFilters}
+                            className="ml-2 h-8 w-8 p-0 cursor-pointer"
+                            title="Toggle filters"
+                        >
+                            <FilterIcon className="h-4 w-4" />
+                        </Button>
+                    )}
+                    {mode === 'etfs' && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleExpand}
+                            className="ml-2 h-8 w-8 p-0 cursor-pointer"
+                        >
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -360,10 +537,10 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
                     isExpanded ? 'max-h-[300px]' : 'max-h-0'
                 )}
             >
-                {filteredETFs.length === 0 ? (
+                {filteredItems.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                         <FilterIcon className="mx-auto h-10 w-10 opacity-20 mb-2" />
-                        <p>No matching ETFs found</p>
+                        <p>No matching {mode === 'templates' ? 'templates' : 'ETFs'} found</p>
                         <p className="text-xs mt-1">Try adjusting your search or filters</p>
                     </div>
                 ) : (
@@ -371,12 +548,12 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
                         <thead className="bg-[#fbfbfc] text-xs sticky top-0 z-20 shadow-sm">
                             <tr>
                                 <th
-                                    className="px-3 text-left font-medium cursor-pointer hover:bg-muted/40 transition-colors"
-                                    onClick={() => handleSort('ticker')}
+                                    className="px-3 text-left font-medium cursor-pointer hover:bg-muted/40 transition-colors whitespace-nowrap"
+                                    onClick={() => handleSort(mode === 'templates' ? 'name' : 'ticker')}
                                 >
                                     <div className="flex items-center gap-1">
-                                        <span>Ticker</span>
-                                        {sortColumn === 'ticker' ? (
+                                        <span>{mode === 'templates' ? 'Template' : 'Ticker'}</span>
+                                        {sortColumn === 'ticker' || sortColumn === 'name' ? (
                                             sortDirection === 'asc' ? (
                                                 <ArrowUp className="h-3 w-3 flex-shrink-0" />
                                             ) : (
@@ -388,34 +565,8 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
                                     </div>
                                 </th>
 
-                                {assetClasses.map((assetClass) => (
-                                    <th
-                                        key={assetClass}
-                                        className={cn(
-                                            'text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[60px]',
-                                            getAssetClassColor(assetClass)
-                                        )}
-                                        onClick={() => handleSort(`asset_${assetClass}`)}
-                                    >
-                                        <div className="flex flex-col items-center justify-center">
-                                            <div className="flex items-center gap-1">
-                                                <span>{getAssetClassDisplayName(assetClass)}</span>
-                                                {sortColumn === `asset_${assetClass}` ? (
-                                                    sortDirection === 'asc' ? (
-                                                        <ArrowUp className="h-3 w-3 flex-shrink-0" />
-                                                    ) : (
-                                                        <ArrowDown className="h-3 w-3 flex-shrink-0" />
-                                                    )
-                                                ) : (
-                                                    <div className="h-3 w-3 flex-shrink-0" />
-                                                )}
-                                            </div>
-                                        </div>
-                                    </th>
-                                ))}
-
                                 <th
-                                    className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[70px]"
+                                    className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[60px] whitespace-nowrap"
                                     onClick={() => handleSort('leverage')}
                                 >
                                     <div className="flex flex-col items-center justify-center">
@@ -434,8 +585,102 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
                                     </div>
                                 </th>
 
+                                {assetClasses.map((assetClass) => {
+                                    const isEquity = assetClass === 'Equity';
+                                    return (
+                                        <React.Fragment key={assetClass}>
+                                            <th
+                                                className={cn(
+                                                    'text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[65px] whitespace-nowrap',
+                                                    getAssetClassColor(assetClass)
+                                                )}
+                                                onClick={() => handleSort(`asset_${assetClass}`)}
+                                            >
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>{getAssetClassDisplayName(assetClass)}</span>
+                                                        {sortColumn === `asset_${assetClass}` ? (
+                                                            sortDirection === 'asc' ? (
+                                                                <ArrowUp className="h-3 w-3 flex-shrink-0" />
+                                                            ) : (
+                                                                <ArrowDown className="h-3 w-3 flex-shrink-0" />
+                                                            )
+                                                        ) : (
+                                                            <div className="h-3 w-3 flex-shrink-0" />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </th>
+
+                                            {isEquity && (
+                                                <>
+                                                    <th 
+                                                        className="py-2 px-1 text-center font-medium min-w-[50px] whitespace-nowrap bg-blue-50/20 cursor-pointer hover:bg-blue-100/30 transition-colors"
+                                                        onClick={() => handleSort('regional_us')}
+                                                    >
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-blue-700">U.S.</span>
+                                                                {sortColumn === 'regional_us' ? (
+                                                                    sortDirection === 'asc' ? (
+                                                                        <ArrowUp className="h-3 w-3 flex-shrink-0 text-blue-700" />
+                                                                    ) : (
+                                                                        <ArrowDown className="h-3 w-3 flex-shrink-0 text-blue-700" />
+                                                                    )
+                                                                ) : (
+                                                                    <div className="h-3 w-3 flex-shrink-0" />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </th>
+
+                                                    <th 
+                                                        className="py-2 px-1 text-center font-medium min-w-[50px] whitespace-nowrap bg-blue-50/20 cursor-pointer hover:bg-blue-100/30 transition-colors"
+                                                        onClick={() => handleSort('regional_intl')}
+                                                    >
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-blue-700">Int'l</span>
+                                                                {sortColumn === 'regional_intl' ? (
+                                                                    sortDirection === 'asc' ? (
+                                                                        <ArrowUp className="h-3 w-3 flex-shrink-0 text-blue-700" />
+                                                                    ) : (
+                                                                        <ArrowDown className="h-3 w-3 flex-shrink-0 text-blue-700" />
+                                                                    )
+                                                                ) : (
+                                                                    <div className="h-3 w-3 flex-shrink-0" />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </th>
+
+                                                    <th 
+                                                        className="py-2 px-1 text-center font-medium min-w-[45px] whitespace-nowrap bg-blue-50/20 cursor-pointer hover:bg-blue-100/30 transition-colors"
+                                                        onClick={() => handleSort('regional_em')}
+                                                    >
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-blue-700">EM</span>
+                                                                {sortColumn === 'regional_em' ? (
+                                                                    sortDirection === 'asc' ? (
+                                                                        <ArrowUp className="h-3 w-3 flex-shrink-0 text-blue-700" />
+                                                                    ) : (
+                                                                        <ArrowDown className="h-3 w-3 flex-shrink-0 text-blue-700" />
+                                                                    )
+                                                                ) : (
+                                                                    <div className="h-3 w-3 flex-shrink-0" />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </th>
+                                                </>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+
                                 <th
-                                    className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[80px]"
+                                    className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[75px] whitespace-nowrap"
                                     onClick={() => handleSort('type')}
                                 >
                                     <div className="flex flex-col items-center justify-center">
@@ -456,68 +701,104 @@ const PortfolioConstituentSearchPanel = ({ etfCatalog, onSelect, existingTickers
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredETFs.map((etf, index) => (
+                            {filteredItems.map((item, index) => (
                                 <tr
-                                    key={etf.ticker}
+                                    key={item.id}
                                     data-index={index}
                                     className={cn(
                                         'border-t border-border/30 hover:bg-accent/20 transition-colors cursor-pointer',
                                         index === highlightedIndex && 'bg-accent/30'
                                     )}
-                                    onClick={() => handleSelect(etf)}
+                                    onClick={() => handleSelect(item)}
                                     onMouseEnter={() => setHighlightedIndex(index)}
                                 >
-                                    <td className="py-1.5 px-3 font-medium whitespace-nowrap">{etf.ticker}</td>
-
-                                    {assetClasses.map((assetClass) => {
-                                        const amount = getAssetClassAmount(etf, assetClass);
-                                        return (
-                                            <td
-                                                key={assetClass}
-                                                className={cn(
-                                                    'py-1.5 px-2 text-center text-xs',
-                                                    amount > 0
-                                                        ? cn(
-                                                              'font-medium',
-                                                              getAssetClassColor(assetClass),
-                                                              getAssetClassBgColor(assetClass)
-                                                          )
-                                                        : 'text-muted-foreground'
-                                                )}
-                                            >
-                                                {formatPercent(amount)}
-                                            </td>
-                                        );
-                                    })}
+                                    <td className="py-1.5 px-3 font-medium whitespace-nowrap">{item.name}</td>
 
                                     <td className="py-1.5 px-2 text-center">
-                                        {calculateTotalExposure(etf) === '1.0' ? (
+                                        {item.totalLeverage === 1.0 ? (
                                             <span className="text-xs text-muted-foreground">-</span>
                                         ) : (
                                             <Badge
                                                 variant="outline"
                                                 className={cn(
                                                     'text-[10px] px-1.5 py-0 font-medium',
-                                                    getLeverageAmountColor(calculateTotalExposure(etf))
+                                                    getLeverageAmountColor(item.totalLeverage.toFixed(1))
                                                 )}
                                             >
-                                                {calculateTotalExposure(etf)}x
+                                                {item.totalLeverage.toFixed(1)}x
                                             </Badge>
                                         )}
                                     </td>
 
+                                    {(() => {
+                                        const regionalBreakdown = getRegionalEquityBreakdown(item);
+                                        return assetClasses.map((assetClass) => {
+                                            const amount = getAssetClassAmount(item, assetClass);
+                                            const isEquity = assetClass === 'Equity';
+
+                                            return (
+                                                <React.Fragment key={assetClass}>
+                                                    <td
+                                                        className={cn(
+                                                            'py-1.5 px-2 text-center text-xs',
+                                                            amount > 0
+                                                                ? cn(
+                                                                      'font-medium',
+                                                                      getAssetClassColor(assetClass),
+                                                                      getAssetClassBgColor(assetClass)
+                                                                  )
+                                                                : 'text-muted-foreground',
+                                                            isEquity && 'border-l-2 border-blue-200'
+                                                        )}
+                                                    >
+                                                        {formatPercent(amount)}
+                                                    </td>
+
+                                                    {isEquity && (
+                                                        <>
+                                                            <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                <span className="text-xs font-medium text-blue-700">
+                                                                    {formatRegionalEquity(
+                                                                        regionalBreakdown.us,
+                                                                        regionalBreakdown.total
+                                                                    )}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                <span className="text-xs font-medium text-blue-700">
+                                                                    {formatRegionalEquity(
+                                                                        regionalBreakdown.intl,
+                                                                        regionalBreakdown.total
+                                                                    )}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-1.5 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20">
+                                                                <span className="text-xs font-medium text-blue-700">
+                                                                    {formatRegionalEquity(
+                                                                        regionalBreakdown.em,
+                                                                        regionalBreakdown.total
+                                                                    )}
+                                                                </span>
+                                                            </td>
+                                                        </>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        });
+                                    })()}
+
                                     <td className="py-1.5 px-2 text-center">
-                                        {etf.leverageType === 'None' ? (
+                                        {item.leverageType === 'None' ? (
                                             <span className="text-xs text-muted-foreground">-</span>
                                         ) : (
                                             <Badge
                                                 variant="outline"
                                                 className={cn(
                                                     'text-[10px] px-1.5 py-0 font-medium',
-                                                    getLeverageTypeColor(etf.leverageType)
+                                                    getLeverageTypeColor(item.leverageType)
                                                 )}
                                             >
-                                                {etf.leverageType}
+                                                {item.leverageType}
                                             </Badge>
                                         )}
                                     </td>
