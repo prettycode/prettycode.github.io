@@ -4,6 +4,7 @@ import PortfolioConstituentSearchPanel from './PortfolioConstituentSearchPanel';
 import PortfolioControls from './PortfolioControls';
 import PortfolioTable from './PortfolioTable';
 import PortfolioCompositionPanel from './PortfolioCompositionPanel';
+import PortfolioTemplatesTable from './PortfolioTemplatesTable';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -147,34 +148,19 @@ const PortfolioBuilder = ({
                 <TabsContent value="templates">
                     <Card className="bg-gradient-to-br from-background to-muted/20 border border-border/40 py-0">
                         <CardContent className="p-6">
-                            <h3 className="text-lg font-medium mb-4">Start with a Template</h3>
-                            <p className="text-sm text-muted-foreground mb-6">
-                                Choose a pre-built portfolio to start with, then customize it to your needs.
-                            </p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {examplePortfolios.map((portfolio) => (
-                                    <div
-                                        key={portfolio.name}
-                                        onClick={() => loadPortfolio(portfolio)}
-                                        className="p-4 border border-border/40 rounded-lg hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer group"
-                                    >
-                                        <h4 className="font-medium mb-2 group-hover:text-primary transition-colors">
-                                            {portfolio.name}
-                                        </h4>
-                                        <p className="text-xs text-muted-foreground mb-3">{portfolio.description}</p>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs text-muted-foreground">
-                                                {portfolio.holdings.size} ETFs
-                                            </span>
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center text-xs text-primary">
-                                                <span>Select</span>
-                                                <ArrowRight className="h-3 w-3 ml-1" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-medium mb-2">Portfolio Templates</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Choose a pre-built portfolio to start with, then customize it to your needs. Each
+                                    template shows detailed information about leverage, asset classes, and ETF
+                                    composition.
+                                </p>
                             </div>
+
+                            <PortfolioTemplatesTable
+                                examplePortfolios={examplePortfolios}
+                                onSelectTemplate={loadPortfolio}
+                            />
                         </CardContent>
                     </Card>
                 </TabsContent>

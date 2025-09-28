@@ -468,29 +468,29 @@ export const createPortfolio = (name, allocations) => {
 
 // Define example portfolios
 export const examplePortfolios = [
-    createPortfolio('2.1x 4/3/2/1', [
+    createPortfolio('4/3/2/1', [
         { ticker: 'RSST', percentage: 60 }, // Stacked leverage: Equity + Managed Futures
         { ticker: 'GDE', percentage: 25 }, // Stacked leverage: Equity + Gold
         { ticker: 'TMF', percentage: 15 }, // 3x Leveraged Treasuries
     ]),
-    createPortfolio('1.875x Return Stacked® 4/3/2/1', [
+    createPortfolio('Return Stacked® 4/3/2/1', [
         { ticker: 'RSST', percentage: 57 },
         { ticker: 'ZROZ', percentage: 25 },
         { ticker: 'RSSX', percentage: 18 },
     ]),
-    createPortfolio('1.65x SSO/ZROZ/GLD', [
+    createPortfolio('SSO/ZROZ/GLD', [
         { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
         { ticker: 'ZROZ', percentage: 30 }, // Extended Duration Treasuries
         { ticker: 'GLDM', percentage: 20 }, // Gold exposure
     ]),
-    createPortfolio('1.65x SSO/ZROZ/DBMF', [
+    createPortfolio('SSO/ZROZ/DBMF', [
         { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
         { ticker: 'ZROZ', percentage: 30 }, // Extended Duration Treasuries
         { ticker: 'KMLM', percentage: 20 / 3 }, // Managed Futures for trend following
         { ticker: 'CTA', percentage: 20 / 3 }, // Managed Futures for trend following
         { ticker: 'HFMF', percentage: 20 / 3 }, // Managed Futures for trend following
     ]),
-    createPortfolio('1.65x SSO/ZROZ/GLD/DBMF', [
+    createPortfolio('SSO/ZROZ/GLD/DBMF', [
         { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
         { ticker: 'ZROZ', percentage: 15 }, // Extended Duration Treasuries
         { ticker: 'UGL', percentage: 7.5 }, // Gold exposure
@@ -506,14 +506,14 @@ export const examplePortfolios = [
         { ticker: 'CTA', percentage: 10 }, // Managed Futures for trend following
         { ticker: 'HFMF', percentage: 10 }, // Managed Futures for trend following
     ]),
-    createPortfolio('1.5x Value Barbell', [
+    createPortfolio('Value Barbell', [
         { ticker: 'RSST', percentage: 25 }, // Stacked leverage: Equity + Managed Futures
         { ticker: 'RSSB', percentage: 25 }, // Stacked leverage: Global Equity + Treasuries
         { ticker: 'AVDV', percentage: 50 / 3 }, // International Developed Small Cap Value
         { ticker: 'DGS', percentage: 50 / 3 }, // Emerging Markets Small Cap Value
         { ticker: 'AVUV', percentage: 50 / 3 }, // U.S. Small Cap Value
     ]),
-    createPortfolio('1.7x Return Stacked® Ultimate', [
+    createPortfolio('Return Stacked® Ultimate', [
         { ticker: 'RSSY', percentage: 17.5 },
         { ticker: 'RSST', percentage: 17.5 },
         { ticker: 'RSSB', percentage: 17.5 },
@@ -580,5 +580,107 @@ export const analyzePortfolio = (portfolio) => {
         assetClasses,
         totalLeverage: totalExposure,
         isLevered: totalExposure > 1,
+    };
+};
+
+// Function to get detailed template information for display
+export const getTemplateDetails = (portfolio) => {
+    const analysis = analyzePortfolio(portfolio);
+    const etfDetails = [];
+    const assetClassSummary = new Map();
+    const leverageTypesWithAmounts = new Map();
+
+    // Collect ETF details and categorize by asset class
+    for (const [ticker, percentage] of portfolio.holdings) {
+        const etf = etfCatalog.find((e) => e.ticker === ticker);
+        if (!etf) continue;
+
+        // Calculate the leverage amount for this ETF
+        let leverageAmount = 0;
+        for (const [, amount] of etf.exposures) {
+            leverageAmount = Math.max(leverageAmount, amount);
+        }
+
+        // Store leverage type with amount
+        if (etf.leverageType !== 'None') {
+            const key = etf.leverageType;
+            const existingAmount = leverageTypesWithAmounts.get(key) || 0;
+            leverageTypesWithAmounts.set(key, Math.max(existingAmount, leverageAmount));
+        }
+
+        // Get primary asset classes for this ETF
+        const primaryAssetClasses = [];
+        for (const [exposureKey] of etf.exposures) {
+            const parsed = parseExposureKey(exposureKey);
+            if (!primaryAssetClasses.includes(parsed.assetClass)) {
+                primaryAssetClasses.push(parsed.assetClass);
+            }
+        }
+
+        etfDetails.push({
+            ticker,
+            percentage,
+            leverageType: etf.leverageType,
+            leverageAmount,
+            assetClasses: primaryAssetClasses,
+        });
+
+        // Add to asset class summary
+        primaryAssetClasses.forEach((assetClass) => {
+            const current = assetClassSummary.get(assetClass) || 0;
+            assetClassSummary.set(assetClass, current + percentage);
+        });
+    }
+
+    // Get dominant asset classes (sorted by exposure)
+    const dominantAssetClasses = Array.from(analysis.assetClasses.entries())
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([assetClass]) => assetClass);
+
+    // Calculate US vs Ex-US equity breakdown
+    let usEquityExposure = 0;
+    let exUsEquityExposure = 0;
+
+    for (const [ticker, percentage] of portfolio.holdings) {
+        const etf = etfCatalog.find((e) => e.ticker === ticker);
+        if (!etf) continue;
+
+        const weight = percentage / 100;
+
+        for (const [exposureKey, amount] of etf.exposures) {
+            const parsed = parseExposureKey(exposureKey);
+            if (parsed.assetClass === 'Equity') {
+                const weightedAmount = amount * weight;
+
+                if (parsed.marketRegion === 'U.S.') {
+                    usEquityExposure += weightedAmount;
+                } else if (parsed.marketRegion === 'International Developed' || parsed.marketRegion === 'Emerging') {
+                    exUsEquityExposure += weightedAmount;
+                }
+            }
+        }
+    }
+
+    const totalEquityExposure = usEquityExposure + exUsEquityExposure;
+    const equityBreakdown =
+        totalEquityExposure > 0
+            ? {
+                  us: (usEquityExposure / totalEquityExposure) * 100,
+                  exUs: (exUsEquityExposure / totalEquityExposure) * 100,
+                  totalEquity: totalEquityExposure,
+              }
+            : null;
+
+    return {
+        name: portfolio.name,
+        etfCount: portfolio.holdings.size,
+        totalLeverage: analysis.totalLeverage,
+        isLevered: analysis.isLevered,
+        dominantAssetClasses,
+        leverageTypesWithAmounts,
+        etfDetails,
+        analysis,
+        equityBreakdown,
     };
 };
