@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Percent, GanttChart, Filter, ChevronDown, ChevronRight } from 'lucide-react';
+import AssetClassExposureBarB from './AssetClassExposureBarB';
 
 // Component to display detailed exposures with compact modern visualization
 const DetailedExposuresVisual = ({
@@ -14,6 +15,7 @@ const DetailedExposuresVisual = ({
     showRelative = true,
     hideZeroValues = false,
     sortByValue = false,
+    useCompactView = true,
 }) => {
     // Local state for expanded categories
     const [expandedCategories, setExpandedCategories] = useState({
@@ -168,7 +170,26 @@ const DetailedExposuresVisual = ({
         });
     };
 
-    // Helper component for exposure category
+    // Name mapping objects for each exposure type
+    const marketRegionNameMapping = {
+        'U.S.': 'US',
+        'International Developed': 'Intl Dev',
+        Emerging: 'EM',
+    };
+
+    const factorStyleNameMapping = {
+        Blend: 'Blend',
+        Value: 'Value',
+        Growth: 'Growth',
+    };
+
+    const sizeFactorNameMapping = {
+        'Large Cap': 'Large',
+        'Mid Cap': 'Mid',
+        'Small Cap': 'Small',
+    };
+
+    // Helper component for exposure category (original style for Asset Class)
     const ExposureCategory = ({ id, title, icon, exposuresAbs, exposuresRel, colors }) => {
         // Determine which exposure set to use based on the shared toggle
         const exposuresToUse = showRelative ? exposuresRel : exposuresAbs;
@@ -252,38 +273,82 @@ const DetailedExposuresVisual = ({
 
     return (
         <div className="space-y-2">
-            {/* Exposure Categories */}
-            <ExposureCategory
-                id="assetClass"
-                title="Asset Class Exposure"
-                exposuresAbs={assetClassExposuresAbs}
-                exposuresRel={assetClassExposuresRel}
-                colors={assetClassColors}
-            />
+            {/* Asset Class Exposure - only in Detailed View */}
+            {!useCompactView && (
+                <ExposureCategory
+                    id="assetClass"
+                    title="Asset Class Exposure"
+                    exposuresAbs={assetClassExposuresAbs}
+                    exposuresRel={assetClassExposuresRel}
+                    colors={assetClassColors}
+                />
+            )}
 
-            <ExposureCategory
-                id="marketRegion"
-                title="Market Exposure"
-                exposuresAbs={marketRegionExposuresAbs}
-                exposuresRel={marketRegionExposuresRel}
-                colors={marketRegionColors}
-            />
+            {useCompactView ? (
+                <>
+                    <AssetClassExposureBarB
+                        title="Market Exposure"
+                        dataAbs={marketRegionExposuresAbs}
+                        dataRel={marketRegionExposuresRel}
+                        colors={marketRegionColors}
+                        nameMapping={marketRegionNameMapping}
+                        showBadge={false}
+                        sortByValue={sortByValue}
+                        showRelative={showRelative}
+                        hideZeroValues={hideZeroValues}
+                    />
 
-            <ExposureCategory
-                id="factorStyle"
-                title="Factor Style Exposure"
-                exposuresAbs={factorStyleExposuresAbs}
-                exposuresRel={factorStyleExposuresRel}
-                colors={factorStyleColors}
-            />
+                    <AssetClassExposureBarB
+                        title="Factor Style Exposure"
+                        dataAbs={factorStyleExposuresAbs}
+                        dataRel={factorStyleExposuresRel}
+                        colors={factorStyleColors}
+                        nameMapping={factorStyleNameMapping}
+                        showBadge={false}
+                        sortByValue={sortByValue}
+                        showRelative={showRelative}
+                        hideZeroValues={hideZeroValues}
+                    />
 
-            <ExposureCategory
-                id="sizeFactor"
-                title="Size Factor Exposure"
-                exposuresAbs={sizeFactorExposuresAbs}
-                exposuresRel={sizeFactorExposuresRel}
-                colors={sizeFactorColors}
-            />
+                    <AssetClassExposureBarB
+                        title="Size Factor Exposure"
+                        dataAbs={sizeFactorExposuresAbs}
+                        dataRel={sizeFactorExposuresRel}
+                        colors={sizeFactorColors}
+                        nameMapping={sizeFactorNameMapping}
+                        showBadge={false}
+                        sortByValue={sortByValue}
+                        showRelative={showRelative}
+                        hideZeroValues={hideZeroValues}
+                    />
+                </>
+            ) : (
+                <>
+                    <ExposureCategory
+                        id="marketRegion"
+                        title="Market Exposure"
+                        exposuresAbs={marketRegionExposuresAbs}
+                        exposuresRel={marketRegionExposuresRel}
+                        colors={marketRegionColors}
+                    />
+
+                    <ExposureCategory
+                        id="factorStyle"
+                        title="Factor Style Exposure"
+                        exposuresAbs={factorStyleExposuresAbs}
+                        exposuresRel={factorStyleExposuresRel}
+                        colors={factorStyleColors}
+                    />
+
+                    <ExposureCategory
+                        id="sizeFactor"
+                        title="Size Factor Exposure"
+                        exposuresAbs={sizeFactorExposuresAbs}
+                        exposuresRel={sizeFactorExposuresRel}
+                        colors={sizeFactorColors}
+                    />
+                </>
+            )}
         </div>
     );
 };

@@ -20,6 +20,11 @@ const PortfolioTable = ({
     onInputBlur,
     onRemoveETF,
 }) => {
+    // Check if leverage is effectively 1.0x (within floating point tolerance)
+    const isEffectivelyOneX = (leverage) => {
+        const tolerance = 0.001; // 0.1% tolerance for floating point precision
+        return Math.abs(leverage - 1.0) < tolerance;
+    };
     return (
         <Table>
             <TableHeader className="bg-muted/30">
@@ -123,8 +128,8 @@ const PortfolioTable = ({
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-xs text-right text-muted-foreground py-1.5">
-                                        {totalExposure.toFixed(1) === '1.0' ? (
-                                            <span className="text-xs text-muted-foreground text-center block">-</span>
+                                        {isEffectivelyOneX(totalExposure) ? (
+                                            <span className="text-xs text-muted-foreground">-</span>
                                         ) : (
                                             <Badge
                                                 variant="outline"

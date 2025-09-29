@@ -7,12 +7,43 @@ import { Badge } from '@/components/ui/badge';
 import { Info } from 'lucide-react';
 
 // Component to display asset class exposures as a stacked bar with compact modern visuals
-const AssetClassExposureBarB = ({ portfolio, sortByValue = false, showRelative = true }) => {
-    const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
+const AssetClassExposureBarB = ({
+    portfolio,
+    sortByValue = false,
+    showRelative = true,
+    // New props for generic usage
+    title = 'Asset Allocation',
+    data = null,
+    dataAbs = null,
+    dataRel = null,
+    colors = null,
+    nameMapping = null,
+    showBadge = true,
+    hideZeroValues = false,
+}) => {
+    let items,
+        leverage = 1;
 
-    // Function to get display name for asset classes
-    const getDisplayName = (assetClass) => {
-        switch (assetClass) {
+    if ((dataAbs && dataRel) || data) {
+        // Use provided data (for other exposure types)
+        const sourceData = dataAbs && dataRel ? (showRelative ? dataRel : dataAbs) : data;
+        items = Array.from(sourceData.entries());
+        leverage = 1; // No leverage calculation for other exposure types
+    } else {
+        // Use asset class data (original behavior)
+        const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
+        items = Array.from(assetClasses.entries());
+        leverage = totalLeverage;
+    }
+
+    // Function to get display name
+    const getDisplayName = (name) => {
+        if (nameMapping && nameMapping[name]) {
+            return nameMapping[name];
+        }
+
+        // Default asset class mappings for backward compatibility
+        switch (name) {
             case 'Managed Futures':
                 return 'Trend';
             case 'Futures Yield':
@@ -20,48 +51,61 @@ const AssetClassExposureBarB = ({ portfolio, sortByValue = false, showRelative =
             case 'U.S. Treasuries':
                 return 'T-Bonds';
             default:
-                return assetClass;
+                return name;
         }
     };
 
-    // Convert to array and prepare for display
-    let assetClassItems = Array.from(assetClasses.entries());
-
     // Apply sorting if enabled, otherwise maintain original order defined in code
     if (sortByValue) {
-        assetClassItems = assetClassItems.sort((a, b) => b[1] - a[1]);
+        items = items.sort((a, b) => b[1] - a[1]);
     }
+
+    // Filter out zero values if hideZeroValues is enabled
+    if (hideZeroValues) {
+        items = items.filter(([_, value]) => value > 0);
+    }
+
+    // Use provided colors or fall back to asset class colors
+    const colorMap = colors || assetClassColors;
 
     return (
         <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-card/20 to-card mb-2 py-0">
             <CardContent className="px-4 py-3">
                 <div className="flex flex-col space-y-2">
                     <div className="flex items-center">
-                        <h3 className="font-medium text-sm mr-2">Asset Allocation</h3>
-                        <Badge
-                            className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0 cursor-help"
-                            title={`Total Leverage: ${totalLeverage.toFixed(4)}x`}
-                        >
-                            <span>{totalLeverage.toFixed(2)}x</span> levered
-                        </Badge>
+                        <h3 className="font-medium text-sm mr-2">{title}</h3>
+                        {showBadge && leverage > 1 && (
+                            <Badge
+                                className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0 cursor-help"
+                                title={`Total Leverage: ${leverage.toFixed(4)}x`}
+                            >
+                                <span>{leverage.toFixed(2)}x</span> levered
+                            </Badge>
+                        )}
                     </div>
 
                     <div>
                         {/* Main stacked bar */}
                         <div className="space-y-1">
-                            {assetClassItems.map(([assetClass, amount]) => {
-                                if (amount === 0) return null;
+                            {items.map(([name, value]) => {
+                                if (hideZeroValues && value === 0) return null;
 
-                                const percentage = showRelative
-                                    ? roundForDisplay((amount / totalLeverage) * 100)
-                                    : roundForDisplay(amount * 100);
-                                const displayName = getDisplayName(assetClass);
+                                const percentage =
+                                    (dataAbs && dataRel) || data
+                                        ? // For generic data, value is already a percentage
+                                          value
+                                        : // For asset class data, calculate percentage
+                                        showRelative
+                                        ? roundForDisplay((value / leverage) * 100)
+                                        : roundForDisplay(value * 100);
+
+                                const displayName = getDisplayName(name);
 
                                 return (
-                                    <div key={assetClass} className="space-y-1">
+                                    <div key={name} className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             {/* Label always on the left */}
-                                            <div className="flex-shrink-0 w-14 text-left">
+                                            <div className="flex-shrink-0 w-16 text-left">
                                                 <span className="text-xs font-medium text-foreground">
                                                     {displayName}
                                                 </span>
@@ -71,16 +115,18 @@ const AssetClassExposureBarB = ({ portfolio, sortByValue = false, showRelative =
                                             <div className="flex-1 relative">
                                                 <div
                                                     className="relative h-6 bg-muted rounded-sm overflow-hidden cursor-pointer"
-                                                    title={`${assetClass}: ${(amount * 100).toFixed(4)}% (${
-                                                        showRelative ? 'relative' : 'absolute'
-                                                    })`}
+                                                    title={`${name}: ${
+                                                        (dataAbs && dataRel) || data
+                                                            ? value.toFixed(4)
+                                                            : (value * 100).toFixed(4)
+                                                    }% (${showRelative ? 'relative' : 'absolute'})`}
                                                 >
                                                     <div
                                                         className="absolute inset-y-0 left-0 rounded-sm"
                                                         style={{
-                                                            width: `${percentage}%`,
+                                                            width: `${Math.min(percentage, 100)}%`,
                                                             minWidth: percentage < 3 ? '2px' : 'auto',
-                                                            backgroundColor: assetClassColors[assetClass],
+                                                            backgroundColor: colorMap[name],
                                                         }}
                                                     />
                                                 </div>
@@ -91,12 +137,17 @@ const AssetClassExposureBarB = ({ portfolio, sortByValue = false, showRelative =
                                                 <span
                                                     className="text-xs font-medium text-muted-foreground cursor-help"
                                                     title={`${
-                                                        showRelative
-                                                            ? ((amount / totalLeverage) * 100).toFixed(4)
-                                                            : (amount * 100).toFixed(4)
+                                                        (dataAbs && dataRel) || data
+                                                            ? value.toFixed(4)
+                                                            : showRelative
+                                                            ? ((value / leverage) * 100).toFixed(4)
+                                                            : (value * 100).toFixed(4)
                                                     }%`}
                                                 >
-                                                    {Math.round(percentage)}%
+                                                    {(dataAbs && dataRel) || data
+                                                        ? value.toFixed(1)
+                                                        : percentage.toFixed(1)}
+                                                    %
                                                 </span>
                                             </div>
                                         </div>

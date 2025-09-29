@@ -47,6 +47,12 @@ const PortfolioConstituentSearchPanel = ({
         return asNumber ? total : total.toFixed(1);
     };
 
+    // Check if leverage is effectively 1.0x (within floating point tolerance)
+    const isEffectivelyOneX = (leverage) => {
+        const tolerance = 0.001; // 0.1% tolerance for floating point precision
+        return Math.abs(leverage - 1.0) < tolerance;
+    };
+
     // Calculate leverage types by allocation for templates
     const calculateLeverageTypesByAllocation = (template) => {
         const leverageTypes = new Map();
@@ -717,7 +723,7 @@ const PortfolioConstituentSearchPanel = ({
                                     <td className="py-1.5 px-3 font-medium whitespace-nowrap">{item.name}</td>
 
                                     <td className="py-1.5 px-2 text-center">
-                                        {item.totalLeverage === 1.0 ? (
+                                        {isEffectivelyOneX(item.totalLeverage) ? (
                                             <span className="text-xs text-muted-foreground">-</span>
                                         ) : (
                                             <Badge

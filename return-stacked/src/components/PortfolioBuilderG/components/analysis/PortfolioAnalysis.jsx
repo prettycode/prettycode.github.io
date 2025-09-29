@@ -3,7 +3,16 @@ import AssetClassExposureBar from './AssetClassExposureBar';
 import AssetClassExposureBarB from './AssetClassExposureBarB';
 import DetailedExposuresVisual, { ViewToggle } from './DetailedExposuresVisual';
 import { Card, CardContent } from '@/components/ui/card';
-import { Layers, AlertCircle, BarChart3, SlidersHorizontal, Percent, ArrowDown10, Filter } from 'lucide-react';
+import {
+    Layers,
+    AlertCircle,
+    BarChart3,
+    SlidersHorizontal,
+    Percent,
+    ArrowDown10,
+    Filter,
+    LayoutGrid,
+} from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 // Portfolio Analysis component with modern UI
@@ -13,6 +22,7 @@ const PortfolioAnalysis = ({ portfolio }) => {
     const [showRelative, setShowRelative] = useState(true);
     const [hideZeroValues, setHideZeroValues] = useState(false);
     const [showControls, setShowControls] = useState(true);
+    const [useCompactView, setUseCompactView] = useState(true);
 
     // Handle changes to sort preference
     const handleSortChange = (newSortValue) => {
@@ -62,6 +72,12 @@ const PortfolioAnalysis = ({ portfolio }) => {
                         isChecked={hideZeroValues}
                         onChange={() => setHideZeroValues(!hideZeroValues)}
                     />
+                    <ViewToggle
+                        label={useCompactView ? 'Compact View' : 'Detailed View'}
+                        icon={<LayoutGrid className="h-3 w-3 text-muted-foreground" />}
+                        isChecked={useCompactView}
+                        onChange={() => setUseCompactView(!useCompactView)}
+                    />
                 </div>
             )}
 
@@ -82,17 +98,20 @@ const PortfolioAnalysis = ({ portfolio }) => {
                         sortByValue={sortByValue}
                         showRelative={showRelative}
                     />
-                    <AssetClassExposureBarB
-                        portfolio={portfolio}
-                        sortByValue={sortByValue}
-                        showRelative={showRelative}
-                    />
+                    {useCompactView && (
+                        <AssetClassExposureBarB
+                            portfolio={portfolio}
+                            sortByValue={sortByValue}
+                            showRelative={showRelative}
+                        />
+                    )}
                     <DetailedExposuresVisual
                         portfolio={portfolio}
                         onSortChange={handleSortChange}
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
                         sortByValue={sortByValue}
+                        useCompactView={useCompactView}
                     />
                 </div>
             )}
