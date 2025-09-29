@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Percent, GanttChart, Filter, ChevronDown, ChevronRight } from 'lucide-react';
-import AssetClassExposureBarB from './AssetClassExposureBarB';
+import CompactExposureCard from './CompactExposureCard';
 
 // Component to display detailed exposures with compact modern visualization
 const DetailedExposuresVisual = ({
@@ -173,7 +173,7 @@ const DetailedExposuresVisual = ({
     // Name mapping objects for each exposure type
     const marketRegionNameMapping = {
         'U.S.': 'US',
-        'International Developed': 'Intl Dev',
+        'International Developed': 'Int’l',
         Emerging: 'EM',
     };
 
@@ -190,7 +190,7 @@ const DetailedExposuresVisual = ({
     };
 
     // Helper component for exposure category (original style for Asset Class)
-    const ExposureCategory = ({ id, title, icon, exposuresAbs, exposuresRel, colors }) => {
+    const DetailedExposureCard = ({ id, title, icon, exposuresAbs, exposuresRel, colors }) => {
         // Determine which exposure set to use based on the shared toggle
         const exposuresToUse = showRelative ? exposuresRel : exposuresAbs;
 
@@ -275,7 +275,7 @@ const DetailedExposuresVisual = ({
         <div className="space-y-2">
             {useCompactView ? (
                 <>
-                    <AssetClassExposureBarB
+                    <CompactExposureCard
                         title="Asset Class Exposure"
                         dataAbs={assetClassExposuresAbs}
                         dataRel={assetClassExposuresRel}
@@ -289,7 +289,7 @@ const DetailedExposuresVisual = ({
                         defaultExpanded={true}
                     />
 
-                    <AssetClassExposureBarB
+                    <CompactExposureCard
                         title="Market Exposure"
                         dataAbs={marketRegionExposuresAbs}
                         dataRel={marketRegionExposuresRel}
@@ -303,7 +303,7 @@ const DetailedExposuresVisual = ({
                         defaultExpanded={true}
                     />
 
-                    <AssetClassExposureBarB
+                    <CompactExposureCard
                         title="Factor Style Exposure"
                         dataAbs={factorStyleExposuresAbs}
                         dataRel={factorStyleExposuresRel}
@@ -317,7 +317,7 @@ const DetailedExposuresVisual = ({
                         defaultExpanded={true}
                     />
 
-                    <AssetClassExposureBarB
+                    <CompactExposureCard
                         title="Size Factor Exposure"
                         dataAbs={sizeFactorExposuresAbs}
                         dataRel={sizeFactorExposuresRel}
@@ -333,7 +333,7 @@ const DetailedExposuresVisual = ({
                 </>
             ) : (
                 <>
-                    <ExposureCategory
+                    <DetailedExposureCard
                         id="assetClass"
                         title="Asset Class Exposure"
                         exposuresAbs={assetClassExposuresAbs}
@@ -341,7 +341,7 @@ const DetailedExposuresVisual = ({
                         colors={assetClassColors}
                     />
 
-                    <ExposureCategory
+                    <DetailedExposureCard
                         id="marketRegion"
                         title="Market Exposure"
                         exposuresAbs={marketRegionExposuresAbs}
@@ -349,7 +349,7 @@ const DetailedExposuresVisual = ({
                         colors={marketRegionColors}
                     />
 
-                    <ExposureCategory
+                    <DetailedExposureCard
                         id="factorStyle"
                         title="Factor Style Exposure"
                         exposuresAbs={factorStyleExposuresAbs}
@@ -357,7 +357,7 @@ const DetailedExposuresVisual = ({
                         colors={factorStyleColors}
                     />
 
-                    <ExposureCategory
+                    <DetailedExposureCard
                         id="sizeFactor"
                         title="Size Factor Exposure"
                         exposuresAbs={sizeFactorExposuresAbs}

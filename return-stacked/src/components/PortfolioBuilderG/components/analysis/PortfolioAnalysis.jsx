@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import AssetClassExposureBar from './AssetClassExposureBar';
-import AssetClassExposureBarB from './AssetClassExposureBarB';
+import CompactExposureCard from './CompactExposureCard';
 import DetailedExposuresVisual, { ViewToggle } from './DetailedExposuresVisual';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -99,7 +99,7 @@ const PortfolioAnalysis = ({ portfolio }) => {
                         showRelative={showRelative}
                     />
                     {/*useCompactView && (
-                        <AssetClassExposureBarB
+                        <CompactExposureCard
                             portfolio={portfolio}
                             sortByValue={sortByValue}
                             showRelative={showRelative}

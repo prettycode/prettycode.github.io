@@ -646,7 +646,7 @@ const PortfolioConstituentSearchPanel = ({
                                                     >
                                                         <div className="flex flex-col items-center justify-center">
                                                             <div className="flex items-center gap-1">
-                                                                <span className="text-blue-700">Int'l</span>
+                                                                <span className="text-blue-700">Int’l</span>
                                                                 {sortColumn === 'regional_intl' ? (
                                                                     sortDirection === 'asc' ? (
                                                                         <ArrowUp className="h-3 w-3 flex-shrink-0 text-blue-700" />
