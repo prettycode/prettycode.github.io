@@ -521,6 +521,12 @@ export const examplePortfolios = [
         { ticker: 'AVDV', percentage: 15 },
         { ticker: 'AVEE', percentage: 15 },
     ]),
+    createPortfolio('Return Stacked® Max', [
+        { ticker: 'RSSB', percentage: 25 }, // Stacked leverage: Global Equity + Treasuries
+        { ticker: 'RSST', percentage: 25 }, // Stacked leverage: Equity + Managed Futures
+        { ticker: 'RSSY', percentage: 25 }, // Stacked leverage: Equity + Yield
+        { ticker: 'RSSX', percentage: 25 }, // Stacked leverage: Equity + Gold + Bitcoin
+    ]),
 ];
 
 // Function to analyze a portfolio's total exposure
