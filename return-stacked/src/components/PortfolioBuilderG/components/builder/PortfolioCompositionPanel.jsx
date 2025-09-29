@@ -327,7 +327,7 @@ const PortfolioCompositionPanel = ({
                                     )}
                                 >
                                     <Save className="h-3.5 w-3.5 mr-1" />
-                                    <span>Save Portfolio</span>
+                                    <span>Save&hellip;</span>
                                 </Button>
                             </div>
                         </div>
