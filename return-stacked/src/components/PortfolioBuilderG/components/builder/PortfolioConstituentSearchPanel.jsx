@@ -402,12 +402,25 @@ const PortfolioConstituentSearchPanel = ({
     // Get color for leverage badge based on amount
     const getLeverageAmountColor = (amount) => {
         const leverage = parseFloat(amount);
-        if (leverage <= 1.2) {
-            return 'bg-green-100 text-green-800 border-green-200'; // Safe - green
-        } else if (leverage <= 2.2) {
-            return 'bg-yellow-100 text-yellow-800 border-yellow-200'; // Warning - yellow
+
+        if (mode === 'templates') {
+            // Templates table: Green for ≤1.6x, Yellow for >1.6x to <2.0x, Red for ≥2.0x
+            if (leverage <= 1.6) {
+                return 'bg-green-100 text-green-800 border-green-200'; // Safe - green
+            } else if (leverage < 2.0) {
+                return 'bg-yellow-100 text-yellow-800 border-yellow-200'; // Warning - yellow
+            } else {
+                return 'bg-red-100 text-red-800 border-red-200'; // Danger - red
+            }
         } else {
-            return 'bg-red-100 text-red-800 border-red-200'; // Danger - red
+            // ETF table: Original thresholds
+            if (leverage <= 1.2) {
+                return 'bg-green-100 text-green-800 border-green-200'; // Safe - green
+            } else if (leverage <= 2.2) {
+                return 'bg-yellow-100 text-yellow-800 border-yellow-200'; // Warning - yellow
+            } else {
+                return 'bg-red-100 text-red-800 border-red-200'; // Danger - red
+            }
         }
     };
 
