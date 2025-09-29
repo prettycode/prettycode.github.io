@@ -24,9 +24,12 @@ const CompactExposureCard = ({
     // Collapsible functionality
     collapsible = false,
     defaultExpanded = true,
+    isExpanded,
+    onToggleExpanded,
 }) => {
-    // State for collapsible functionality
-    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+    // State for collapsible functionality - use external state if provided, otherwise local state
+    const [localIsExpanded, setLocalIsExpanded] = useState(defaultExpanded);
+    const expandedState = isExpanded !== undefined ? isExpanded : localIsExpanded;
     let items,
         leverage = 1;
 
@@ -76,7 +79,11 @@ const CompactExposureCard = ({
 
     // Toggle function for collapsible
     const toggleExpanded = () => {
-        setIsExpanded(!isExpanded);
+        if (onToggleExpanded) {
+            onToggleExpanded();
+        } else {
+            setLocalIsExpanded(!localIsExpanded);
+        }
     };
 
     return (
@@ -99,7 +106,7 @@ const CompactExposureCard = ({
                         )}
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center">
-                        {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        {expandedState ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                     </div>
                 </CardHeader>
             ) : (
@@ -118,7 +125,7 @@ const CompactExposureCard = ({
                 </CardContent>
             )}
 
-            {(!collapsible || isExpanded) && (
+            {(!collapsible || expandedState) && (
                 <CardContent className={cn('px-4', collapsible ? 'pt-0 pb-3' : 'py-3 pt-0')}>
                     <div className={cn('flex flex-col', collapsible ? 'space-y-0' : 'space-y-2')}>
                         <div>

@@ -23,10 +23,26 @@ const PortfolioAnalysis = ({ portfolio }) => {
     const [hideZeroValues, setHideZeroValues] = useState(false);
     const [showControls, setShowControls] = useState(true);
     const [useCompactView, setUseCompactView] = useState(true);
+    
+    // Shared state for expanded categories that persists between view modes
+    const [expandedCategories, setExpandedCategories] = useState({
+        assetClass: true,
+        marketRegion: true,
+        factorStyle: true,
+        sizeFactor: true,
+    });
 
     // Handle changes to sort preference
     const handleSortChange = (newSortValue) => {
         setSortByValue(newSortValue);
+    };
+
+    // Handle toggling expanded state for categories
+    const toggleExpandedCategory = (category) => {
+        setExpandedCategories(prev => ({
+            ...prev,
+            [category]: !prev[category],
+        }));
     };
 
     // Check if portfolio is empty
@@ -113,6 +129,8 @@ const PortfolioAnalysis = ({ portfolio }) => {
                         hideZeroValues={hideZeroValues}
                         sortByValue={sortByValue}
                         useCompactView={useCompactView}
+                        expandedCategories={expandedCategories}
+                        onToggleCategory={toggleExpandedCategory}
                     />
                 </div>
             )}

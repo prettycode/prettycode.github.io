@@ -16,14 +16,14 @@ const DetailedExposuresVisual = ({
     hideZeroValues = false,
     sortByValue = false,
     useCompactView = true,
-}) => {
-    // Local state for expanded categories
-    const [expandedCategories, setExpandedCategories] = useState({
+    expandedCategories = {
         assetClass: true,
         marketRegion: true,
         factorStyle: true,
         sizeFactor: true,
-    });
+    },
+    onToggleCategory,
+}) => {
 
     const { exposures, totalLeverage } = analyzePortfolio(portfolio);
 
@@ -164,10 +164,9 @@ const DetailedExposuresVisual = ({
 
     // Toggle category expansion
     const toggleCategory = (category) => {
-        setExpandedCategories({
-            ...expandedCategories,
-            [category]: !expandedCategories[category],
-        });
+        if (onToggleCategory) {
+            onToggleCategory(category);
+        }
     };
 
     // Name mapping objects for each exposure type
@@ -286,7 +285,8 @@ const DetailedExposuresVisual = ({
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
                         collapsible={true}
-                        defaultExpanded={true}
+                        isExpanded={expandedCategories.assetClass}
+                        onToggleExpanded={() => toggleCategory('assetClass')}
                     />
 
                     <CompactExposureCard
@@ -300,7 +300,8 @@ const DetailedExposuresVisual = ({
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
                         collapsible={true}
-                        defaultExpanded={true}
+                        isExpanded={expandedCategories.marketRegion}
+                        onToggleExpanded={() => toggleCategory('marketRegion')}
                     />
 
                     <CompactExposureCard
@@ -314,7 +315,8 @@ const DetailedExposuresVisual = ({
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
                         collapsible={true}
-                        defaultExpanded={true}
+                        isExpanded={expandedCategories.factorStyle}
+                        onToggleExpanded={() => toggleCategory('factorStyle')}
                     />
 
                     <CompactExposureCard
@@ -328,7 +330,8 @@ const DetailedExposuresVisual = ({
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
                         collapsible={true}
-                        defaultExpanded={true}
+                        isExpanded={expandedCategories.sizeFactor}
+                        onToggleExpanded={() => toggleCategory('sizeFactor')}
                     />
                 </>
             ) : (
