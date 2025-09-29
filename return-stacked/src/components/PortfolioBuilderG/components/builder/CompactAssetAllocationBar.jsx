@@ -19,8 +19,10 @@ const CompactAssetAllocationBar = ({ portfolio, height = 24 }) => {
         }
     };
 
-    // Convert to array and sort by value for better visualization
-    const assetClassItems = Array.from(assetClasses.entries()).sort((a, b) => b[1] - a[1]);
+    // Convert to array, filter out zero allocations, and sort by value for better visualization
+    const assetClassItems = Array.from(assetClasses.entries())
+        .filter(([, amount]) => amount > 0)
+        .sort((a, b) => b[1] - a[1]);
 
     if (assetClassItems.length === 0) {
         return (
@@ -82,4 +84,3 @@ const CompactAssetAllocationBar = ({ portfolio, height = 24 }) => {
 };
 
 export default CompactAssetAllocationBar;
-

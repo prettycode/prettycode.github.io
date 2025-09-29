@@ -296,6 +296,8 @@ const DetailedExposuresVisual = ({
                         sortByValue={sortByValue}
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
+                        collapsible={true}
+                        defaultExpanded={true}
                     />
 
                     <AssetClassExposureBarB
@@ -308,6 +310,8 @@ const DetailedExposuresVisual = ({
                         sortByValue={sortByValue}
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
+                        collapsible={true}
+                        defaultExpanded={true}
                     />
 
                     <AssetClassExposureBarB
@@ -320,6 +324,8 @@ const DetailedExposuresVisual = ({
                         sortByValue={sortByValue}
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
+                        collapsible={true}
+                        defaultExpanded={true}
                     />
                 </>
             ) : (
