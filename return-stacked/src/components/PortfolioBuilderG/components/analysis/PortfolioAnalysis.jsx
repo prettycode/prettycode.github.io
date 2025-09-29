@@ -98,13 +98,14 @@ const PortfolioAnalysis = ({ portfolio }) => {
                         sortByValue={sortByValue}
                         showRelative={showRelative}
                     />
-                    {useCompactView && (
+                    {/*useCompactView && (
                         <AssetClassExposureBarB
                             portfolio={portfolio}
                             sortByValue={sortByValue}
                             showRelative={showRelative}
+                            hideZeroValues={hideZeroValues}
                         />
-                    )}
+                    )*/}
                     <DetailedExposuresVisual
                         portfolio={portfolio}
                         onSortChange={handleSortChange}

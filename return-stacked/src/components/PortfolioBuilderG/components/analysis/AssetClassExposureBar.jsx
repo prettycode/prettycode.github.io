@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Info } from 'lucide-react';
 
 // Component to display asset class exposures as a stacked bar with compact modern visuals
-const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = true }) => {
+const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = true, hideZeroValues = false }) => {
     const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
 
     // Function to get display name for asset classes
@@ -28,6 +28,11 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
     // Apply sorting if enabled, otherwise maintain original order defined in code
     if (sortByValue) {
         assetClassItems = assetClassItems.sort((a, b) => b[1] - a[1]);
+    }
+
+    // Filter out zero values if hideZeroValues is enabled
+    if (hideZeroValues) {
+        assetClassItems = assetClassItems.filter(([_, value]) => value > 0);
     }
 
     return (

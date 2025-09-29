@@ -273,19 +273,22 @@ const DetailedExposuresVisual = ({
 
     return (
         <div className="space-y-2">
-            {/* Asset Class Exposure - only in Detailed View */}
-            {!useCompactView && (
-                <ExposureCategory
-                    id="assetClass"
-                    title="Asset Class Exposure"
-                    exposuresAbs={assetClassExposuresAbs}
-                    exposuresRel={assetClassExposuresRel}
-                    colors={assetClassColors}
-                />
-            )}
-
             {useCompactView ? (
                 <>
+                    <AssetClassExposureBarB
+                        title="Asset Class Exposure"
+                        dataAbs={assetClassExposuresAbs}
+                        dataRel={assetClassExposuresRel}
+                        colors={assetClassColors}
+                        nameMapping={{}}
+                        showBadge={false}
+                        sortByValue={sortByValue}
+                        showRelative={showRelative}
+                        hideZeroValues={hideZeroValues}
+                        collapsible={true}
+                        defaultExpanded={true}
+                    />
+
                     <AssetClassExposureBarB
                         title="Market Exposure"
                         dataAbs={marketRegionExposuresAbs}
@@ -330,6 +333,14 @@ const DetailedExposuresVisual = ({
                 </>
             ) : (
                 <>
+                    <ExposureCategory
+                        id="assetClass"
+                        title="Asset Class Exposure"
+                        exposuresAbs={assetClassExposuresAbs}
+                        exposuresRel={assetClassExposuresRel}
+                        colors={assetClassColors}
+                    />
+
                     <ExposureCategory
                         id="marketRegion"
                         title="Market Exposure"
