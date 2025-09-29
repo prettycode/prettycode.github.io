@@ -12,6 +12,7 @@ import {
     ChevronUp,
     Layers,
     Scale,
+    RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -43,6 +44,8 @@ const PortfolioCompositionPanel = ({
     onResetPortfolio,
     onSavePortfolio,
     setShowPortfolioNameInput,
+    onResetToTemplate,
+    isTemplateModified,
 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
 
@@ -246,6 +249,27 @@ const PortfolioCompositionPanel = ({
                                         <Trash2 className="h-3.5 w-3.5 mr-1" />
                                         <span>Remove all</span>
                                     </Button>
+
+                                    {onResetToTemplate && (
+                                        <Button
+                                            onClick={onResetToTemplate}
+                                            disabled={!isTemplateModified}
+                                            variant="outline"
+                                            size="sm"
+                                            className={cn(
+                                                'text-xs h-8',
+                                                isTemplateModified ? 'cursor-pointer' : 'cursor-not-allowed'
+                                            )}
+                                            title={
+                                                isTemplateModified
+                                                    ? 'Reset to original template'
+                                                    : 'Portfolio has not been modified from template'
+                                            }
+                                        >
+                                            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                                            <span>Reset Template</span>
+                                        </Button>
+                                    )}
 
                                     <Button
                                         onClick={handleEqualWeightUnlocked}

@@ -24,14 +24,13 @@ const DetailedExposuresVisual = ({
     },
     onToggleCategory,
 }) => {
-
     const { exposures, totalLeverage } = analyzePortfolio(portfolio);
 
     // Define all possible values for each dimension
     const allAssetClasses = ['Equity', 'U.S. Treasuries', 'Managed Futures', 'Futures Yield', 'Gold', 'Bitcoin'];
     const allMarketRegions = ['U.S.', 'International Developed', 'Emerging'];
-    const allFactorStyles = ['Blend', 'Value', 'Growth'];
-    const allSizeFactors = ['Large Cap', 'Mid Cap', 'Small Cap'];
+    const allFactorStyles = ['Blend', 'Value'];
+    const allSizeFactors = ['Large Cap', 'Small Cap'];
 
     // Initialize maps for absolute values with all possible values set to 0
     const assetClassExposuresAbs = new Map();
@@ -139,12 +138,10 @@ const DetailedExposuresVisual = ({
     const factorStyleColors = {
         Blend: equityBlue,
         Value: equityBlue,
-        Growth: equityBlue,
     };
 
     const sizeFactorColors = {
         'Large Cap': equityBlue,
-        'Mid Cap': equityBlue,
         'Small Cap': equityBlue,
     };
 
@@ -179,12 +176,10 @@ const DetailedExposuresVisual = ({
     const factorStyleNameMapping = {
         Blend: 'Blend',
         Value: 'Value',
-        Growth: 'Growth',
     };
 
     const sizeFactorNameMapping = {
         'Large Cap': 'Large',
-        'Mid Cap': 'Mid',
         'Small Cap': 'Small',
     };
 

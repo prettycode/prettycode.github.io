@@ -453,6 +453,7 @@ export const etfCatalog = [
         },
     ]),
     createETF('CTA', [{ exposure: { assetClass: 'Managed Futures' }, amount: 1.0 }]),
+    createETF('DBMF', [{ exposure: { assetClass: 'Managed Futures' }, amount: 1.0 }]),
 ];
 
 // Function to create a portfolio
@@ -486,32 +487,26 @@ export const examplePortfolios = [
     createPortfolio('SSO/ZROZ/DBMF', [
         { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
         { ticker: 'ZROZ', percentage: 30 }, // Extended Duration Treasuries
-        { ticker: 'KMLM', percentage: 20 / 3 }, // Managed Futures for trend following
-        { ticker: 'CTA', percentage: 20 / 3 }, // Managed Futures for trend following
-        { ticker: 'HFMF', percentage: 20 / 3 }, // Managed Futures for trend following
+        { ticker: 'DBMF', percentage: 20 }, // Managed Futures for trend following
     ]),
     createPortfolio('SSO/ZROZ/GLD/DBMF', [
         { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
         { ticker: 'ZROZ', percentage: 15 }, // Extended Duration Treasuries
         { ticker: 'UGL', percentage: 7.5 }, // Gold exposure
         { ticker: 'GLDM', percentage: 7.5 }, // Gold exposure
-        { ticker: 'KMLM', percentage: 20 / 3 }, // Managed Futures for trend following
-        { ticker: 'CTA', percentage: 20 / 3 }, // Managed Futures for trend following
-        { ticker: 'HFMF', percentage: 20 / 3 }, // Managed Futures for trend following
+        { ticker: 'DBMF', percentage: 20 }, // Managed Futures for trend following
     ]),
     createPortfolio('YOLO', [
         { ticker: 'UPRO', percentage: 45 }, // 3x Leveraged S&P 500
         { ticker: 'TMF', percentage: 25 }, // 3x Leveraged Treasuries
-        { ticker: 'KMLM', percentage: 10 }, // Managed Futures for trend following
-        { ticker: 'CTA', percentage: 10 }, // Managed Futures for trend following
-        { ticker: 'HFMF', percentage: 10 }, // Managed Futures for trend following
+        { ticker: 'DBMF', percentage: 30 }, // Managed Futures for trend following
     ]),
     createPortfolio('Value Barbell', [
         { ticker: 'RSST', percentage: 25 }, // Stacked leverage: Equity + Managed Futures
         { ticker: 'RSSB', percentage: 25 }, // Stacked leverage: Global Equity + Treasuries
-        { ticker: 'AVDV', percentage: 50 / 3 }, // International Developed Small Cap Value
-        { ticker: 'DGS', percentage: 50 / 3 }, // Emerging Markets Small Cap Value
-        { ticker: 'AVUV', percentage: 50 / 3 }, // U.S. Small Cap Value
+        { ticker: 'AVDV', percentage: 15 }, // International Developed Small Cap Value
+        { ticker: 'DGS', percentage: 15 }, // Emerging Markets Small Cap Value
+        { ticker: 'AVUV', percentage: 20 }, // U.S. Small Cap Value
     ]),
     createPortfolio('Return Stacked® Ultimate', [
         { ticker: 'RSSY', percentage: 17.5 },

@@ -45,6 +45,8 @@ const PortfolioBuilder = ({
     onToggleDetailColumns,
     onDeletePortfolio,
     onUpdatePortfolio,
+    onResetToTemplate,
+    isTemplateModified,
 }) => {
     // State for active tab and new portfolio name
     const [activeTab, setActiveTab] = useState('build');
@@ -80,11 +82,16 @@ const PortfolioBuilder = ({
             }
 
             // Update the portfolio with the loaded data
-            onUpdatePortfolio({
-                name: portfolioToLoad.name,
-                description: portfolioToLoad.description || '',
-                holdings: newHoldings,
-            });
+            const isTemplateLoad = !isSaved;
+            onUpdatePortfolio(
+                {
+                    name: portfolioToLoad.name,
+                    description: portfolioToLoad.description || '',
+                    holdings: newHoldings,
+                },
+                isTemplateLoad,
+                isTemplateLoad ? portfolio : null
+            );
 
             // Set portfolio name for the input field
             setPortfolioName(portfolioToLoad.name);
@@ -146,14 +153,7 @@ const PortfolioBuilder = ({
                 {/* Templates Tab */}
                 <TabsContent value="templates">
                     <Card className="bg-gradient-to-br from-background to-muted/20 border border-border/40 py-0">
-                        <CardContent className="p-6">
-                            <div className="mb-6">
-                                <h3 className="text-lg font-medium mb-2">Portfolio Templates</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Choose a pre-built portfolio to start with, then customize it to your needs.
-                                </p>
-                            </div>
-
+                        <CardContent className="p-0">
                             <PortfolioConstituentSearchPanel
                                 mode="templates"
                                 templates={examplePortfolios}
@@ -190,6 +190,8 @@ const PortfolioBuilder = ({
                             onResetPortfolio={onResetPortfolio}
                             onSavePortfolio={onSavePortfolio}
                             setShowPortfolioNameInput={setShowPortfolioNameInput}
+                            onResetToTemplate={onResetToTemplate}
+                            isTemplateModified={isTemplateModified}
                         />
 
                         {/* ETF Selection */}

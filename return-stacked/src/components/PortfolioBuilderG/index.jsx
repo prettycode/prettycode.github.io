@@ -27,12 +27,15 @@ const convertExampleToCustomPortfolio = (examplePortfolio) => {
 // Main component
 const PortfolioBuilderG = () => {
     // Initialize with an example portfolio based on current time seconds
-    const defaultPortfolio =
-        examplePortfolios.length > 0
-            ? convertExampleToCustomPortfolio(examplePortfolios[new Date().getSeconds() % examplePortfolios.length])
-            : createPortfolio(DEFAULT_PORTFOLIO_NAME, []);
+    const selectedTemplate =
+        examplePortfolios.length > 0 ? examplePortfolios[new Date().getSeconds() % examplePortfolios.length] : null;
+
+    const defaultPortfolio = selectedTemplate
+        ? convertExampleToCustomPortfolio(selectedTemplate)
+        : createPortfolio(DEFAULT_PORTFOLIO_NAME, []);
 
     const [customPortfolio, setCustomPortfolio] = useState(defaultPortfolio);
+    const [originalTemplate, setOriginalTemplate] = useState(selectedTemplate);
     const [tempInputs, setTempInputs] = useState({});
     const [showDetailColumns, setShowDetailColumns] = useState(false);
     const [savedPortfolios, setSavedPortfolios] = useState([]);
@@ -58,8 +61,14 @@ const PortfolioBuilderG = () => {
     };
 
     // Function to update the entire portfolio
-    const updatePortfolio = (portfolioData) => {
+    const updatePortfolio = (portfolioData, isTemplateLoad = false, templateData = null) => {
         setCustomPortfolio(portfolioData);
+        if (isTemplateLoad) {
+            setOriginalTemplate(templateData);
+        } else {
+            // Clear original template when manually loading a different portfolio
+            setOriginalTemplate(null);
+        }
     };
 
     // Function to add an ETF to the custom portfolio with initial 0% allocation
@@ -271,6 +280,34 @@ const PortfolioBuilderG = () => {
     // Function to reset the portfolio builder (clear all ETFs)
     const resetPortfolio = () => {
         setCustomPortfolio(createPortfolio(DEFAULT_PORTFOLIO_NAME, []));
+        setOriginalTemplate(null);
+    };
+
+    // Function to reset to original template
+    const resetToTemplate = () => {
+        if (originalTemplate) {
+            const restoredPortfolio = convertExampleToCustomPortfolio(originalTemplate);
+            setCustomPortfolio(restoredPortfolio);
+        }
+    };
+
+    // Function to check if portfolio has been modified from original template
+    const isTemplateModified = () => {
+        if (!originalTemplate) return false;
+
+        // Check if holdings count is different
+        if (customPortfolio.holdings.size !== originalTemplate.holdings.size) return true;
+
+        // Check each ETF percentage allocation
+        for (const [ticker, templatePercentage] of originalTemplate.holdings.entries()) {
+            const currentHolding = customPortfolio.holdings.get(ticker);
+            if (!currentHolding) return true;
+
+            // Check percentage (allow small rounding differences)
+            if (Math.abs(currentHolding.percentage - templatePercentage) > 0.1) return true;
+        }
+
+        return false;
     };
 
     // Function to handle temp input state for number fields
@@ -363,6 +400,8 @@ const PortfolioBuilderG = () => {
                             onToggleDetailColumns={toggleDetailColumns}
                             onDeletePortfolio={handleDeletePortfolio}
                             onUpdatePortfolio={updatePortfolio}
+                            onResetToTemplate={resetToTemplate}
+                            isTemplateModified={isTemplateModified()}
                         />
                     </div>
                 </div>
