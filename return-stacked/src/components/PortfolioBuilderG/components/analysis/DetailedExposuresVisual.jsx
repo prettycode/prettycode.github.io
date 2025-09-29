@@ -29,7 +29,7 @@ const DetailedExposuresVisual = ({
     // Define all possible values for each dimension
     const allAssetClasses = ['Equity', 'U.S. Treasuries', 'Managed Futures', 'Futures Yield', 'Gold', 'Bitcoin'];
     const allMarketRegions = ['U.S.', 'International Developed', 'Emerging'];
-    const allFactorStyles = ['Blend', 'Value'];
+    const allFactorStyles = ['Blend', 'Value', 'Growth'];
     const allSizeFactors = ['Large Cap', 'Small Cap'];
 
     // Initialize maps for absolute values with all possible values set to 0
@@ -138,6 +138,7 @@ const DetailedExposuresVisual = ({
     const factorStyleColors = {
         Blend: equityBlue,
         Value: equityBlue,
+        Growth: equityBlue,
     };
 
     const sizeFactorColors = {
@@ -176,6 +177,7 @@ const DetailedExposuresVisual = ({
     const factorStyleNameMapping = {
         Blend: 'Blend',
         Value: 'Value',
+        Growth: 'Growth',
     };
 
     const sizeFactorNameMapping = {
