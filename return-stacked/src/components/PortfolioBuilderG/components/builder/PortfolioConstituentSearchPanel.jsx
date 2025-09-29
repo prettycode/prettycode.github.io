@@ -552,8 +552,8 @@ const PortfolioConstituentSearchPanel = ({
             <div
                 ref={listRef}
                 className={cn(
-                    'overflow-x-auto overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent transition-all duration-300 ease-in-out',
-                    isExpanded ? 'max-h-[300px]' : 'max-h-0'
+                    'overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent transition-all duration-300 ease-in-out',
+                    isExpanded ? 'max-h-[300px] overflow-y-auto' : 'max-h-0 overflow-hidden'
                 )}
             >
                 {filteredItems.length === 0 ? (

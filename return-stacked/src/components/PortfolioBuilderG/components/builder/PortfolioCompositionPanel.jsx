@@ -164,17 +164,6 @@ const PortfolioCompositionPanel = ({
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                                 <h1 className="text-lg font-medium">{portfolioName}</h1>
-                                <h3 className="text-sm font-medium">Composition</h3>
-
-                                {/* Leverage indicator instead of allocation percentage */}
-                                <div
-                                    className={cn(
-                                        'px-2.5 py-0.5 rounded-full text-xs flex items-center',
-                                        getLeverageColor(totalLeverage)
-                                    )}
-                                >
-                                    <span className="font-bold">{totalLeverage.toFixed(2)}x</span>
-                                </div>
                             </div>
 
                             <div className="flex items-center gap-2">
