@@ -35,7 +35,7 @@ export const examplePortfolios = [
         { ticker: 'DGS', percentage: 15 }, // Emerging Markets Small Cap Value
         { ticker: 'AVUV', percentage: 20 }, // U.S. Small Cap Value
     ]),
-    createPortfolio('Return Stacked® Global', [
+    createPortfolio('Return Stacked® Max+', [
         { ticker: 'RSSB', percentage: 17.5 },
         { ticker: 'RSST', percentage: 17.5 },
         { ticker: 'RSSY', percentage: 17.5 },

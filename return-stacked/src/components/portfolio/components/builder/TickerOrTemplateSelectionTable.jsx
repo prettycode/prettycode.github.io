@@ -591,7 +591,7 @@ const TickerOrTemplateSelectionTable = ({
             <div
                 ref={listRef}
                 className={cn(
-                    'overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent transition-all duration-300 ease-in-out',
+                    'overflow-x-hidden scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent transition-all duration-300 ease-in-out',
                     isExpanded ? 'max-h-[300px] overflow-y-auto' : 'max-h-0 overflow-hidden'
                 )}
             >
@@ -890,24 +890,28 @@ const TickerOrTemplateSelectionTable = ({
                                         {mode === 'templates' && isTemplateExpanded && item.template.holdings && (
                                             <>
                                                 {Array.from(item.template.holdings.entries()).map(
-                                                    ([ticker, percentage]) => {
+                                                    ([ticker, percentage], subIndex, subArray) => {
                                                         const constituentEtf = etfCatalog.find(
                                                             (e) => e.ticker === ticker
                                                         );
+                                                        const isLastSubrow = subIndex === subArray.length - 1;
                                                         return (
                                                             <tr
                                                                 key={`${item.id}-${ticker}`}
-                                                                className="border-t border-border/10 bg-muted/20"
+                                                                className={cn(
+                                                                    'border-t border-border/40 hover:bg-accent/60 transition-colors bg-accent/40',
+                                                                    isLastSubrow && 'border-b-[3px] border-border'
+                                                                )}
                                                             >
-                                                                <td className="py-1 px-3 pl-10 text-xs text-muted-foreground">
+                                                                <td className="py-1.5 px-3 pl-10 text-xs font-medium border-l-4 border-accent">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="font-medium">{ticker}</span>
-                                                                        <span className="text-[10px]">
+                                                                        <span>{ticker}</span>
+                                                                        <span className="text-[10px] text-muted-foreground">
                                                                             ({percentage.toFixed(0)}%)
                                                                         </span>
                                                                     </div>
                                                                 </td>
-                                                                <td className="py-1 px-2 text-center text-xs text-muted-foreground">
+                                                                <td className="py-1.5 px-2 text-center text-xs">
                                                                     {constituentEtf &&
                                                                     !isEffectivelyOneX(
                                                                         calculateTotalExposure(
@@ -915,15 +919,29 @@ const TickerOrTemplateSelectionTable = ({
                                                                             true
                                                                         )
                                                                     ) ? (
-                                                                        <span>
+                                                                        <Badge
+                                                                            variant="outline"
+                                                                            className={cn(
+                                                                                'text-[10px] px-1.5 py-0 font-medium',
+                                                                                getLeverageAmountColor(
+                                                                                    calculateTotalExposure(
+                                                                                        {
+                                                                                            exposures:
+                                                                                                constituentEtf.exposures,
+                                                                                        },
+                                                                                        true
+                                                                                    ).toFixed(1)
+                                                                                )
+                                                                            )}
+                                                                        >
                                                                             {calculateTotalExposure(
                                                                                 { exposures: constituentEtf.exposures },
                                                                                 true
                                                                             ).toFixed(1)}
                                                                             x
-                                                                        </span>
+                                                                        </Badge>
                                                                     ) : (
-                                                                        <span>-</span>
+                                                                        <span className="text-muted-foreground">-</span>
                                                                     )}
                                                                 </td>
                                                                 {assetClasses.map((assetClass) => {
@@ -943,11 +961,30 @@ const TickerOrTemplateSelectionTable = ({
                                                                         }
                                                                     }
 
+                                                                    const regionalBreakdown =
+                                                                        getRegionalEquityBreakdown({
+                                                                            type: 'etf',
+                                                                            etf: constituentEtf || {
+                                                                                exposures: new Map(),
+                                                                            },
+                                                                        });
+
                                                                     return (
                                                                         <React.Fragment key={assetClass}>
                                                                             <td
                                                                                 className={cn(
-                                                                                    'py-1 px-2 text-center text-xs text-muted-foreground',
+                                                                                    'py-1.5 px-2 text-center text-xs',
+                                                                                    amount > 0
+                                                                                        ? cn(
+                                                                                              'font-medium',
+                                                                                              getAssetClassColor(
+                                                                                                  assetClass
+                                                                                              ),
+                                                                                              getAssetClassBgColor(
+                                                                                                  assetClass
+                                                                                              )
+                                                                                          )
+                                                                                        : 'text-muted-foreground',
                                                                                     isEquity &&
                                                                                         'border-l-2 border-blue-200'
                                                                                 )}
@@ -958,9 +995,30 @@ const TickerOrTemplateSelectionTable = ({
                                                                             </td>
                                                                             {isEquity && (
                                                                                 <>
-                                                                                    <td className="py-1 px-1 text-center bg-blue-50/20"></td>
-                                                                                    <td className="py-1 px-1 text-center bg-blue-50/20"></td>
-                                                                                    <td className="py-1 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20"></td>
+                                                                                    <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                                        <span className="text-xs font-medium text-blue-700">
+                                                                                            {formatRegionalEquity(
+                                                                                                regionalBreakdown.us,
+                                                                                                regionalBreakdown.total
+                                                                                            )}
+                                                                                        </span>
+                                                                                    </td>
+                                                                                    <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                                        <span className="text-xs font-medium text-blue-700">
+                                                                                            {formatRegionalEquity(
+                                                                                                regionalBreakdown.intl,
+                                                                                                regionalBreakdown.total
+                                                                                            )}
+                                                                                        </span>
+                                                                                    </td>
+                                                                                    <td className="py-1.5 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20">
+                                                                                        <span className="text-xs font-medium text-blue-700">
+                                                                                            {formatRegionalEquity(
+                                                                                                regionalBreakdown.em,
+                                                                                                regionalBreakdown.total
+                                                                                            )}
+                                                                                        </span>
+                                                                                    </td>
                                                                                 </>
                                                                             )}
                                                                         </React.Fragment>
