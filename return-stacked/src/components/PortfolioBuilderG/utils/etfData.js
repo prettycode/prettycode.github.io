@@ -454,6 +454,17 @@ export const etfCatalog = [
     ]),
     createETF('CTA', [{ exposure: { assetClass: 'Managed Futures' }, amount: 1.0 }]),
     createETF('DBMF', [{ exposure: { assetClass: 'Managed Futures' }, amount: 1.0 }]),
+    createETF('AVDS', [
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'International Developed',
+                factorStyle: 'Blend',
+                sizeFactor: 'Small Cap',
+            },
+            amount: 1.0,
+        },
+    ]),
 ];
 
 // Function to create a portfolio
@@ -508,12 +519,12 @@ export const examplePortfolios = [
         { ticker: 'DGS', percentage: 15 }, // Emerging Markets Small Cap Value
         { ticker: 'AVUV', percentage: 20 }, // U.S. Small Cap Value
     ]),
-    createPortfolio('Return Stacked® Ultimate', [
-        { ticker: 'RSSY', percentage: 17.5 },
-        { ticker: 'RSST', percentage: 17.5 },
+    createPortfolio('Return Stacked® Global', [
         { ticker: 'RSSB', percentage: 17.5 },
+        { ticker: 'RSST', percentage: 17.5 },
+        { ticker: 'RSSY', percentage: 17.5 },
         { ticker: 'RSSX', percentage: 17.5 },
-        { ticker: 'AVDV', percentage: 15 },
+        { ticker: 'AVDS', percentage: 15 },
         { ticker: 'AVEE', percentage: 15 },
     ]),
     createPortfolio('Return Stacked® Max', [
