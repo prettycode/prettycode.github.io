@@ -12,12 +12,13 @@ import {
     PlusCircle,
     ChevronDown,
     ChevronUp,
+    ChevronRight,
     ArrowUp,
     ArrowDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const SearchPanel = ({
+const TickerOrTemplateSelectionTable = ({
     etfCatalog,
     onSelect,
     existingTickers,
@@ -32,10 +33,8 @@ const SearchPanel = ({
     const [sortDirection, setSortDirection] = useState('asc');
     const [sortColumn, setSortColumn] = useState('ticker');
     const [isExpanded, setIsExpanded] = useState(true);
-
-    // For templates mode, always keep expanded
-    const shouldShowExpanded = mode === 'templates' ? true : isExpanded;
     const [showFilters, setShowFilters] = useState(false);
+    const [expandedTemplates, setExpandedTemplates] = useState(new Set());
     const listRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -144,12 +143,12 @@ const SearchPanel = ({
         return orderedClasses;
     }, [etfCatalog]);
 
-    // Auto-expand when user starts typing (only for ETF mode)
+    // Auto-expand when user starts typing
     useEffect(() => {
-        if (mode === 'etfs' && searchTerm.length > 0 && !isExpanded) {
+        if (searchTerm.length > 0 && !isExpanded) {
             setIsExpanded(true);
         }
-    }, [searchTerm, mode, isExpanded]);
+    }, [searchTerm, isExpanded]);
 
     // Get display name for asset classes (same as in AssetClassExposureBar)
     const getAssetClassDisplayName = (assetClass) => {
@@ -492,9 +491,22 @@ const SearchPanel = ({
         }
     };
 
+    // Toggle template expansion
+    const toggleTemplateExpansion = (templateName, e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const newExpanded = new Set(expandedTemplates);
+        if (newExpanded.has(templateName)) {
+            newExpanded.delete(templateName);
+        } else {
+            newExpanded.add(templateName);
+        }
+        setExpandedTemplates(newExpanded);
+    };
+
     return (
         <Card className="border shadow-sm py-1 gap-0 overflow-hidden">
-            <div className={cn('p-3 space-y-3', shouldShowExpanded ? 'border-b' : '')}>
+            <div className={cn('p-3 space-y-3', isExpanded ? 'border-b' : '')}>
                 <div className="flex items-center">
                     <div className="relative flex-1">
                         <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -522,16 +534,14 @@ const SearchPanel = ({
                             <FilterIcon className="h-4 w-4" />
                         </Button>
                     )}
-                    {mode === 'etfs' && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={toggleExpand}
-                            className="ml-2 h-8 w-8 p-0 cursor-pointer"
-                        >
-                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
-                    )}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleExpand}
+                        className="ml-2 h-8 w-8 p-0 cursor-pointer"
+                    >
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
                 </div>
             </div>
 
@@ -751,111 +761,220 @@ const SearchPanel = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredItems.map((item, index) => (
-                                <tr
-                                    key={item.id}
-                                    data-index={index}
-                                    className={cn(
-                                        'border-t border-border/30 hover:bg-accent/20 transition-colors cursor-pointer',
-                                        index === highlightedIndex && 'bg-accent/30'
-                                    )}
-                                    onClick={() => handleSelect(item)}
-                                    onMouseEnter={() => setHighlightedIndex(index)}
-                                >
-                                    <td className="py-1.5 px-3 font-medium whitespace-nowrap">{item.name}</td>
+                            {filteredItems.map((item, index) => {
+                                const isTemplateExpanded = mode === 'templates' && expandedTemplates.has(item.name);
+                                return (
+                                    <React.Fragment key={item.id}>
+                                        <tr
+                                            data-index={index}
+                                            className={cn(
+                                                'border-t border-border/30 hover:bg-accent/20 transition-colors cursor-pointer',
+                                                index === highlightedIndex && 'bg-accent/30'
+                                            )}
+                                            onClick={() => handleSelect(item)}
+                                            onMouseEnter={() => setHighlightedIndex(index)}
+                                        >
+                                            <td className="py-1.5 px-3 font-medium whitespace-nowrap">
+                                                <div className="flex items-center gap-1">
+                                                    {mode === 'templates' && (
+                                                        <span
+                                                            className="hover:bg-accent/50 rounded p-0.5 transition-colors"
+                                                            onClick={(e) => toggleTemplateExpansion(item.name, e)}
+                                                        >
+                                                            {isTemplateExpanded ? (
+                                                                <ChevronDown className="h-3 w-3" />
+                                                            ) : (
+                                                                <ChevronRight className="h-3 w-3" />
+                                                            )}
+                                                        </span>
+                                                    )}
+                                                    <span>{item.name}</span>
+                                                </div>
+                                            </td>
 
-                                    <td className="py-1.5 px-2 text-center">
-                                        {isEffectivelyOneX(item.totalLeverage) ? (
-                                            <span className="text-xs text-muted-foreground">-</span>
-                                        ) : (
-                                            <Badge
-                                                variant="outline"
-                                                className={cn(
-                                                    'text-[10px] px-1.5 py-0 font-medium',
-                                                    getLeverageAmountColor(item.totalLeverage.toFixed(1))
-                                                )}
-                                            >
-                                                {item.totalLeverage.toFixed(1)}x
-                                            </Badge>
-                                        )}
-                                    </td>
-
-                                    {(() => {
-                                        const regionalBreakdown = getRegionalEquityBreakdown(item);
-                                        return assetClasses.map((assetClass) => {
-                                            const amount = getAssetClassAmount(item, assetClass);
-                                            const isEquity = assetClass === 'Equity';
-
-                                            return (
-                                                <React.Fragment key={assetClass}>
-                                                    <td
+                                            <td className="py-1.5 px-2 text-center">
+                                                {isEffectivelyOneX(item.totalLeverage) ? (
+                                                    <span className="text-xs text-muted-foreground">-</span>
+                                                ) : (
+                                                    <Badge
+                                                        variant="outline"
                                                         className={cn(
-                                                            'py-1.5 px-2 text-center text-xs',
-                                                            amount > 0
-                                                                ? cn(
-                                                                      'font-medium',
-                                                                      getAssetClassColor(assetClass),
-                                                                      getAssetClassBgColor(assetClass)
-                                                                  )
-                                                                : 'text-muted-foreground',
-                                                            isEquity && 'border-l-2 border-blue-200'
+                                                            'text-[10px] px-1.5 py-0 font-medium',
+                                                            getLeverageAmountColor(
+                                                                item.totalLeverage.toFixed(mode === 'templates' ? 2 : 1)
+                                                            )
                                                         )}
                                                     >
-                                                        {formatPercent(amount)}
-                                                    </td>
+                                                        {item.totalLeverage.toFixed(mode === 'templates' ? 2 : 1)}x
+                                                    </Badge>
+                                                )}
+                                            </td>
 
-                                                    {isEquity && (
-                                                        <>
-                                                            <td className="py-1.5 px-1 text-center bg-blue-50/20">
-                                                                <span className="text-xs font-medium text-blue-700">
-                                                                    {formatRegionalEquity(
-                                                                        regionalBreakdown.us,
-                                                                        regionalBreakdown.total
-                                                                    )}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-1.5 px-1 text-center bg-blue-50/20">
-                                                                <span className="text-xs font-medium text-blue-700">
-                                                                    {formatRegionalEquity(
-                                                                        regionalBreakdown.intl,
-                                                                        regionalBreakdown.total
-                                                                    )}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-1.5 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20">
-                                                                <span className="text-xs font-medium text-blue-700">
-                                                                    {formatRegionalEquity(
-                                                                        regionalBreakdown.em,
-                                                                        regionalBreakdown.total
-                                                                    )}
-                                                                </span>
-                                                            </td>
-                                                        </>
-                                                    )}
-                                                </React.Fragment>
-                                            );
-                                        });
-                                    })()}
+                                            {(() => {
+                                                const regionalBreakdown = getRegionalEquityBreakdown(item);
+                                                return assetClasses.map((assetClass) => {
+                                                    const amount = getAssetClassAmount(item, assetClass);
+                                                    const isEquity = assetClass === 'Equity';
 
-                                    {mode !== 'templates' && (
-                                        <td className="py-1.5 px-2 text-center">
-                                            {item.leverageType === 'None' ? (
-                                                <span className="text-xs text-muted-foreground">-</span>
-                                            ) : (
-                                                <Badge
-                                                    variant="outline"
-                                                    className={cn(
-                                                        'text-[10px] px-1.5 py-0 font-medium',
-                                                        getLeverageTypeColor(item.leverageType)
+                                                    return (
+                                                        <React.Fragment key={assetClass}>
+                                                            <td
+                                                                className={cn(
+                                                                    'py-1.5 px-2 text-center text-xs',
+                                                                    amount > 0
+                                                                        ? cn(
+                                                                              'font-medium',
+                                                                              getAssetClassColor(assetClass),
+                                                                              getAssetClassBgColor(assetClass)
+                                                                          )
+                                                                        : 'text-muted-foreground',
+                                                                    isEquity && 'border-l-2 border-blue-200'
+                                                                )}
+                                                            >
+                                                                {formatPercent(amount)}
+                                                            </td>
+
+                                                            {isEquity && (
+                                                                <>
+                                                                    <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                        <span className="text-xs font-medium text-blue-700">
+                                                                            {formatRegionalEquity(
+                                                                                regionalBreakdown.us,
+                                                                                regionalBreakdown.total
+                                                                            )}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                        <span className="text-xs font-medium text-blue-700">
+                                                                            {formatRegionalEquity(
+                                                                                regionalBreakdown.intl,
+                                                                                regionalBreakdown.total
+                                                                            )}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="py-1.5 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20">
+                                                                        <span className="text-xs font-medium text-blue-700">
+                                                                            {formatRegionalEquity(
+                                                                                regionalBreakdown.em,
+                                                                                regionalBreakdown.total
+                                                                            )}
+                                                                        </span>
+                                                                    </td>
+                                                                </>
+                                                            )}
+                                                        </React.Fragment>
+                                                    );
+                                                });
+                                            })()}
+
+                                            {mode !== 'templates' && (
+                                                <td className="py-1.5 px-2 text-center">
+                                                    {item.leverageType === 'None' ? (
+                                                        <span className="text-xs text-muted-foreground">-</span>
+                                                    ) : (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={cn(
+                                                                'text-[10px] px-1.5 py-0 font-medium',
+                                                                getLeverageTypeColor(item.leverageType)
+                                                            )}
+                                                        >
+                                                            {item.leverageType}
+                                                        </Badge>
                                                     )}
-                                                >
-                                                    {item.leverageType}
-                                                </Badge>
+                                                </td>
                                             )}
-                                        </td>
-                                    )}
-                                </tr>
-                            ))}
+                                        </tr>
+
+                                        {/* Subrows for expanded templates */}
+                                        {mode === 'templates' && isTemplateExpanded && item.template.holdings && (
+                                            <>
+                                                {Array.from(item.template.holdings.entries()).map(
+                                                    ([ticker, percentage]) => {
+                                                        const constituentEtf = etfCatalog.find(
+                                                            (e) => e.ticker === ticker
+                                                        );
+                                                        return (
+                                                            <tr
+                                                                key={`${item.id}-${ticker}`}
+                                                                className="border-t border-border/10 bg-muted/20"
+                                                            >
+                                                                <td className="py-1 px-3 pl-10 text-xs text-muted-foreground">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-medium">{ticker}</span>
+                                                                        <span className="text-[10px]">
+                                                                            ({percentage.toFixed(0)}%)
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-1 px-2 text-center text-xs text-muted-foreground">
+                                                                    {constituentEtf &&
+                                                                    !isEffectivelyOneX(
+                                                                        calculateTotalExposure(
+                                                                            { exposures: constituentEtf.exposures },
+                                                                            true
+                                                                        )
+                                                                    ) ? (
+                                                                        <span>
+                                                                            {calculateTotalExposure(
+                                                                                { exposures: constituentEtf.exposures },
+                                                                                true
+                                                                            ).toFixed(1)}
+                                                                            x
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span>-</span>
+                                                                    )}
+                                                                </td>
+                                                                {assetClasses.map((assetClass) => {
+                                                                    const isEquity = assetClass === 'Equity';
+                                                                    let amount = 0;
+
+                                                                    if (constituentEtf) {
+                                                                        for (const [
+                                                                            key,
+                                                                            amt,
+                                                                        ] of constituentEtf.exposures) {
+                                                                            const { assetClass: ac } =
+                                                                                parseExposureKey(key);
+                                                                            if (ac === assetClass) {
+                                                                                amount += amt;
+                                                                            }
+                                                                        }
+                                                                    }
+
+                                                                    return (
+                                                                        <React.Fragment key={assetClass}>
+                                                                            <td
+                                                                                className={cn(
+                                                                                    'py-1 px-2 text-center text-xs text-muted-foreground',
+                                                                                    isEquity &&
+                                                                                        'border-l-2 border-blue-200'
+                                                                                )}
+                                                                            >
+                                                                                {amount > 0
+                                                                                    ? formatPercent(amount)
+                                                                                    : '-'}
+                                                                            </td>
+                                                                            {isEquity && (
+                                                                                <>
+                                                                                    <td className="py-1 px-1 text-center bg-blue-50/20"></td>
+                                                                                    <td className="py-1 px-1 text-center bg-blue-50/20"></td>
+                                                                                    <td className="py-1 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20"></td>
+                                                                                </>
+                                                                            )}
+                                                                        </React.Fragment>
+                                                                    );
+                                                                })}
+                                                            </tr>
+                                                        );
+                                                    }
+                                                )}
+                                            </>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
                 )}
@@ -864,4 +983,4 @@ const SearchPanel = ({
     );
 };
 
-export default SearchPanel;
+export default TickerOrTemplateSelectionTable;

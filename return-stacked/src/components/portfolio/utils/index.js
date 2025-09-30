@@ -13,3 +13,6 @@ export * from './allocationUtils';
 
 // Re-export storage utilities
 export * from './storageUtils';
+
+// Re-export templates
+export * from './templates';

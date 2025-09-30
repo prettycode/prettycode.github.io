@@ -470,63 +470,6 @@ export const createPortfolio = (name, allocations) => {
     return { name, holdings };
 };
 
-// Define example portfolios
-export const examplePortfolios = [
-    createPortfolio('4/3/2/1', [
-        { ticker: 'RSST', percentage: 60 }, // Stacked leverage: Equity + Managed Futures
-        { ticker: 'GDE', percentage: 25 }, // Stacked leverage: Equity + Gold
-        { ticker: 'TMF', percentage: 15 }, // 3x Leveraged Treasuries
-    ]),
-    createPortfolio('Return Stacked® 4/3/2/1', [
-        { ticker: 'RSST', percentage: 57 },
-        { ticker: 'ZROZ', percentage: 25 },
-        { ticker: 'RSSX', percentage: 18 },
-    ]),
-    createPortfolio('SSO/ZROZ/GLD', [
-        { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
-        { ticker: 'ZROZ', percentage: 30 }, // Extended Duration Treasuries
-        { ticker: 'GLDM', percentage: 20 }, // Gold exposure
-    ]),
-    createPortfolio('SSO/ZROZ/DBMF', [
-        { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
-        { ticker: 'ZROZ', percentage: 30 }, // Extended Duration Treasuries
-        { ticker: 'DBMF', percentage: 20 }, // Managed Futures for trend following
-    ]),
-    createPortfolio('SSO/ZROZ/GLD/DBMF', [
-        { ticker: 'SSO', percentage: 50 }, // 2x Leveraged S&P 500
-        { ticker: 'ZROZ', percentage: 15 }, // Extended Duration Treasuries
-        { ticker: 'UGL', percentage: 7.5 }, // Gold exposure
-        { ticker: 'GLDM', percentage: 7.5 }, // Gold exposure
-        { ticker: 'DBMF', percentage: 20 }, // Managed Futures for trend following
-    ]),
-    createPortfolio('YOLO', [
-        { ticker: 'UPRO', percentage: 45 }, // 3x Leveraged S&P 500
-        { ticker: 'TMF', percentage: 25 }, // 3x Leveraged Treasuries
-        { ticker: 'DBMF', percentage: 30 }, // Managed Futures for trend following
-    ]),
-    createPortfolio('Value Barbell', [
-        { ticker: 'RSST', percentage: 25 }, // Stacked leverage: Equity + Managed Futures
-        { ticker: 'RSSB', percentage: 25 }, // Stacked leverage: Global Equity + Treasuries
-        { ticker: 'AVDV', percentage: 15 }, // International Developed Small Cap Value
-        { ticker: 'DGS', percentage: 15 }, // Emerging Markets Small Cap Value
-        { ticker: 'AVUV', percentage: 20 }, // U.S. Small Cap Value
-    ]),
-    createPortfolio('Return Stacked® Global', [
-        { ticker: 'RSSB', percentage: 17.5 },
-        { ticker: 'RSST', percentage: 17.5 },
-        { ticker: 'RSSY', percentage: 17.5 },
-        { ticker: 'RSSX', percentage: 17.5 },
-        { ticker: 'AVDS', percentage: 15 },
-        { ticker: 'AVEE', percentage: 15 },
-    ]),
-    createPortfolio('Return Stacked® Max', [
-        { ticker: 'RSSB', percentage: 25 }, // Stacked leverage: Global Equity + Treasuries
-        { ticker: 'RSST', percentage: 25 }, // Stacked leverage: Equity + Managed Futures
-        { ticker: 'RSSY', percentage: 25 }, // Stacked leverage: Equity + Yield
-        { ticker: 'RSSX', percentage: 25 }, // Stacked leverage: Equity + Gold + Bitcoin
-    ]),
-];
-
 // Function to analyze a portfolio's total exposure
 export const analyzePortfolio = (portfolio) => {
     const exposures = new Map();

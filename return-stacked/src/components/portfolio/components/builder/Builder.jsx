@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { parseExposureKey, deserializePortfolio } from '../../utils';
-import SearchPanel from './SearchPanel';
+import TickerOrTemplateSelectionTable from './TickerOrTemplateSelectionTable';
 import HoldingsTable from './HoldingsTable';
 import CompositionPanel from './CompositionPanel';
 import { Card, CardContent } from '@/components/ui/card';
@@ -139,34 +139,24 @@ const Builder = ({
                         <Plus className="h-4 w-4" />
                         <span>Build</span>
                     </TabsTrigger>
-                    <TabsTrigger value="templates" className="flex items-center gap-1 cursor-pointer">
-                        <BookTemplate className="h-4 w-4" />
-                        <span>Templates</span>
-                    </TabsTrigger>
                     <TabsTrigger value="saved" className="flex items-center gap-1 cursor-pointer">
                         <Folder className="h-4 w-4" />
                         <span>Saved</span>
                     </TabsTrigger>
                 </TabsList>
 
-                {/* Templates Tab */}
-                <TabsContent value="templates">
-                    <Card className="bg-gradient-to-br from-background to-muted/20 border border-border/40 py-0">
-                        <CardContent className="p-0">
-                            <SearchPanel
-                                mode="templates"
-                                templates={examplePortfolios}
-                                onSelect={loadPortfolio}
-                                title="Search Templates..."
-                                etfCatalog={etfCatalog}
-                            />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
                 {/* Build Tab */}
                 <TabsContent value="build">
                     <div className="space-y-3">
+                        {/* Template Selection Table */}
+                        <TickerOrTemplateSelectionTable
+                            mode="templates"
+                            templates={examplePortfolios}
+                            onSelect={loadPortfolio}
+                            title="Search Templates..."
+                            etfCatalog={etfCatalog}
+                        />
+
                         {/* Portfolio Allocations */}
                         <CompositionPanel
                             isPortfolioEmpty={isPortfolioEmpty}
@@ -194,7 +184,7 @@ const Builder = ({
                         />
 
                         {/* ETF Selection */}
-                        <SearchPanel
+                        <TickerOrTemplateSelectionTable
                             etfCatalog={etfCatalog}
                             onSelect={onAddETF}
                             existingTickers={Array.from(customPortfolio.holdings.keys())}
