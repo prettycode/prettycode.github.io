@@ -27,6 +27,7 @@ const SearchPanel = ({
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTab, setSelectedTab] = useState('all');
+    const [selectedAssetClassFilter, setSelectedAssetClassFilter] = useState('all');
     const [highlightedIndex, setHighlightedIndex] = useState(0);
     const [sortDirection, setSortDirection] = useState('asc');
     const [sortColumn, setSortColumn] = useState('ticker');
@@ -275,7 +276,13 @@ const SearchPanel = ({
                 }
             }
 
-            return matchesSearch && notInPortfolio && matchesTab;
+            let matchesAssetClass = selectedAssetClassFilter === 'all';
+            if (!matchesAssetClass) {
+                const assetClassAmount = getAssetClassAmount(item, selectedAssetClassFilter);
+                matchesAssetClass = assetClassAmount > 0;
+            }
+
+            return matchesSearch && notInPortfolio && matchesTab && matchesAssetClass;
         })
         .sort((a, b) => {
             try {
@@ -530,22 +537,44 @@ const SearchPanel = ({
 
             <div className={cn(isExpanded ? 'border-b' : '')}>
                 {showFilters && isExpanded && (
-                    <Tabs defaultValue="all" onValueChange={setSelectedTab} className="w-full">
-                        <div className="flex items-center w-full">
-                            <TabsList className="flex-1 bg-muted/50 rounded-none">
-                                <TabsTrigger value="all" className="text-xs cursor-pointer">
-                                    All
-                                </TabsTrigger>
-                                {leverageTypes
-                                    .filter((type) => type !== 'All')
-                                    .map((type) => (
-                                        <TabsTrigger key={type} value={type} className="text-xs cursor-pointer">
-                                            {type}
+                    <div className="space-y-0">
+                        <Tabs defaultValue="all" onValueChange={setSelectedTab} className="w-full">
+                            <div className="flex items-center w-full px-3 pt-2">
+                                <div className="text-xs font-medium text-muted-foreground mr-2 min-w-fit">Type:</div>
+                                <TabsList className="flex-1 bg-muted/50 rounded-md h-7">
+                                    <TabsTrigger value="all" className="text-xs cursor-pointer h-6">
+                                        All
+                                    </TabsTrigger>
+                                    {leverageTypes
+                                        .filter((type) => type !== 'All')
+                                        .map((type) => (
+                                            <TabsTrigger key={type} value={type} className="text-xs cursor-pointer h-6">
+                                                {type}
+                                            </TabsTrigger>
+                                        ))}
+                                </TabsList>
+                            </div>
+                        </Tabs>
+                        <Tabs defaultValue="all" onValueChange={setSelectedAssetClassFilter} className="w-full">
+                            <div className="flex items-center w-full px-3 pb-2">
+                                <div className="text-xs font-medium text-muted-foreground mr-2 min-w-fit">Asset:</div>
+                                <TabsList className="flex-1 bg-muted/50 rounded-md h-7">
+                                    <TabsTrigger value="all" className="text-xs cursor-pointer h-6">
+                                        All
+                                    </TabsTrigger>
+                                    {assetClasses.map((assetClass) => (
+                                        <TabsTrigger
+                                            key={assetClass}
+                                            value={assetClass}
+                                            className="text-xs cursor-pointer h-6"
+                                        >
+                                            {getAssetClassDisplayName(assetClass)}
                                         </TabsTrigger>
                                     ))}
-                            </TabsList>
-                        </div>
-                    </Tabs>
+                                </TabsList>
+                            </div>
+                        </Tabs>
+                    </div>
                 )}
             </div>
 

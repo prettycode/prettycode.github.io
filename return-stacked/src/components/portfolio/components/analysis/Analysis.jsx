@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import AssetClassExposureBar from './AssetClassExposureBar';
 import ExposureCard from './ExposureCard';
 import DetailedExposures, { ViewToggle } from './DetailedExposures';
+import WarningsCard from './WarningsCard';
 import { Card, CardContent } from '@/components/ui/card';
 import {
     Layers,
@@ -12,6 +13,7 @@ import {
     ArrowDown10,
     Filter,
     LayoutGrid,
+    AlertTriangle,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
@@ -22,6 +24,7 @@ const Analysis = ({ portfolio }) => {
     const [hideZeroValues, setHideZeroValues] = useState(false);
     const [showControls, setShowControls] = useState(true);
     const [useCompactView, setUseCompactView] = useState(true);
+    const [showWarnings, setShowWarnings] = useState(true);
 
     // Shared state for expanded categories that persists between view modes
     const [expandedCategories, setExpandedCategories] = useState({
@@ -30,6 +33,8 @@ const Analysis = ({ portfolio }) => {
         factorStyle: true,
         sizeFactor: true,
     });
+
+    const [warningsExpanded, setWarningsExpanded] = useState(true);
 
     // Handle changes to sort preference
     const handleSortChange = (newSortValue) => {
@@ -93,6 +98,12 @@ const Analysis = ({ portfolio }) => {
                         isChecked={useCompactView}
                         onChange={() => setUseCompactView(!useCompactView)}
                     />
+                    <ViewToggle
+                        label={showWarnings ? 'Show Warnings' : 'Hide Warnings'}
+                        icon={<AlertTriangle className="h-3 w-3 text-muted-foreground" />}
+                        isChecked={showWarnings}
+                        onChange={() => setShowWarnings(!showWarnings)}
+                    />
                 </div>
             )}
 
@@ -123,6 +134,13 @@ const Analysis = ({ portfolio }) => {
                         expandedCategories={expandedCategories}
                         onToggleCategory={toggleExpandedCategory}
                     />
+                    {showWarnings && (
+                        <WarningsCard
+                            portfolio={portfolio}
+                            isExpanded={warningsExpanded}
+                            onToggleExpanded={() => setWarningsExpanded(!warningsExpanded)}
+                        />
+                    )}
                 </div>
             )}
         </div>
