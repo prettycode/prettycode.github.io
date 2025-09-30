@@ -212,7 +212,7 @@ const DetailedExposuresVisual = ({
         }
 
         return (
-            <Card className="overflow-hidden bg-card shadow-sm border-border/40 gap-0 py-3">
+            <Card className="overflow-hidden border shadow-sm gap-0 py-3">
                 <CardHeader
                     className={cn('cursor-pointer py-0 px-4 flex flex-row items-center justify-between')}
                     onClick={() => toggleCategory(id)}

@@ -87,7 +87,7 @@ const CompactExposureCard = ({
     };
 
     return (
-        <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-card/20 to-card mb-2 py-0 gap-0">
+        <Card className="overflow-hidden border shadow-sm mb-2 py-0 gap-0">
             {collapsible ? (
                 <CardHeader
                     className={cn('cursor-pointer py-3 px-4 flex flex-row items-center justify-between')}

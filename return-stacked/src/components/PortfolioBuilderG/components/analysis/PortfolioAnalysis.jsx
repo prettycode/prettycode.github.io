@@ -23,7 +23,7 @@ const PortfolioAnalysis = ({ portfolio }) => {
     const [hideZeroValues, setHideZeroValues] = useState(false);
     const [showControls, setShowControls] = useState(true);
     const [useCompactView, setUseCompactView] = useState(true);
-    
+
     // Shared state for expanded categories that persists between view modes
     const [expandedCategories, setExpandedCategories] = useState({
         assetClass: true,
@@ -39,7 +39,7 @@ const PortfolioAnalysis = ({ portfolio }) => {
 
     // Handle toggling expanded state for categories
     const toggleExpandedCategory = (category) => {
-        setExpandedCategories(prev => ({
+        setExpandedCategories((prev) => ({
             ...prev,
             [category]: !prev[category],
         }));
@@ -98,7 +98,7 @@ const PortfolioAnalysis = ({ portfolio }) => {
             )}
 
             {isPortfolioEmpty ? (
-                <Card className="bg-gradient-to-br from-muted/50 to-muted border border-border/40">
+                <Card className="border border-border/40">
                     <CardContent className="p-4 flex flex-col items-center justify-center h-[180px] text-center">
                         <AlertCircle className="h-8 w-8 text-muted-foreground/60 mb-2" />
                         <h3 className="text-base font-medium text-foreground mb-1">No Portfolio Data</h3>

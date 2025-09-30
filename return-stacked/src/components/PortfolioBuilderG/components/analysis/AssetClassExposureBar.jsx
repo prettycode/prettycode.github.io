@@ -36,7 +36,7 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
     }
 
     return (
-        <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-card/20 to-card mb-2 py-0">
+        <Card className="overflow-hidden border shadow-sm mb-2 py-0">
             <CardContent className="px-4 py-3">
                 <div className="flex flex-col space-y-2">
                     <div>
