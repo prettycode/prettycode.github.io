@@ -39,6 +39,16 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
         <Card className="overflow-hidden border shadow-sm mb-2 py-0">
             <CardContent className="px-4 py-3">
                 <div className="flex flex-col space-y-2">
+                    <div className="flex items-center">
+                        <h3 className="font-medium text-sm mr-2">Asset Allocation</h3>
+                        <Badge
+                            className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0 cursor-help"
+                            title={`Total Leverage: ${totalLeverage.toFixed(4)}x`}
+                        >
+                            <span>{totalLeverage.toFixed(2)}x</span> levered
+                        </Badge>
+                    </div>
+
                     <div>
                         {/* Main stacked bar */}
                         <div className="h-10 w-full flex rounded-md overflow-hidden shadow-sm">
