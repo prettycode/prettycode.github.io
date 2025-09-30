@@ -8,7 +8,7 @@ import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Component to display asset class exposures as a stacked bar with compact modern visuals
-const CompactExposureCard = ({
+const ExposureCard = ({
     portfolio,
     sortByValue = false,
     showRelative = true,
@@ -208,4 +208,4 @@ const CompactExposureCard = ({
     );
 };
 
-export default CompactExposureCard;
+export default ExposureCard;

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { etfCatalog, examplePortfolios, createPortfolio, parseExposureKey, DEFAULT_PORTFOLIO_NAME } from './utils';
 import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils';
 import { savePortfolio, getSavedPortfolios, deserializePortfolio, deletePortfolio } from './utils';
-import PortfolioBuilder from './components/builder/PortfolioBuilder';
-import SavePortfolioModal from './components/builder/SavePortfolioModal';
-import PortfolioAnalysis from './components/analysis/PortfolioAnalysis';
+import Builder from './components/builder/Builder';
+import SaveModal from './components/builder/SaveModal';
+import Analysis from './components/analysis/Analysis';
 
 // Helper function to convert example portfolio to custom portfolio format
 const convertExampleToCustomPortfolio = (examplePortfolio) => {
@@ -24,8 +24,7 @@ const convertExampleToCustomPortfolio = (examplePortfolio) => {
     };
 };
 
-// Main component
-const PortfolioBuilderG = () => {
+const PortfolioManager = () => {
     // Initialize with an example portfolio based on current time seconds
     const selectedTemplate =
         examplePortfolios.length > 0 ? examplePortfolios[new Date().getSeconds() % examplePortfolios.length] : null;
@@ -379,7 +378,7 @@ const PortfolioBuilderG = () => {
                 <div className="md:w-11/20 flex flex-col">
                     <div className="mb-6">
                         {/* Portfolio Builder Component */}
-                        <PortfolioBuilder
+                        <Builder
                             customPortfolio={customPortfolio}
                             etfCatalog={etfCatalog}
                             tempInputs={tempInputs}
@@ -408,12 +407,12 @@ const PortfolioBuilderG = () => {
 
                 {/* RIGHT COLUMN - Portfolio Analysis and Visualization */}
                 <div className="md:w-9/20 flex flex-col">
-                    <PortfolioAnalysis portfolio={customPortfolio} />
+                    <Analysis portfolio={customPortfolio} />
                 </div>
             </div>
 
             {/* Save Portfolio Modal */}
-            <SavePortfolioModal
+            <SaveModal
                 isOpen={showSaveModal}
                 onClose={() => setShowSaveModal(false)}
                 onSave={saveCustomPortfolio}
@@ -423,4 +422,4 @@ const PortfolioBuilderG = () => {
     );
 };
 
-export default PortfolioBuilderG;
+export default PortfolioManager;

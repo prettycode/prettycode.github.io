@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AssetClassExposureBar from './AssetClassExposureBar';
-import CompactExposureCard from './CompactExposureCard';
-import DetailedExposuresVisual, { ViewToggle } from './DetailedExposuresVisual';
+import ExposureCard from './ExposureCard';
+import DetailedExposures, { ViewToggle } from './DetailedExposures';
 import { Card, CardContent } from '@/components/ui/card';
 import {
     Layers,
@@ -15,8 +15,7 @@ import {
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
-// Portfolio Analysis component with modern UI
-const PortfolioAnalysis = ({ portfolio }) => {
+const Analysis = ({ portfolio }) => {
     // Shared state for sorting that affects both components
     const [sortByValue, setSortByValue] = useState(false);
     const [showRelative, setShowRelative] = useState(true);
@@ -114,15 +113,7 @@ const PortfolioAnalysis = ({ portfolio }) => {
                         sortByValue={sortByValue}
                         showRelative={showRelative}
                     />
-                    {/*useCompactView && (
-                        <CompactExposureCard
-                            portfolio={portfolio}
-                            sortByValue={sortByValue}
-                            showRelative={showRelative}
-                            hideZeroValues={hideZeroValues}
-                        />
-                    )*/}
-                    <DetailedExposuresVisual
+                    <DetailedExposures
                         portfolio={portfolio}
                         onSortChange={handleSortChange}
                         showRelative={showRelative}
@@ -138,4 +129,4 @@ const PortfolioAnalysis = ({ portfolio }) => {
     );
 };
 
-export default PortfolioAnalysis;
+export default Analysis;

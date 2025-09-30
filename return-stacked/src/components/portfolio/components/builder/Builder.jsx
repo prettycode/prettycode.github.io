@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { parseExposureKey, deserializePortfolio } from '../../utils';
-import PortfolioConstituentSearchPanel from './PortfolioConstituentSearchPanel';
-import PortfolioControls from './PortfolioControls';
-import PortfolioTable from './PortfolioTable';
-import PortfolioCompositionPanel from './PortfolioCompositionPanel';
+import SearchPanel from './SearchPanel';
+import HoldingsTable from './HoldingsTable';
+import CompositionPanel from './CompositionPanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -24,7 +23,7 @@ import {
     Percent,
 } from 'lucide-react';
 
-const PortfolioBuilder = ({
+const Builder = ({
     customPortfolio,
     etfCatalog,
     tempInputs,
@@ -154,7 +153,7 @@ const PortfolioBuilder = ({
                 <TabsContent value="templates">
                     <Card className="bg-gradient-to-br from-background to-muted/20 border border-border/40 py-0">
                         <CardContent className="p-0">
-                            <PortfolioConstituentSearchPanel
+                            <SearchPanel
                                 mode="templates"
                                 templates={examplePortfolios}
                                 onSelect={loadPortfolio}
@@ -169,7 +168,7 @@ const PortfolioBuilder = ({
                 <TabsContent value="build">
                     <div className="space-y-3">
                         {/* Portfolio Allocations */}
-                        <PortfolioCompositionPanel
+                        <CompositionPanel
                             isPortfolioEmpty={isPortfolioEmpty}
                             setActiveTab={setActiveTab}
                             customPortfolio={customPortfolio}
@@ -195,7 +194,7 @@ const PortfolioBuilder = ({
                         />
 
                         {/* ETF Selection */}
-                        <PortfolioConstituentSearchPanel
+                        <SearchPanel
                             etfCatalog={etfCatalog}
                             onSelect={onAddETF}
                             existingTickers={Array.from(customPortfolio.holdings.keys())}
@@ -278,4 +277,4 @@ const PortfolioBuilder = ({
     );
 };
 
-export default PortfolioBuilder;
+export default Builder;

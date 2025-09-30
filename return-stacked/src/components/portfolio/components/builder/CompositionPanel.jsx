@@ -17,13 +17,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import PortfolioTable from './PortfolioTable';
+import HoldingsTable from './HoldingsTable';
 import { analyzePortfolio } from '../../utils/etfData';
 
 // Animation duration for expand/collapse transition
 const EXPAND_COLLAPSE_DURATION_MS = 300;
 
-const PortfolioCompositionPanel = ({
+const CompositionPanel = ({
     isPortfolioEmpty,
     setActiveTab,
     customPortfolio,
@@ -211,7 +211,7 @@ const PortfolioCompositionPanel = ({
                         )}
                         style={{ transitionDuration: `${EXPAND_COLLAPSE_DURATION_MS}ms` }}
                     >
-                        <PortfolioTable
+                        <HoldingsTable
                             customPortfolio={customPortfolio}
                             etfCatalog={etfCatalog}
                             tempInputs={tempInputs}
@@ -338,4 +338,4 @@ const PortfolioCompositionPanel = ({
     );
 };
 
-export default PortfolioCompositionPanel;
+export default CompositionPanel;

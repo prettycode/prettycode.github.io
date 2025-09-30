@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const SavePortfolioModal = ({ isOpen, onClose, onSave, initialName }) => {
+const SaveModal = ({ isOpen, onClose, onSave, initialName }) => {
     const [portfolioName, setPortfolioName] = useState(initialName || '');
     const inputRef = useRef(null);
 
@@ -77,4 +77,4 @@ const SavePortfolioModal = ({ isOpen, onClose, onSave, initialName }) => {
     );
 };
 
-export default SavePortfolioModal;
+export default SaveModal;

@@ -1,6 +1,6 @@
 'use client';
 
-import PortfolioBuilderG from '@/components/PortfolioBuilderG/index';
+import PortfolioManager from '@/components/portfolio';
 
 export default function Home() {
     return (
@@ -11,7 +11,7 @@ export default function Home() {
                 </div>
 
                 <div className="mt-4">
-                    <PortfolioBuilderG />
+                    <PortfolioManager />
                 </div>
             </div>
         </div>

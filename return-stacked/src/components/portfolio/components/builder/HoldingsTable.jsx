@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Lock, Unlock, Eye, EyeOff, Trash2, BarChart, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const PortfolioTable = ({
+const HoldingsTable = ({
     customPortfolio,
     etfCatalog,
     tempInputs,
@@ -273,4 +273,4 @@ const PortfolioTable = ({
     );
 };
 
-export default PortfolioTable;
+export default HoldingsTable;

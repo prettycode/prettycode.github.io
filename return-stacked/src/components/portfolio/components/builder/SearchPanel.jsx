@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const PortfolioConstituentSearchPanel = ({
+const SearchPanel = ({
     etfCatalog,
     onSelect,
     existingTickers,
@@ -835,4 +835,4 @@ const PortfolioConstituentSearchPanel = ({
     );
 };
 
-export default PortfolioConstituentSearchPanel;
+export default SearchPanel;

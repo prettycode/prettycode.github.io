@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Percent, GanttChart, Filter, ChevronDown, ChevronRight } from 'lucide-react';
-import CompactExposureCard from './CompactExposureCard';
+import ExposureCard from './ExposureCard';
 
 // Component to display detailed exposures with compact modern visualization
-const DetailedExposuresVisual = ({
+const DetailedExposures = ({
     portfolio,
     onSortChange,
     showRelative = true,
@@ -271,7 +271,7 @@ const DetailedExposuresVisual = ({
         <div className="space-y-2">
             {useCompactView ? (
                 <>
-                    <CompactExposureCard
+                    <ExposureCard
                         title="Asset Class Exposure"
                         dataAbs={assetClassExposuresAbs}
                         dataRel={assetClassExposuresRel}
@@ -286,7 +286,7 @@ const DetailedExposuresVisual = ({
                         onToggleExpanded={() => toggleCategory('assetClass')}
                     />
 
-                    <CompactExposureCard
+                    <ExposureCard
                         title="Market Exposure"
                         dataAbs={marketRegionExposuresAbs}
                         dataRel={marketRegionExposuresRel}
@@ -301,7 +301,7 @@ const DetailedExposuresVisual = ({
                         onToggleExpanded={() => toggleCategory('marketRegion')}
                     />
 
-                    <CompactExposureCard
+                    <ExposureCard
                         title="Factor Style Exposure"
                         dataAbs={factorStyleExposuresAbs}
                         dataRel={factorStyleExposuresRel}
@@ -316,7 +316,7 @@ const DetailedExposuresVisual = ({
                         onToggleExpanded={() => toggleCategory('factorStyle')}
                     />
 
-                    <CompactExposureCard
+                    <ExposureCard
                         title="Size Factor Exposure"
                         dataAbs={sizeFactorExposuresAbs}
                         dataRel={sizeFactorExposuresRel}
@@ -386,4 +386,4 @@ export const ViewToggle = ({ label, icon, isChecked, onChange }) => (
     </div>
 );
 
-export default DetailedExposuresVisual;
+export default DetailedExposures;

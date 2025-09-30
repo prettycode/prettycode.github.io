@@ -2,7 +2,7 @@ import React from 'react';
 import { analyzePortfolio, assetClassColors } from '../../utils/etfData';
 
 // Compact version of AssetClassExposureBar optimized for table cells
-const CompactAssetAllocationBar = ({ portfolio, height = 24 }) => {
+const AllocationBar = ({ portfolio, height = 24 }) => {
     const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
 
     // Function to get display name for asset classes
@@ -83,4 +83,4 @@ const CompactAssetAllocationBar = ({ portfolio, height = 24 }) => {
     );
 };
 
-export default CompactAssetAllocationBar;
+export default AllocationBar;
