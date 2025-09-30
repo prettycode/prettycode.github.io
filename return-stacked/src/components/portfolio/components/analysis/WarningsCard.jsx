@@ -4,7 +4,7 @@ import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzePortfolio, parseExposureKey, etfCatalog } from '../../utils/etfData';
 
-const MARKET_TOLERANCE = 0.25;
+const MARKET_TOLERANCE = 0.33;
 
 const getVTRatios = () => {
     const vtEtf = etfCatalog.find((e) => e.ticker === 'VT');
