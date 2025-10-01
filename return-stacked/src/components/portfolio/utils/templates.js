@@ -30,10 +30,10 @@ export const examplePortfolios = [
     ]),
     createPortfolio('HFEA+', [
         { ticker: 'SSO', percentage: 50 }, // 3x Leveraged S&P 500
-        { ticker: 'ZROZ', percentage: 30 }, // 3x Leveraged Treasuries
-        { ticker: 'KMLM', percentage: 5 }, // 3x Leveraged Treasuries
-        { ticker: 'CTA', percentage: 5 }, // 3x Leveraged Treasuries
-        { ticker: 'BTGD', percentage: 10 }, // 3x Leveraged Treasuries
+        { ticker: 'ZROZ', percentage: 50 / 3 }, // 3x Leveraged Treasuries
+        { ticker: 'KMLM', percentage: 50 / 6 }, // 3x Leveraged Treasuries
+        { ticker: 'CTA', percentage: 50 / 6 }, // 3x Leveraged Treasuries
+        { ticker: 'BTGD', percentage: 50 / 3 }, // 3x Leveraged Treasuries
     ]),
     createPortfolio('Value Barbell', [
         { ticker: 'RSST', percentage: 25 }, // Stacked leverage: Equity + Managed Futures

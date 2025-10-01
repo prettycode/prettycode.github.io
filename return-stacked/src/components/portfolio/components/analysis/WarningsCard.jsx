@@ -1,67 +1,60 @@
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzePortfolio, parseExposureKey, etfCatalog } from '../../utils/etfData';
 
-const MARKET_TOLERANCE = 0.33;
-
-const getVTRatios = () => {
-    const vtEtf = etfCatalog.find((e) => e.ticker === 'VT');
-    if (!vtEtf) {
-        return { usRatio: 0.6, exUsRatio: 0.4 };
-    }
-
-    let usEquity = 0;
-    let exUsEquity = 0;
-
-    for (const [key, amount] of vtEtf.exposures) {
-        const { assetClass, marketRegion } = parseExposureKey(key);
-
-        if (assetClass === 'Equity') {
-            if (marketRegion === 'U.S.') {
-                usEquity += amount;
-            } else if (marketRegion === 'International Developed' || marketRegion === 'Emerging') {
-                exUsEquity += amount;
-            }
-        }
-    }
-
-    const totalEquity = usEquity + exUsEquity;
-    return {
-        usRatio: totalEquity > 0 ? usEquity / totalEquity : 0.6,
-        exUsRatio: totalEquity > 0 ? exUsEquity / totalEquity : 0.4,
-    };
-};
-
 const getPortfolioExposures = (portfolio) => {
-    const { exposures } = analyzePortfolio(portfolio);
-
     let usEquity = 0;
     let exUsEquity = 0;
     let emEquity = 0;
+    let intlDeveloped = 0;
     let smallCap = 0;
 
-    for (const [key, amount] of exposures.entries()) {
-        const { assetClass, marketRegion, sizeFactor } = parseExposureKey(key);
+    // Calculate exposures directly from portfolio holdings
+    for (const [ticker, holdingData] of portfolio.holdings) {
+        const percentage = typeof holdingData === 'object' ? holdingData.percentage : holdingData;
+        const isDisabled = typeof holdingData === 'object' && holdingData.disabled;
 
-        if (assetClass === 'Equity') {
-            if (marketRegion === 'U.S.') {
-                usEquity += amount;
-            } else if (marketRegion === 'International Developed' || marketRegion === 'Emerging') {
-                exUsEquity += amount;
-                if (marketRegion === 'Emerging') {
-                    emEquity += amount;
+        if (isDisabled) continue;
+
+        const etf = etfCatalog.find((e) => e.ticker === ticker);
+        if (!etf) continue;
+
+        const weight = percentage / 100; // Convert percentage to decimal
+
+        for (const [key, amount] of etf.exposures) {
+            const { assetClass, marketRegion, sizeFactor } = parseExposureKey(key);
+            const weightedAmount = amount * weight;
+
+            if (assetClass === 'Equity') {
+                if (marketRegion === 'U.S.') {
+                    usEquity += weightedAmount;
+                } else if (marketRegion === 'International Developed' || marketRegion === 'Emerging') {
+                    exUsEquity += weightedAmount;
+                    if (marketRegion === 'Emerging') {
+                        emEquity += weightedAmount;
+                    }
+                    if (marketRegion === 'International Developed') {
+                        intlDeveloped += weightedAmount;
+                    }
                 }
-            }
 
-            if (sizeFactor === 'Small Cap') {
-                smallCap += amount;
+                if (sizeFactor === 'Small Cap') {
+                    smallCap += weightedAmount;
+                }
             }
         }
     }
 
-    return { usEquity, exUsEquity, emEquity, smallCap };
+    // Convert to percentages
+    return {
+        usEquity: usEquity * 100,
+        exUsEquity: exUsEquity * 100,
+        emEquity: emEquity * 100,
+        intlDeveloped: intlDeveloped * 100,
+        smallCap: smallCap * 100,
+    };
 };
 
 const warningRules = [
@@ -69,62 +62,24 @@ const warningRules = [
         id: 'no-em-exposure',
         check: (portfolio) => {
             const { emEquity } = getPortfolioExposures(portfolio);
-            if (emEquity === 0) {
+            if (emEquity < 10) {
                 return {
-                    message: 'No Emerging Markets exposure',
-                    description: 'Consider adding EM exposure for global diversification',
+                    message: `Insufficient Emerging Markets exposure (${emEquity.toFixed(1)}%)`,
+                    description: 'Consider adding at least 10% EM exposure for global diversification',
                 };
             }
             return null;
         },
     },
     {
-        id: 'us-underweight',
+        id: 'no-intl-developed-exposure',
         check: (portfolio) => {
-            const { usEquity, exUsEquity } = getPortfolioExposures(portfolio);
-            const totalEquity = usEquity + exUsEquity;
-
-            if (totalEquity === 0) {
-                return null;
-            }
-
-            const { usRatio: vtUsRatio } = getVTRatios();
-            const usRatio = usEquity / totalEquity;
-            const minAcceptableRatio = vtUsRatio * (1 - MARKET_TOLERANCE);
-
-            if (usRatio < minAcceptableRatio) {
-                const currentUsPercent = (usRatio * 100).toFixed(1);
-                const vtUsPercent = (vtUsRatio * 100).toFixed(0);
-                const minAcceptablePercent = (minAcceptableRatio * 100).toFixed(0);
+            const { intlDeveloped } = getPortfolioExposures(portfolio);
+            if (intlDeveloped < 10) {
                 return {
-                    message: `U.S. exposure (${currentUsPercent}%) is significantly below VT's (${vtUsPercent}%)`,
-                    description: `Your portfolio is underweight U.S. equities (threshold: ${minAcceptablePercent}%)`,
-                };
-            }
-            return null;
-        },
-    },
-    {
-        id: 'us-overweight',
-        check: (portfolio) => {
-            const { usEquity, exUsEquity } = getPortfolioExposures(portfolio);
-            const totalEquity = usEquity + exUsEquity;
-
-            if (totalEquity === 0) {
-                return null;
-            }
-
-            const { usRatio: vtUsRatio } = getVTRatios();
-            const usRatio = usEquity / totalEquity;
-            const maxAcceptableRatio = vtUsRatio * (1 + MARKET_TOLERANCE);
-
-            if (usRatio > maxAcceptableRatio) {
-                const currentUsPercent = (usRatio * 100).toFixed(1);
-                const vtUsPercent = (vtUsRatio * 100).toFixed(0);
-                const maxAcceptablePercent = (maxAcceptableRatio * 100).toFixed(0);
-                return {
-                    message: `U.S. exposure (${currentUsPercent}%) is significantly above VT's (${vtUsPercent}%)`,
-                    description: `Your portfolio is overweight U.S. equities (threshold: ${maxAcceptablePercent}%)`,
+                    message: `Insufficient International Developed Markets exposure (${intlDeveloped.toFixed(1)}%)`,
+                    description:
+                        'Consider adding at least 10% International Developed exposure for global diversification',
                 };
             }
             return null;
@@ -134,10 +89,10 @@ const warningRules = [
         id: 'no-small-cap',
         check: (portfolio) => {
             const { smallCap } = getPortfolioExposures(portfolio);
-            if (smallCap === 0) {
+            if (smallCap < 10) {
                 return {
-                    message: 'No Small Cap exposure',
-                    description: 'Consider adding small cap stocks for potential enhanced returns',
+                    message: `Insufficient Small Cap exposure (${smallCap.toFixed(1)}%)`,
+                    description: 'Consider adding at least 10% small cap exposure for potential enhanced returns',
                 };
             }
             return null;
@@ -215,23 +170,51 @@ const WarningsCard = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
         })
         .filter((warning) => warning !== null);
 
-    if (warnings.length === 0) {
-        return null;
-    }
+    const hasWarnings = warnings.length > 0;
+
+    // Define rule descriptions for display when no warnings exist
+    const ruleDescriptions = {
+        'no-em-exposure': 'Has sufficient Emerging Markets exposure (≥10%)',
+        'no-intl-developed-exposure': 'Has sufficient International Developed Markets exposure (≥10%)',
+        'no-small-cap': 'Has sufficient Small Cap exposure (≥10%)',
+        'high-daily-reset-leverage': 'No high daily reset leverage detected',
+        'single-etf-concentration': 'No excessive single ETF concentration (≤25%)',
+    };
 
     return (
-        <Card className="overflow-hidden border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20 shadow-sm mb-2 py-0 gap-0">
+        <Card
+            className={cn(
+                'overflow-hidden shadow-sm mb-2 py-0 gap-0',
+                hasWarnings
+                    ? 'border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20'
+                    : 'border border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20'
+            )}
+        >
             <CardHeader
                 className={cn('cursor-pointer py-3 px-4 flex flex-row items-center justify-between')}
                 onClick={onToggleExpanded}
             >
                 <div className="flex items-center space-x-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
-                    <h3 className="font-medium text-sm text-amber-900 dark:text-amber-100">
-                        Portfolio Warnings ({warnings.length})
+                    {hasWarnings ? (
+                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                    ) : (
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
+                    )}
+                    <h3
+                        className={cn(
+                            'font-medium text-sm',
+                            hasWarnings ? 'text-amber-900 dark:text-amber-100' : 'text-green-900 dark:text-green-100'
+                        )}
+                    >
+                        {hasWarnings ? `Portfolio Warnings (${warnings.length})` : 'Portfolio Warnings (0)'}
                     </h3>
                 </div>
-                <div className="text-xs text-amber-700 dark:text-amber-400 flex items-center">
+                <div
+                    className={cn(
+                        'text-xs flex items-center',
+                        hasWarnings ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400'
+                    )}
+                >
                     {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 </div>
             </CardHeader>
@@ -239,24 +222,40 @@ const WarningsCard = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
             {isExpanded && (
                 <CardContent className="px-4 pt-0 pb-3">
                     <div className="space-y-2">
-                        {warnings.map((warning) => (
-                            <div
-                                key={warning.id}
-                                className="flex items-start space-x-2 p-2 rounded-md bg-amber-100/50 dark:bg-amber-900/20"
-                            >
-                                <div className="flex-shrink-0 mt-0.5">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-amber-600 dark:bg-amber-500" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-amber-900 dark:text-amber-100">
-                                        {warning.message}
-                                    </p>
-                                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                                        {warning.description}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
+                        {hasWarnings
+                            ? warnings.map((warning) => (
+                                  <div
+                                      key={warning.id}
+                                      className="flex items-start space-x-2 p-2 rounded-md bg-amber-100/50 dark:bg-amber-900/20"
+                                  >
+                                      <div className="flex-shrink-0 mt-0.5">
+                                          <div className="h-1.5 w-1.5 rounded-full bg-amber-600 dark:bg-amber-500" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-medium text-amber-900 dark:text-amber-100">
+                                              {warning.message}
+                                          </p>
+                                          <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                                              {warning.description}
+                                          </p>
+                                      </div>
+                                  </div>
+                              ))
+                            : warningRules.map((rule) => (
+                                  <div
+                                      key={rule.id}
+                                      className="flex items-start space-x-2 p-2 rounded-md bg-green-100/50 dark:bg-green-900/20"
+                                  >
+                                      <div className="flex-shrink-0 mt-0.5">
+                                          <Check className="h-3 w-3 text-green-600 dark:text-green-500" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-medium text-green-900 dark:text-green-100">
+                                              {ruleDescriptions[rule.id] || 'Rule passed'}
+                                          </p>
+                                      </div>
+                                  </div>
+                              ))}
                     </div>
                 </CardContent>
             )}

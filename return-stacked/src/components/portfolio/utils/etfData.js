@@ -305,6 +305,35 @@ export const etfCatalog = [
             amount: 0.1,
         },
     ]),
+    createETF('AVGV', [
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'U.S.',
+                factorStyle: 'Value',
+                sizeFactor: 'Large Cap',
+            },
+            amount: 0.6,
+        },
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'International Developed',
+                factorStyle: 'Value',
+                sizeFactor: 'Large Cap',
+            },
+            amount: 0.3,
+        },
+        {
+            exposure: {
+                assetClass: 'Equity',
+                marketRegion: 'Emerging',
+                factorStyle: 'Value',
+                sizeFactor: 'Large Cap',
+            },
+            amount: 0.1,
+        },
+    ]),
     createETF('VXUS', [
         {
             exposure: {

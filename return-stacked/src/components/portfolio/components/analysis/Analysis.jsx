@@ -34,8 +34,6 @@ const Analysis = ({ portfolio }) => {
         sizeFactor: true,
     });
 
-    const [warningsExpanded, setWarningsExpanded] = useState(true);
-
     // Handle changes to sort preference
     const handleSortChange = (newSortValue) => {
         setSortByValue(newSortValue);
@@ -134,13 +132,11 @@ const Analysis = ({ portfolio }) => {
                         expandedCategories={expandedCategories}
                         onToggleCategory={toggleExpandedCategory}
                     />
-                    {showWarnings && (
-                        <WarningsCard
-                            portfolio={portfolio}
-                            isExpanded={warningsExpanded}
-                            onToggleExpanded={() => setWarningsExpanded(!warningsExpanded)}
-                        />
-                    )}
+                    <WarningsCard
+                        portfolio={portfolio}
+                        isExpanded={showWarnings}
+                        onToggleExpanded={() => setShowWarnings(!showWarnings)}
+                    />
                 </div>
             )}
         </div>
