@@ -16,13 +16,23 @@ export const examplePortfolios = [
         { ticker: 'ZROZ', percentage: 30 }, // Extended Duration Treasuries
         { ticker: 'GLDM', percentage: 20 }, // Gold exposure
     ]),
-    createPortfolio('SSO/ZROZ/GLD+', [
+    createPortfolio('SSO/ZROZ/GLD+ A', [
         { ticker: 'SSO', percentage: 20 }, // 2x Leveraged S&P 500
         { ticker: 'ZROZ', percentage: 20 }, // Extended Duration Treasuries
         { ticker: 'RSSX', percentage: 15 }, // Gold exposure
         { ticker: 'RSST', percentage: 15 }, // Gold exposure
         { ticker: 'AVDS', percentage: 15 }, // Gold exposure
         { ticker: 'AVEE', percentage: 15 }, // Gold exposure
+    ]),
+    createPortfolio('SSO/ZROZ/GLD+ B', [
+        { ticker: 'SSO', percentage: 25 },
+        { ticker: 'RSSX', percentage: 10 },
+        { ticker: 'RSSY', percentage: 10 },
+        { ticker: 'AVEE', percentage: 15 },
+        { ticker: 'AVDV', percentage: 15 },
+        { ticker: 'ZROZ', percentage: 10 },
+        { ticker: 'KMLM', percentage: 7.5 },
+        { ticker: 'CTA', percentage: 7.5 },
     ]),
     createPortfolio('HFEA', [
         { ticker: 'UPRO', percentage: 55 }, // 3x Leveraged S&P 500
