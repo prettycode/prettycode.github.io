@@ -1,18 +1,34 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { roundForDisplay } from '../../utils/precisionUtils';
-import { analyzePortfolio, assetClassColors } from '../../utils/etfData';
+import { analyzePortfolio, assetClassColors, convertCustomPortfolioToPortfolio } from '../../utils/etfData';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { CustomPortfolio } from '../../types';
 
-// Component to display asset class exposures as a stacked bar with compact modern visuals
-const ExposureCard = ({
+interface ExposureCardProps {
+    portfolio?: CustomPortfolio;
+    sortByValue?: boolean;
+    showRelative?: boolean;
+    title?: string;
+    data?: Map<string, number> | null;
+    dataAbs?: Map<string, number> | null;
+    dataRel?: Map<string, number> | null;
+    colors?: Record<string, string> | null;
+    nameMapping?: Record<string, string> | null;
+    showBadge?: boolean;
+    hideZeroValues?: boolean;
+    collapsible?: boolean;
+    defaultExpanded?: boolean;
+    isExpanded?: boolean;
+    onToggleExpanded?: () => void;
+}
+
+const ExposureCard: React.FC<ExposureCardProps> = ({
     portfolio,
     sortByValue = false,
     showRelative = true,
-    // New props for generic usage
     title = 'Asset Allocation',
     data = null,
     dataAbs = null,
@@ -21,37 +37,31 @@ const ExposureCard = ({
     nameMapping = null,
     showBadge = true,
     hideZeroValues = false,
-    // Collapsible functionality
     collapsible = false,
     defaultExpanded = true,
     isExpanded,
     onToggleExpanded,
 }) => {
-    // State for collapsible functionality - use external state if provided, otherwise local state
     const [localIsExpanded, setLocalIsExpanded] = useState(defaultExpanded);
     const expandedState = isExpanded !== undefined ? isExpanded : localIsExpanded;
-    let items,
-        leverage = 1;
+    let items: [string, number][];
+    let leverage = 1;
 
     if ((dataAbs && dataRel) || data) {
-        // Use provided data (for other exposure types)
         const sourceData = dataAbs && dataRel ? (showRelative ? dataRel : dataAbs) : data;
-        items = Array.from(sourceData.entries());
-        leverage = 1; // No leverage calculation for other exposure types
+        items = Array.from(sourceData!.entries());
+        leverage = 1;
     } else {
-        // Use asset class data (original behavior)
-        const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
+        const { assetClasses, totalLeverage } = analyzePortfolio(convertCustomPortfolioToPortfolio(portfolio!));
         items = Array.from(assetClasses.entries());
         leverage = totalLeverage;
     }
 
-    // Function to get display name
-    const getDisplayName = (name) => {
+    const getDisplayName = (name: string): string => {
         if (nameMapping && nameMapping[name]) {
             return nameMapping[name];
         }
 
-        // Default asset class mappings for backward compatibility
         switch (name) {
             case 'Managed Futures':
                 return 'Trend';
@@ -64,21 +74,17 @@ const ExposureCard = ({
         }
     };
 
-    // Apply sorting if enabled, otherwise maintain original order defined in code
     if (sortByValue) {
         items = items.sort((a, b) => b[1] - a[1]);
     }
 
-    // Filter out zero values if hideZeroValues is enabled
     if (hideZeroValues) {
-        items = items.filter(([_, value]) => value > 0);
+        items = items.filter(([, value]) => value > 0);
     }
 
-    // Use provided colors or fall back to asset class colors
     const colorMap = colors || assetClassColors;
 
-    // Toggle function for collapsible
-    const toggleExpanded = () => {
+    const toggleExpanded = (): void => {
         if (onToggleExpanded) {
             onToggleExpanded();
         } else {
@@ -129,33 +135,30 @@ const ExposureCard = ({
                 <CardContent className={cn('px-4', collapsible ? 'pt-0 pb-3' : 'py-3 pt-0')}>
                     <div className={cn('flex flex-col', collapsible ? 'space-y-0' : 'space-y-2')}>
                         <div>
-                            {/* Main stacked bar */}
                             <div className="space-y-1">
                                 {items.map(([name, value]) => {
-                                    if (hideZeroValues && value === 0) return null;
+                                    if (hideZeroValues && value === 0) {
+                                        return null;
+                                    }
 
                                     const percentage =
                                         (dataAbs && dataRel) || data
-                                            ? // For generic data, value is already a percentage
-                                              value
-                                            : // For asset class data, calculate percentage
-                                            showRelative
-                                            ? roundForDisplay((value / leverage) * 100)
-                                            : roundForDisplay(value * 100);
+                                            ? value
+                                            : showRelative
+                                              ? roundForDisplay((value / leverage) * 100)
+                                              : roundForDisplay(value * 100);
 
                                     const displayName = getDisplayName(name);
 
                                     return (
                                         <div key={name} className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                {/* Label always on the left */}
                                                 <div className="flex-shrink-0 w-16 text-left">
                                                     <span className="text-xs font-medium text-foreground">
                                                         {displayName}
                                                     </span>
                                                 </div>
 
-                                                {/* Bar container */}
                                                 <div className="flex-1 relative">
                                                     <div
                                                         className="relative h-6 bg-muted rounded-sm overflow-hidden cursor-pointer"
@@ -177,7 +180,6 @@ const ExposureCard = ({
                                                     </div>
                                                 </div>
 
-                                                {/* Percentage always on the right */}
                                                 <div className="flex-shrink-0 w-10 text-right">
                                                     <span
                                                         className="text-xs font-medium text-muted-foreground cursor-help"
@@ -185,8 +187,8 @@ const ExposureCard = ({
                                                             (dataAbs && dataRel) || data
                                                                 ? value.toFixed(4)
                                                                 : showRelative
-                                                                ? ((value / leverage) * 100).toFixed(4)
-                                                                : (value * 100).toFixed(4)
+                                                                  ? ((value / leverage) * 100).toFixed(4)
+                                                                  : (value * 100).toFixed(4)
                                                         }%`}
                                                     >
                                                         {(dataAbs && dataRel) || data

@@ -1,12 +1,16 @@
 import React from 'react';
-import { analyzePortfolio, assetClassColors } from '../../utils/etfData';
+import { analyzePortfolio, assetClassColors, convertCustomPortfolioToPortfolio } from '../../utils/etfData';
+import type { CustomPortfolio } from '../../types';
 
-// Compact version of AssetClassExposureBar optimized for table cells
-const AllocationBar = ({ portfolio, height = 24 }) => {
-    const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
+interface AllocationBarProps {
+    portfolio: CustomPortfolio;
+    height?: number;
+}
 
-    // Function to get display name for asset classes
-    const getDisplayName = (assetClass) => {
+const AllocationBar: React.FC<AllocationBarProps> = ({ portfolio, height = 24 }) => {
+    const { assetClasses, totalLeverage } = analyzePortfolio(convertCustomPortfolioToPortfolio(portfolio));
+
+    const getDisplayName = (assetClass: string): string => {
         switch (assetClass) {
             case 'Managed Futures':
                 return 'Trend';
@@ -19,7 +23,6 @@ const AllocationBar = ({ portfolio, height = 24 }) => {
         }
     };
 
-    // Convert to array, filter out zero allocations, and sort by value for better visualization
     const assetClassItems = Array.from(assetClasses.entries())
         .filter(([, amount]) => amount > 0)
         .sort((a, b) => b[1] - a[1]);
@@ -37,10 +40,8 @@ const AllocationBar = ({ portfolio, height = 24 }) => {
 
     return (
         <div className="w-full">
-            {/* Compact stacked bar */}
             <div className="w-full flex rounded overflow-hidden" style={{ height }}>
                 {assetClassItems.map(([assetClass, amount], index) => {
-                    // Calculate percentage based on relative exposure
                     const percentage = (amount / totalLeverage) * 100;
                     const displayName = getDisplayName(assetClass);
 
@@ -56,7 +57,6 @@ const AllocationBar = ({ portfolio, height = 24 }) => {
                                 2
                             )}x total leverage)`}
                         >
-                            {/* Only show text for segments that are wide enough */}
                             {percentage >= 20 && (
                                 <span className="text-[9px] text-white drop-shadow font-medium leading-none">
                                     {displayName}
@@ -67,7 +67,6 @@ const AllocationBar = ({ portfolio, height = 24 }) => {
                 })}
             </div>
 
-            {/* Compact legend - only show for hover/tooltip context */}
             <div className="sr-only">
                 {assetClassItems.map(([assetClass, amount], index) => {
                     const percentage = (amount / totalLeverage) * 100;

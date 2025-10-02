@@ -1,28 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const SaveModal = ({ isOpen, onClose, onSave, initialName }) => {
-    const [portfolioName, setPortfolioName] = useState(initialName || '');
-    const inputRef = useRef(null);
+interface SaveModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (name: string) => void;
+    initialName: string;
+}
 
-    // Focus the input when modal opens
+const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose, onSave, initialName }) => {
+    const [portfolioName, setPortfolioName] = useState(initialName || '');
+    const inputRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         if (isOpen && inputRef.current) {
             setTimeout(() => {
-                inputRef.current.focus();
+                inputRef.current?.focus();
             }, 100);
         }
     }, [isOpen]);
 
-    // Handle save
-    const handleSave = () => {
+    const handleSave = (): void => {
         if (portfolioName.trim()) {
             onSave(portfolioName.trim());
             setPortfolioName('');
         }
     };
 
-    // Handle key press
-    const handleKeyPress = (e) => {
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
         if (e.key === 'Enter') {
             handleSave();
         } else if (e.key === 'Escape') {
@@ -30,7 +34,9 @@ const SaveModal = ({ isOpen, onClose, onSave, initialName }) => {
         }
     };
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

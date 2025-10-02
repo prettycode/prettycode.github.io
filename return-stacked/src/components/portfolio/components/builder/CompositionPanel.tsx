@@ -1,36 +1,44 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-    AlertCircle,
-    BookTemplate,
-    EyeOff,
-    Eye,
-    Percent,
-    Trash2,
-    Save,
-    ChevronDown,
-    ChevronUp,
-    Layers,
-    Scale,
-    RotateCcw,
-} from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, Trash2, Save, Scale, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import HoldingsTable from './HoldingsTable';
-import { analyzePortfolio } from '../../utils/etfData';
+import type { CustomPortfolio, ETF, AllocationUpdate } from '../../types';
 
-// Animation duration for expand/collapse transition
 const EXPAND_COLLAPSE_DURATION_MS = 300;
 
-const CompositionPanel = ({
+interface CompositionPanelProps {
+    isPortfolioEmpty: boolean;
+    setActiveTab: (tab: string) => void;
+    customPortfolio: CustomPortfolio;
+    etfCatalog: ETF[];
+    tempInputs: Record<string, string | undefined>;
+    showDetailColumns: boolean;
+    totalAllocation: number;
+    isPortfolioValid: boolean;
+    portfolioName: string;
+    onToggleDetailColumns: () => void;
+    onUpdateAllocation: (ticker: string, newPercentage: number) => void;
+    onBulkUpdateAllocations: (updates: AllocationUpdate[], overrideLocks?: boolean) => void;
+    onToggleLock: (ticker: string) => void;
+    onToggleDisable: (ticker: string) => void;
+    onInputChange: (ticker: string, value: string) => void;
+    onInputBlur: (ticker: string) => void;
+    onRemoveETF: (ticker: string) => void;
+    onResetPortfolio: () => void;
+    onSavePortfolio: () => void;
+    onResetToTemplate?: () => void;
+    isTemplateModified: boolean;
+}
+
+const CompositionPanel: React.FC<CompositionPanelProps> = ({
     isPortfolioEmpty,
-    setActiveTab,
     customPortfolio,
     etfCatalog,
     tempInputs,
     showDetailColumns,
-    totalAllocation,
     isPortfolioValid,
     portfolioName,
     onToggleDetailColumns,
@@ -43,107 +51,90 @@ const CompositionPanel = ({
     onRemoveETF,
     onResetPortfolio,
     onSavePortfolio,
-    setShowPortfolioNameInput,
     onResetToTemplate,
     isTemplateModified,
 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
 
-    const toggleExpand = () => {
+    const toggleExpand = (): void => {
         setIsExpanded(!isExpanded);
     };
 
-    // Handle Equal Weight (Unlocked) - distribute remaining percentage equally among unlocked, non-disabled holdings
-    const handleEqualWeightUnlocked = () => {
-        if (isPortfolioEmpty) return;
+    const handleEqualWeightUnlocked = (): void => {
+        if (isPortfolioEmpty) {
+            return;
+        }
 
         const holdings = Array.from(customPortfolio.holdings.entries());
-        const unlockedActiveHoldings = holdings.filter(([ticker, holding]) => !holding.locked && !holding.disabled);
+        const unlockedActiveHoldings = holdings.filter(([, holding]) => !holding.locked && !holding.disabled);
 
-        // If no unlocked active holdings, do nothing
-        if (unlockedActiveHoldings.length === 0) return;
+        if (unlockedActiveHoldings.length === 0) {
+            return;
+        }
 
-        // Calculate total percentage used by locked or disabled holdings
         const totalLockedOrDisabledPercentage = holdings
-            .filter(([ticker, holding]) => holding.locked || holding.disabled)
-            .reduce((sum, [ticker, holding]) => sum + holding.percentage, 0);
+            .filter(([, holding]) => holding.locked || holding.disabled)
+            .reduce((sum, [, holding]) => sum + holding.percentage, 0);
 
-        // Calculate remaining percentage to distribute
         const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
 
-        // Calculate target percentage for each unlocked active holding
         const targetPercentage = parseFloat((remainingPercentage / unlockedActiveHoldings.length).toFixed(1));
 
-        // Create bulk update array for unlocked active holdings
-        const allocationUpdates = unlockedActiveHoldings.map(([ticker, holding]) => ({
+        const allocationUpdates = unlockedActiveHoldings.map(([ticker]) => ({
             ticker,
             percentage: targetPercentage,
         }));
 
-        // Use bulk update without lock override - respects locked ETFs
         onBulkUpdateAllocations(allocationUpdates, false);
     };
 
-    // Handle Equal Weight (All) - distribute 100% equally among all non-disabled holdings, overriding locks
-    const handleEqualWeightAll = () => {
-        if (isPortfolioEmpty) return;
+    const handleEqualWeightAll = (): void => {
+        if (isPortfolioEmpty) {
+            return;
+        }
 
         const holdings = Array.from(customPortfolio.holdings.entries());
-        const activeHoldings = holdings.filter(([ticker, holding]) => !holding.disabled);
+        const activeHoldings = holdings.filter(([, holding]) => !holding.disabled);
 
-        // If no active holdings, do nothing
-        if (activeHoldings.length === 0) return;
+        if (activeHoldings.length === 0) {
+            return;
+        }
 
-        // Calculate target percentage for each active holding
         const targetPercentage = parseFloat((100 / activeHoldings.length).toFixed(1));
 
-        // Create bulk update array for all active holdings
-        const allocationUpdates = activeHoldings.map(([ticker, holding]) => ({
+        const allocationUpdates = activeHoldings.map(([ticker]) => ({
             ticker,
             percentage: targetPercentage,
         }));
 
-        // Use bulk update with lock override - "Equal Weight (All)" ignores lock status!
         onBulkUpdateAllocations(allocationUpdates, true);
     };
 
-    // Calculate helper values for button states
     const holdings = !isPortfolioEmpty ? Array.from(customPortfolio.holdings.entries()) : [];
-    const unlockedActiveHoldings = holdings.filter(([ticker, holding]) => !holding.locked && !holding.disabled);
-    const activeHoldings = holdings.filter(([ticker, holding]) => !holding.disabled);
+    const unlockedActiveHoldings = holdings.filter(([, holding]) => !holding.locked && !holding.disabled);
+    const activeHoldings = holdings.filter(([, holding]) => !holding.disabled);
     const hasMultipleUnlockedActiveHoldings = unlockedActiveHoldings.length >= 2;
     const hasMultipleActiveHoldings = activeHoldings.length >= 2;
 
-    // Check if already at equal weight (within 0.1% tolerance for rounding)
     const isAlreadyEqualWeightAll =
         hasMultipleActiveHoldings &&
-        (() => {
+        ((): boolean => {
             const targetPercentage = 100 / activeHoldings.length;
-            return activeHoldings.every(([ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1);
+            return activeHoldings.every(([, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1);
         })();
 
     const isAlreadyEqualWeightUnlocked =
         hasMultipleUnlockedActiveHoldings &&
-        (() => {
+        ((): boolean => {
             const totalLockedOrDisabledPercentage = holdings
-                .filter(([ticker, holding]) => holding.locked || holding.disabled)
-                .reduce((sum, [ticker, holding]) => sum + holding.percentage, 0);
+                .filter(([, holding]) => holding.locked || holding.disabled)
+                .reduce((sum, [, holding]) => sum + holding.percentage, 0);
             const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
             const targetPercentage = remainingPercentage / unlockedActiveHoldings.length;
             return unlockedActiveHoldings.every(
-                ([ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1
+                ([, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1
             );
         })();
-
-    // Calculate total leverage using analyzePortfolio
-    const { totalLeverage = 0 } = !isPortfolioEmpty ? analyzePortfolio(customPortfolio) : { totalLeverage: 0 };
-
-    // Determine color based on leverage level
-    const getLeverageColor = (leverage) => {
-        if (leverage < 1.5) return 'bg-green-100 text-green-800';
-        if (leverage < 2) return 'bg-amber-100 text-amber-800';
-        return 'bg-red-100 text-red-800';
-    };
 
     return (
         <>
@@ -224,10 +215,8 @@ const CompositionPanel = ({
                             onRemoveETF={onRemoveETF}
                         />
 
-                        {/* Action buttons */}
                         <div className="p-3 border-t bg-muted/10">
                             <div className="flex items-center justify-between">
-                                {/* Left side - Portfolio manipulation actions */}
                                 <div className="flex items-center gap-2">
                                     <Button
                                         onClick={onResetPortfolio}
@@ -275,8 +264,8 @@ const CompositionPanel = ({
                                             !hasMultipleUnlockedActiveHoldings
                                                 ? 'Requires 2+ unlocked, active ETFs'
                                                 : isAlreadyEqualWeightUnlocked
-                                                ? 'Already at equal weight'
-                                                : 'Distribute remaining portfolio equally among unlocked, active ETFs'
+                                                  ? 'Already at equal weight'
+                                                  : 'Distribute remaining portfolio equally among unlocked, active ETFs'
                                         }
                                     >
                                         <Scale className="h-3.5 w-3.5 mr-1" />
@@ -298,8 +287,8 @@ const CompositionPanel = ({
                                             !hasMultipleActiveHoldings
                                                 ? 'Requires 2+ active ETFs'
                                                 : isAlreadyEqualWeightAll
-                                                ? 'Already at equal weight'
-                                                : 'Distribute 100% equally among all active ETFs'
+                                                  ? 'Already at equal weight'
+                                                  : 'Distribute 100% equally among all active ETFs'
                                         }
                                     >
                                         <Scale className="h-3.5 w-3.5 mr-1" />
@@ -307,15 +296,10 @@ const CompositionPanel = ({
                                     </Button>
                                 </div>
 
-                                {/* Right side - Portfolio persistence actions */}
                                 <Button
                                     onClick={() => {
                                         if (isPortfolioValid) {
-                                            if (!portfolioName.trim()) {
-                                                setShowPortfolioNameInput(true);
-                                            } else {
-                                                onSavePortfolio();
-                                            }
+                                            onSavePortfolio();
                                         }
                                     }}
                                     disabled={!isPortfolioValid}

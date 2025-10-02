@@ -1,24 +1,16 @@
 import React, { useState } from 'react';
 import AssetClassExposureBar from './AssetClassExposureBar';
-import ExposureCard from './ExposureCard';
 import DetailedExposures, { ViewToggle } from './DetailedExposures';
 import WarningsCard from './WarningsCard';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-    Layers,
-    AlertCircle,
-    BarChart3,
-    SlidersHorizontal,
-    Percent,
-    ArrowDown10,
-    Filter,
-    LayoutGrid,
-    AlertTriangle,
-} from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { AlertCircle, SlidersHorizontal, Percent, ArrowDown10, Filter, LayoutGrid, AlertTriangle } from 'lucide-react';
+import type { CustomPortfolio } from '../../types';
 
-const Analysis = ({ portfolio }) => {
-    // Shared state for sorting that affects both components
+interface AnalysisProps {
+    portfolio: CustomPortfolio;
+}
+
+const Analysis: React.FC<AnalysisProps> = ({ portfolio }) => {
     const [sortByValue, setSortByValue] = useState(false);
     const [showRelative, setShowRelative] = useState(true);
     const [hideZeroValues, setHideZeroValues] = useState(false);
@@ -26,7 +18,6 @@ const Analysis = ({ portfolio }) => {
     const [useCompactView, setUseCompactView] = useState(true);
     const [showWarnings, setShowWarnings] = useState(true);
 
-    // Shared state for expanded categories that persists between view modes
     const [expandedCategories, setExpandedCategories] = useState({
         assetClass: true,
         marketRegion: true,
@@ -34,20 +25,13 @@ const Analysis = ({ portfolio }) => {
         sizeFactor: true,
     });
 
-    // Handle changes to sort preference
-    const handleSortChange = (newSortValue) => {
-        setSortByValue(newSortValue);
-    };
-
-    // Handle toggling expanded state for categories
-    const toggleExpandedCategory = (category) => {
+    const toggleExpandedCategory = (category: string): void => {
         setExpandedCategories((prev) => ({
             ...prev,
-            [category]: !prev[category],
+            [category]: !prev[category as keyof typeof prev],
         }));
     };
 
-    // Check if portfolio is empty
     const isPortfolioEmpty = portfolio.holdings.size === 0;
 
     return (
@@ -82,7 +66,7 @@ const Analysis = ({ portfolio }) => {
                         label={sortByValue ? 'Sort by Value' : 'Fixed Order'}
                         icon={<ArrowDown10 className="h-3 w-3 text-muted-foreground" />}
                         isChecked={sortByValue}
-                        onChange={handleSortChange}
+                        onChange={() => setSortByValue(!sortByValue)}
                     />
                     <ViewToggle
                         label={hideZeroValues ? 'Hide Zeros' : 'Show All'}
@@ -124,7 +108,6 @@ const Analysis = ({ portfolio }) => {
                     />
                     <DetailedExposures
                         portfolio={portfolio}
-                        onSortChange={handleSortChange}
                         showRelative={showRelative}
                         hideZeroValues={hideZeroValues}
                         sortByValue={sortByValue}

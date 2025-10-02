@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+
+# Cache
+.turbo/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Logs
+*.log

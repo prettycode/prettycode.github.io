@@ -5,10 +5,24 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Unlock, Eye, EyeOff, Trash2, BarChart, Info } from 'lucide-react';
+import { Lock, Unlock, Eye, EyeOff, Trash2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { CustomPortfolio, ETF } from '../../types';
 
-const HoldingsTable = ({
+interface HoldingsTableProps {
+    customPortfolio: CustomPortfolio;
+    etfCatalog: ETF[];
+    tempInputs: Record<string, string | undefined>;
+    showDetailColumns: boolean;
+    onUpdateAllocation: (ticker: string, newPercentage: number) => void;
+    onToggleLock: (ticker: string) => void;
+    onToggleDisable: (ticker: string) => void;
+    onInputChange: (ticker: string, value: string) => void;
+    onInputBlur: (ticker: string) => void;
+    onRemoveETF: (ticker: string) => void;
+}
+
+const HoldingsTable: React.FC<HoldingsTableProps> = ({
     customPortfolio,
     etfCatalog,
     tempInputs,
@@ -20,11 +34,11 @@ const HoldingsTable = ({
     onInputBlur,
     onRemoveETF,
 }) => {
-    // Check if leverage is effectively 1.0x (within floating point tolerance)
-    const isEffectivelyOneX = (leverage) => {
-        const tolerance = 0.001; // 0.1% tolerance for floating point precision
+    const isEffectivelyOneX = (leverage: number): boolean => {
+        const tolerance = 0.001;
         return Math.abs(leverage - 1.0) < tolerance;
     };
+
     return (
         <Table>
             <TableHeader className="bg-muted/30">
@@ -34,7 +48,7 @@ const HoldingsTable = ({
                             'w-[8%]': !showDetailColumns,
                         })}
                     >
-                        {!showDetailColumns ? 'Ticker' : 'Ticker'}
+                        Ticker
                     </TableHead>
                     {showDetailColumns && (
                         <>
@@ -54,30 +68,33 @@ const HoldingsTable = ({
                         className={cn('text-right font-medium text-xs h-8 px-2', {
                             'w-[12%]': !showDetailColumns,
                         })}
-                    >
-                        {/* Actions column - no label */}
-                    </TableHead>
+                    ></TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {Array.from(customPortfolio.holdings.entries()).map(([ticker, holding], index) => {
                     const etf = etfCatalog.find((e) => e.ticker === ticker);
                     let totalExposure = 0;
-                    const constituents = [];
+                    const constituents: string[] = [];
 
                     if (etf) {
                         for (const [key, amount] of etf.exposures) {
                             totalExposure += amount;
 
-                            // Parse the exposure key to create a readable constituent description
                             const { assetClass, marketRegion, factorStyle, sizeFactor } = parseExposureKey(key);
                             let description = assetClass;
 
                             if (marketRegion || factorStyle || sizeFactor) {
-                                const details = [];
-                                if (sizeFactor) details.push(sizeFactor);
-                                if (factorStyle) details.push(factorStyle);
-                                if (marketRegion) details.push(marketRegion);
+                                const details: string[] = [];
+                                if (sizeFactor) {
+                                    details.push(sizeFactor);
+                                }
+                                if (factorStyle) {
+                                    details.push(factorStyle);
+                                }
+                                if (marketRegion) {
+                                    details.push(marketRegion);
+                                }
                                 description += ` (${details.join(' ')})`;
                             }
 
@@ -85,16 +102,7 @@ const HoldingsTable = ({
                         }
                     }
 
-                    const isLeveraged = totalExposure > 1;
                     const { percentage, locked, disabled } = holding;
-
-                    // Badge variants based on leverage type
-                    const leverageBadgeVariant =
-                        etf?.leverageType === 'Stacked'
-                            ? 'blue'
-                            : etf?.leverageType === 'Daily Reset'
-                            ? 'yellow'
-                            : 'secondary';
 
                     return (
                         <TableRow
@@ -106,17 +114,11 @@ const HoldingsTable = ({
                             )}
                         >
                             <TableCell className="font-medium py-1.5 px-3">
-                                {!showDetailColumns ? (
-                                    <div className="flex items-center">
-                                        <span className={cn(disabled && 'text-muted-foreground')}>{ticker}</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-1.5">
-                                        <span className={cn(disabled && 'text-muted-foreground')}>{ticker}</span>
-                                    </div>
-                                )}
+                                <div className="flex items-center">
+                                    <span className={cn(disabled && 'text-muted-foreground')}>{ticker}</span>
+                                </div>
                             </TableCell>
-                            {showDetailColumns && (
+                            {showDetailColumns && etf && (
                                 <>
                                     <TableCell className="text-xs text-muted-foreground py-1.5">
                                         <div className="max-w-md">
@@ -138,8 +140,8 @@ const HoldingsTable = ({
                                                     totalExposure <= 1.2
                                                         ? 'bg-green-100 text-green-800 border-green-200'
                                                         : totalExposure <= 2.2
-                                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                                        : 'bg-red-100 text-red-800 border-red-200'
+                                                          ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                                          : 'bg-red-100 text-red-800 border-red-200'
                                                 )}
                                             >
                                                 {totalExposure.toFixed(1)}x
@@ -154,8 +156,8 @@ const HoldingsTable = ({
                                                 etf.leverageType === 'Stacked'
                                                     ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
                                                     : etf.leverageType === 'Daily Reset'
-                                                    ? 'bg-red-100 text-red-800 border-red-200'
-                                                    : 'bg-green-100 text-green-800 border-green-200'
+                                                      ? 'bg-red-100 text-red-800 border-red-200'
+                                                      : 'bg-green-100 text-green-800 border-green-200'
                                             )}
                                         >
                                             {etf.leverageType === 'None' ? 'Unlevered' : etf.leverageType}

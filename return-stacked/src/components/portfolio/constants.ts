@@ -1,0 +1,21 @@
+export const DEFAULT_PORTFOLIO_NAME = 'New, Unsaved Portfolio';
+
+export const ALLOCATION_CONSTRAINTS = {
+    MIN_PERCENTAGE: 0,
+    MAX_PERCENTAGE: 100,
+    DECIMAL_PLACES: 1,
+    TOLERANCE: 0.1,
+    MIN_HOLDINGS: 1,
+} as const;
+
+export const WARNING_THRESHOLDS = {
+    SINGLE_ETF_CONCENTRATION: 25,
+    MIN_INTERNATIONAL_DEVELOPED: 10,
+    MIN_EMERGING_MARKETS: 10,
+    MIN_SMALL_CAP: 10,
+    HIGH_DAILY_RESET_LEVERAGE: 2.0,
+} as const;
+
+export const STORAGE_KEYS = {
+    SAVED_PORTFOLIOS: 'saved_portfolios',
+} as const;

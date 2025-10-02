@@ -2,26 +2,51 @@ import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { AlertTriangle, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { analyzePortfolio, parseExposureKey, etfCatalog } from '../../utils/etfData';
+import { parseExposureKey, etfCatalog } from '../../utils/etfData';
+import { WARNING_THRESHOLDS } from '../../constants';
+import type { CustomPortfolio } from '../../types';
 
-const getPortfolioExposures = (portfolio) => {
+interface PortfolioExposures {
+    usEquity: number;
+    exUsEquity: number;
+    emEquity: number;
+    intlDeveloped: number;
+    smallCap: number;
+}
+
+interface WarningResult {
+    message: string;
+    description: string;
+}
+
+interface RuleResult {
+    id: string;
+    passed: boolean;
+    message: string | null;
+    description: string | null;
+}
+
+const getPortfolioExposures = (portfolio: CustomPortfolio): PortfolioExposures => {
     let usEquity = 0;
     let exUsEquity = 0;
     let emEquity = 0;
     let intlDeveloped = 0;
     let smallCap = 0;
 
-    // Calculate exposures directly from portfolio holdings
     for (const [ticker, holdingData] of portfolio.holdings) {
-        const percentage = typeof holdingData === 'object' ? holdingData.percentage : holdingData;
-        const isDisabled = typeof holdingData === 'object' && holdingData.disabled;
+        const percentage = holdingData.percentage;
+        const isDisabled = holdingData.disabled;
 
-        if (isDisabled) continue;
+        if (isDisabled) {
+            continue;
+        }
 
         const etf = etfCatalog.find((e) => e.ticker === ticker);
-        if (!etf) continue;
+        if (!etf) {
+            continue;
+        }
 
-        const weight = percentage / 100; // Convert percentage to decimal
+        const weight = percentage / 100;
 
         for (const [key, amount] of etf.exposures) {
             const { assetClass, marketRegion, sizeFactor } = parseExposureKey(key);
@@ -47,7 +72,6 @@ const getPortfolioExposures = (portfolio) => {
         }
     }
 
-    // Convert to percentages
     return {
         usEquity: usEquity * 100,
         exUsEquity: exUsEquity * 100,
@@ -57,21 +81,24 @@ const getPortfolioExposures = (portfolio) => {
     };
 };
 
-const warningRules = [
+const warningRules: Array<{
+    id: string;
+    check: (portfolio: CustomPortfolio) => WarningResult | null;
+}> = [
     {
         id: 'single-etf-concentration',
-        check: (portfolio) => {
-            const concentratedETFs = [];
+        check: (portfolio): WarningResult | null => {
+            const concentratedETFs: Array<{ ticker: string; percentage: number }> = [];
 
             for (const [ticker, holdingData] of portfolio.holdings) {
-                const percentage = typeof holdingData === 'object' ? holdingData.percentage : holdingData;
-                const isDisabled = typeof holdingData === 'object' && holdingData.disabled;
+                const percentage = holdingData.percentage;
+                const isDisabled = holdingData.disabled;
 
                 if (isDisabled) {
                     continue;
                 }
 
-                if (percentage > 25) {
+                if (percentage > WARNING_THRESHOLDS.SINGLE_ETF_CONCENTRATION) {
                     concentratedETFs.push({ ticker, percentage });
                 }
             }
@@ -88,11 +115,11 @@ const warningRules = [
     },
     {
         id: 'high-daily-reset-leverage',
-        check: (portfolio) => {
-            const highLeverageETFs = [];
+        check: (portfolio): WarningResult | null => {
+            const highLeverageETFs: string[] = [];
 
             for (const [ticker, holdingData] of portfolio.holdings) {
-                const isDisabled = typeof holdingData === 'object' && holdingData.disabled;
+                const isDisabled = holdingData.disabled;
                 if (isDisabled) {
                     continue;
                 }
@@ -103,7 +130,7 @@ const warningRules = [
                 }
 
                 for (const [, amount] of etf.exposures) {
-                    if (amount > 2.0) {
+                    if (amount > WARNING_THRESHOLDS.HIGH_DAILY_RESET_LEVERAGE) {
                         highLeverageETFs.push(ticker);
                         break;
                     }
@@ -122,13 +149,12 @@ const warningRules = [
     },
     {
         id: 'no-intl-developed-exposure',
-        check: (portfolio) => {
+        check: (portfolio): WarningResult | null => {
             const { intlDeveloped } = getPortfolioExposures(portfolio);
-            if (intlDeveloped < 10) {
+            if (intlDeveloped < WARNING_THRESHOLDS.MIN_INTERNATIONAL_DEVELOPED) {
                 return {
                     message: `Insufficient International Developed Markets exposure (${intlDeveloped.toFixed(1)}%)`,
-                    description:
-                        'Consider adding at least 10% International Developed exposure for global diversification',
+                    description: `Consider adding at least ${WARNING_THRESHOLDS.MIN_INTERNATIONAL_DEVELOPED}% International Developed exposure for global diversification`,
                 };
             }
             return null;
@@ -136,12 +162,12 @@ const warningRules = [
     },
     {
         id: 'no-em-exposure',
-        check: (portfolio) => {
+        check: (portfolio): WarningResult | null => {
             const { emEquity } = getPortfolioExposures(portfolio);
-            if (emEquity < 10) {
+            if (emEquity < WARNING_THRESHOLDS.MIN_EMERGING_MARKETS) {
                 return {
                     message: `Insufficient Emerging Markets exposure (${emEquity.toFixed(1)}%)`,
-                    description: 'Consider adding at least 10% EM exposure for global diversification',
+                    description: `Consider adding at least ${WARNING_THRESHOLDS.MIN_EMERGING_MARKETS}% EM exposure for global diversification`,
                 };
             }
             return null;
@@ -149,12 +175,12 @@ const warningRules = [
     },
     {
         id: 'no-small-cap',
-        check: (portfolio) => {
+        check: (portfolio): WarningResult | null => {
             const { smallCap } = getPortfolioExposures(portfolio);
-            if (smallCap < 10) {
+            if (smallCap < WARNING_THRESHOLDS.MIN_SMALL_CAP) {
                 return {
                     message: `Insufficient Small Cap exposure (${smallCap.toFixed(1)}%)`,
-                    description: 'Consider adding at least 10% small cap exposure for potential enhanced returns',
+                    description: `Consider adding at least ${WARNING_THRESHOLDS.MIN_SMALL_CAP}% small cap exposure for potential enhanced returns`,
                 };
             }
             return null;
@@ -162,8 +188,14 @@ const warningRules = [
     },
 ];
 
-const WarningsCard = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
-    const ruleResults = warningRules.map((rule) => {
+interface WarningsCardProps {
+    portfolio: CustomPortfolio;
+    isExpanded?: boolean;
+    onToggleExpanded: () => void;
+}
+
+const WarningsCard: React.FC<WarningsCardProps> = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
+    const ruleResults: RuleResult[] = warningRules.map((rule) => {
         const warning = rule.check(portfolio);
         return {
             id: rule.id,
@@ -176,7 +208,7 @@ const WarningsCard = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
     const hasWarnings = ruleResults.some((result) => !result.passed);
     const warningCount = ruleResults.filter((result) => !result.passed).length;
 
-    const ruleDescriptions = {
+    const ruleDescriptions: Record<string, string> = {
         'single-etf-concentration': 'Avoid single ETF concentration risk',
         'high-daily-reset-leverage': 'Avoid daily reset ETFs',
         'no-intl-developed-exposure': 'International Developed Markets exposure',
