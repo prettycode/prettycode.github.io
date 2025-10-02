@@ -1,5 +1,19 @@
 import { createPortfolio } from './etfData';
 
+/*
+Analyze the ETFs in @etfData.js and formulate a portfolio that:
+
+* Has the highest possible total leverage
+* Without using and 3x daily reset ETFs
+* Has 55 - 70% U.S., 15 - 20% EM, 15 - 20% International Developed
+* Has 90 - 100% total exposure to equities
+* Has exposure to alts like gold, bonds, trend/managed futures, yield/carry, and Bitcoin, in an approximately risk-parity weighting.
+* None of the rules in @WarningsCard.jsx should be violated.
+* No EM or International Developed 2x daily reset ETFs should be used.
+
+Put five such portfolios as new templates in @templates.js .
+*/
+
 export const examplePortfolios = [
     /*createPortfolio('4/3/2/1', [
         { ticker: 'RSST', percentage: 60 }, // Stacked leverage: Equity + Managed Futures
