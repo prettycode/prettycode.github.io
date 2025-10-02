@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { etfCatalog, examplePortfolios, createPortfolio, parseExposureKey, DEFAULT_PORTFOLIO_NAME } from './utils';
+import { etfCatalog, examplePortfolios, createPortfolio, DEFAULT_PORTFOLIO_NAME } from './utils';
 import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils';
 import { savePortfolio, getSavedPortfolios, deserializePortfolio, deletePortfolio } from './utils';
 import Builder from './components/builder/Builder';
