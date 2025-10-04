@@ -2,14 +2,25 @@ import React from 'react';
 import { analyzePortfolio, assetClassColors } from '../../utils/etfData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Info } from 'lucide-react';
+import type { Portfolio } from '@/types/portfolio';
 
-// Component to display asset class exposures as a stacked bar with compact modern visuals
-const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = true, hideZeroValues = false }) => {
+interface AssetClassExposureBarProps {
+    portfolio: Portfolio;
+    sortByValue?: boolean;
+    showRelative?: boolean;
+    hideZeroValues?: boolean;
+}
+
+/**
+ * Component to display asset class exposures as a stacked bar with compact modern visuals
+ */
+const AssetClassExposureBar: React.FC<AssetClassExposureBarProps> = ({ portfolio, sortByValue = false, showRelative = true, hideZeroValues = false }) => {
     const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
 
-    // Function to get display name for asset classes
-    const getDisplayName = (assetClass) => {
+    /**
+     * Get display name for asset classes
+     */
+    const getDisplayName = (assetClass: string): string => {
         switch (assetClass) {
             case 'Managed Futures':
                 return 'Trend';
@@ -66,17 +77,12 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
                                             backgroundColor: assetClassColors[assetClass],
                                         }}
                                         className="flex items-center justify-center h-full"
-                                        title={`${assetClass}: ${(amount * 100).toFixed(4)}% (${
-                                            showRelative ? 'relative' : 'absolute'
-                                        })`}
+                                        title={`${assetClass}: ${(amount * 100).toFixed(4)}% (${showRelative ? 'relative' : 'absolute'})`}
                                     >
                                         {percentage >= 15 ? (
                                             <span
                                                 className="text-[10px] text-white drop-shadow-md font-medium z-10 cursor-help"
-                                                title={`${(showRelative
-                                                    ? (amount / totalLeverage) * 100
-                                                    : amount * 100
-                                                ).toFixed(4)}%`}
+                                                title={`${(showRelative ? (amount / totalLeverage) * 100 : amount * 100).toFixed(4)}%`}
                                             >
                                                 {displayName} {percentage.toFixed(0)}%
                                             </span>
@@ -84,10 +90,7 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
                                             percentage >= 5 && (
                                                 <span
                                                     className="text-[10px] text-white drop-shadow-md font-medium z-10 cursor-help"
-                                                    title={`${(showRelative
-                                                        ? (amount / totalLeverage) * 100
-                                                        : amount * 100
-                                                    ).toFixed(4)}%`}
+                                                    title={`${(showRelative ? (amount / totalLeverage) * 100 : amount * 100).toFixed(4)}%`}
                                                 >
                                                     {percentage.toFixed(0)}%
                                                 </span>
@@ -102,16 +105,11 @@ const AssetClassExposureBar = ({ portfolio, sortByValue = false, showRelative = 
                     {/* Legend */}
                     <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1 justify-center">
                         {assetClassItems.map(([assetClass, amount], index) => {
-                            // Calculate percentage based on display mode for tooltip display
-                            const percentage = showRelative ? (amount / totalLeverage) * 100 : amount * 100;
-
                             return (
                                 <div
                                     key={index}
                                     className="flex items-center text-[11px]"
-                                    title={`${getDisplayName(assetClass)}: ${(amount * 100).toFixed(4)}% (${
-                                        showRelative ? 'relative' : 'absolute'
-                                    })`}
+                                    title={`${getDisplayName(assetClass)}: ${(amount * 100).toFixed(4)}% (${showRelative ? 'relative' : 'absolute'})`}
                                 >
                                     <div
                                         className="w-2 h-2 rounded-sm mr-0.5 mt-0.25 border border-white/10"

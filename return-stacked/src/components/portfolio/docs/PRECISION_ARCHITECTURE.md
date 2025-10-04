@@ -9,6 +9,7 @@ The original portfolio system suffered from floating-point precision issues that
 3. **Validation Mismatch**: Portfolio validation expected exact 100% totals but calculations couldn't guarantee this due to precision loss
 
 ### Example of the Problem
+
 ```javascript
 // User sets ETF A to 33.3%
 // System redistributes remaining 66.7% among 2 other ETFs
@@ -20,7 +21,9 @@ The original portfolio system suffered from floating-point precision issues that
 ## Solution: Dual-Precision Architecture
 
 ### Core Concept
+
 The solution implements a **dual-precision system** where:
+
 - **Internal calculations** use high-precision basis points (1/100th of 1%)
 - **Display values** use rounded percentages (1 decimal place)
 - **Constraint enforcement** guarantees exact 100% total allocation
@@ -28,6 +31,7 @@ The solution implements a **dual-precision system** where:
 ### Key Components
 
 #### 1. Basis Points System (`precisionUtils.js`)
+
 ```javascript
 // 1% = 100 basis points, 100% = 10,000 basis points
 const BASIS_POINTS_PER_PERCENT = 100;
@@ -44,7 +48,9 @@ export const basisPointsToPercent = (basisPoints) => {
 ```
 
 #### 2. Enhanced Holdings Structure
+
 Each ETF holding now contains:
+
 ```javascript
 {
     percentage: 25.0,           // Legacy compatibility
@@ -56,7 +62,9 @@ Each ETF holding now contains:
 ```
 
 #### 3. Precision-Aware Redistribution
+
 The `redistributeWithPrecisionConstraints()` function:
+
 - Performs all calculations in basis points (integers)
 - Uses constraint satisfaction to ensure exact 10,000 basis point total
 - Minimizes rounding artifacts through smart remainder distribution
@@ -65,6 +73,7 @@ The `redistributeWithPrecisionConstraints()` function:
 ### Implementation Details
 
 #### Portfolio Validation
+
 ```javascript
 // Old: Loose tolerance due to precision issues
 const isPortfolioValid = Math.abs(totalAllocation - 100) <= 0.1;
@@ -74,6 +83,7 @@ const isPortfolioValid = Math.abs(totalAllocation - 100) <= 0.01;
 ```
 
 #### Allocation Updates
+
 ```javascript
 // Old: Sequential floating-point operations with rounding
 const parsedValue = parseFloat(newPercentage);
@@ -87,6 +97,7 @@ const updatedHoldings = redistributeWithPrecisionConstraints(holdings, ticker, n
 ```
 
 #### Display Layer
+
 ```javascript
 // UI displays the rounded value
 value={holding.displayPercentage || percentage}
@@ -107,6 +118,7 @@ onValueChange={(values) => onUpdateAllocation(ticker, values[0])}
 ### Migration Strategy
 
 The system automatically migrates legacy holdings to precision-enhanced format:
+
 - `enhanceHoldingsWithPrecision()` adds basis point data to existing holdings
 - `migrateToPrecisionHoldings()` converts entire portfolios
 - Existing portfolios continue to work without modification
@@ -115,6 +127,7 @@ The system automatically migrates legacy holdings to precision-enhanced format:
 ### Mathematical Foundation
 
 The solution is based on **fixed-point arithmetic** principles:
+
 - All percentages converted to integer basis points
 - Arithmetic operations on integers (no floating-point errors)
 - Constraint satisfaction ensures exact total (10,000 basis points)
@@ -123,6 +136,7 @@ The solution is based on **fixed-point arithmetic** principles:
 ### Error Prevention
 
 The architecture prevents common precision issues:
+
 - **Accumulation Errors**: Eliminated through integer arithmetic
 - **Rounding Cascades**: Prevented by deferring rounding to display
 - **Validation Failures**: Eliminated through exact constraint satisfaction
@@ -131,6 +145,7 @@ The architecture prevents common precision issues:
 ### Testing Scenarios
 
 The system now handles these edge cases correctly:
+
 - Rapid slider adjustments don't cause validation failures
 - Equal weight distribution maintains exact percentages
 - Locked/disabled ETF combinations work precisely
@@ -139,7 +154,8 @@ The system now handles these edge cases correctly:
 ### Industry Context
 
 This dual-precision approach is commonly used in:
-- **Financial trading platforms** (Interactive Brokers, E*TRADE)
+
+- **Financial trading platforms** (Interactive Brokers, E\*TRADE)
 - **Banking systems** (currency calculations, interest computations)
 - **Accounting software** (QuickBooks, SAP)
 - **Investment management** (portfolio rebalancing tools)
@@ -150,4 +166,4 @@ The basis point system is the **financial industry standard** for precise percen
 
 - Could extend to support fractional basis points (0.01 basis points) if needed
 - Basis point system scales well for more complex financial calculations
-- Architecture supports additional precision requirements without breaking changes 
+- Architecture supports additional precision requirements without breaking changes

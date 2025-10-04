@@ -1,15 +1,34 @@
-// Function to create a key for the exposure map
-export const createExposureKey = (exposure) => {
-    const marketRegion = exposure.marketRegion || '';
-    const factorStyle = exposure.factorStyle || '';
-    const sizeFactor = exposure.sizeFactor || '';
+import type {
+    AssetClass,
+    ColorMap,
+    ETF,
+    Exposure,
+    ExposureAmount,
+    LeverageType,
+    Portfolio,
+    PortfolioAnalysis,
+    ETFDetails,
+    EquityBreakdown,
+    TemplateDetails,
+    Holding,
+} from '@/types/portfolio';
+
+/**
+ * Creates a unique key for exposure categorization
+ */
+export const createExposureKey = (exposure: Exposure): string => {
+    const marketRegion = exposure.marketRegion ?? '';
+    const factorStyle = exposure.factorStyle ?? '';
+    const sizeFactor = exposure.sizeFactor ?? '';
 
     return `${exposure.assetClass}|${marketRegion}|${factorStyle}|${sizeFactor}`;
 };
 
-// Function to create an ETF with its exposures
-export const createETF = (ticker, exposureData, leverageType = 'None') => {
-    const exposures = new Map();
+/**
+ * Creates an ETF with mapped exposures
+ */
+export const createETF = (ticker: string, exposureData: ExposureAmount[], leverageType: LeverageType = 'None'): ETF => {
+    const exposures = new Map<string, number>();
 
     for (const { exposure, amount } of exposureData) {
         const key = createExposureKey(exposure);
@@ -19,19 +38,24 @@ export const createETF = (ticker, exposureData, leverageType = 'None') => {
     return { ticker, exposures, leverageType };
 };
 
-// Parse exposure key back into components
-export const parseExposureKey = (key) => {
+/**
+ * Parses exposure key back into structured exposure
+ */
+export const parseExposureKey = (key: string): Exposure => {
     const [assetClass, marketRegion, factorStyle, sizeFactor] = key.split('|');
+
     return {
-        assetClass,
+        assetClass: assetClass as AssetClass,
         marketRegion: marketRegion || undefined,
         factorStyle: factorStyle || undefined,
         sizeFactor: sizeFactor || undefined,
-    };
+    } as Exposure;
 };
 
-// Colors for asset classes and regions
-export const assetClassColors = {
+/**
+ * Asset class color mappings
+ */
+export const assetClassColors: ColorMap = {
     Equity: 'oklch(.623 .175 259.815)',
     'U.S. Treasuries': 'rgb(50, 210, 150)',
     'Managed Futures': '#7070f8',
@@ -40,14 +64,19 @@ export const assetClassColors = {
     Bitcoin: 'oklch(.705 .213 47.604)',
 };
 
-export const regionColors = {
+/**
+ * Region color mappings
+ */
+export const regionColors: ColorMap = {
     'U.S.': '#32d296',
     'International Developed': '#32d296',
     Emerging: '#32d296',
 };
 
-// Create the ETF catalog
-export const etfCatalog = [
+/**
+ * ETF catalog with all available instruments
+ */
+export const etfCatalog: ETF[] = [
     createETF(
         'RSST',
         [
@@ -488,31 +517,34 @@ export const etfCatalog = [
     ]),
 ];
 
-// Function to create a portfolio
-export const createPortfolio = (name, allocations) => {
-    const holdings = new Map();
+/**
+ * Creates a portfolio from allocations
+ */
+export const createPortfolio = (name: string, allocations: Array<{ ticker: string; percentage: number }>): Portfolio => {
+    const holdings = new Map<string, Holding>();
 
     for (const { ticker, percentage } of allocations) {
-        holdings.set(ticker, percentage);
+        holdings.set(ticker, { percentage });
     }
 
     return { name, holdings };
 };
 
-// Function to analyze a portfolio's total exposure
-export const analyzePortfolio = (portfolio) => {
-    const exposures = new Map();
-    const assetClasses = new Map();
+/**
+ * Analyzes portfolio exposure and leverage
+ */
+export const analyzePortfolio = (portfolio: Portfolio): PortfolioAnalysis => {
+    const exposures = new Map<string, number>();
+    const assetClasses = new Map<string, number>();
     let totalExposure = 0;
 
-    // Calculate exposures for each ETF in the portfolio
     for (const [ticker, holdingData] of portfolio.holdings) {
-        // Handle both object format (for custom portfolios) and number format (for example portfolios)
-        const percentage = typeof holdingData === 'object' ? holdingData.percentage : holdingData;
+        const percentage = typeof holdingData === 'number' ? holdingData : holdingData.percentage;
         const isDisabled = typeof holdingData === 'object' && holdingData.disabled;
 
-        // Skip disabled holdings
-        if (isDisabled) continue;
+        if (isDisabled) {
+            continue;
+        }
 
         const etf = etfCatalog.find((e) => e.ticker === ticker);
         if (!etf) {
@@ -520,33 +552,30 @@ export const analyzePortfolio = (portfolio) => {
             continue;
         }
 
-        const weight = percentage / 100; // Convert percentage to decimal
+        const weight = percentage / 100;
 
         for (const [key, amount] of etf.exposures) {
             const weightedAmount = amount * weight;
-            const currentAmount = exposures.get(key) || 0;
+            const currentAmount = exposures.get(key) ?? 0;
             exposures.set(key, currentAmount + weightedAmount);
 
-            // Also track by asset class for the chart
             const [assetClass] = key.split('|');
-            const currentAssetClassAmount = assetClasses.get(assetClass) || 0;
+            const currentAssetClassAmount = assetClasses.get(assetClass) ?? 0;
             assetClasses.set(assetClass, currentAssetClassAmount + weightedAmount);
 
             totalExposure += weightedAmount;
         }
     }
 
-    // Prepare data for console logging with decimal points
-    const assetAllocationTable = {};
+    const assetAllocationTable: Record<string, Record<string, string | number>> = {};
     for (const [assetClass, amount] of assetClasses) {
         assetAllocationTable[assetClass] = {
-            'Absolute Exposure': (amount * 100).toFixed(2) + '%',
-            'Relative Exposure': ((amount / totalExposure) * 100).toFixed(2) + '%',
+            'Absolute Exposure': `${(amount * 100).toFixed(2)}%`,
+            'Relative Exposure': `${((amount / totalExposure) * 100).toFixed(2)}%`,
             'Raw Value': amount.toFixed(4),
         };
     }
 
-    // Log the asset allocation analysis to console
     if (Object.keys(assetAllocationTable).length > 0) {
         console.table(assetAllocationTable);
     }
@@ -559,33 +588,34 @@ export const analyzePortfolio = (portfolio) => {
     };
 };
 
-// Function to get detailed template information for display
-export const getTemplateDetails = (portfolio) => {
+/**
+ * Generates detailed template information for display
+ */
+export const getTemplateDetails = (portfolio: Portfolio): TemplateDetails => {
     const analysis = analyzePortfolio(portfolio);
-    const etfDetails = [];
-    const assetClassSummary = new Map();
-    const leverageTypesWithAmounts = new Map();
+    const etfDetails: ETFDetails[] = [];
+    const assetClassSummary = new Map<string, number>();
+    const leverageTypesWithAmounts = new Map<string, number>();
 
-    // Collect ETF details and categorize by asset class
-    for (const [ticker, percentage] of portfolio.holdings) {
+    for (const [ticker, holdingValue] of portfolio.holdings) {
+        const percentage = typeof holdingValue === 'number' ? holdingValue : holdingValue.percentage;
         const etf = etfCatalog.find((e) => e.ticker === ticker);
-        if (!etf) continue;
+        if (!etf) {
+            continue;
+        }
 
-        // Calculate the leverage amount for this ETF
         let leverageAmount = 0;
         for (const [, amount] of etf.exposures) {
             leverageAmount = Math.max(leverageAmount, amount);
         }
 
-        // Store leverage type with amount
         if (etf.leverageType !== 'None') {
             const key = etf.leverageType;
-            const existingAmount = leverageTypesWithAmounts.get(key) || 0;
+            const existingAmount = leverageTypesWithAmounts.get(key) ?? 0;
             leverageTypesWithAmounts.set(key, Math.max(existingAmount, leverageAmount));
         }
 
-        // Get primary asset classes for this ETF
-        const primaryAssetClasses = [];
+        const primaryAssetClasses: AssetClass[] = [];
         for (const [exposureKey] of etf.exposures) {
             const parsed = parseExposureKey(exposureKey);
             if (!primaryAssetClasses.includes(parsed.assetClass)) {
@@ -601,26 +631,26 @@ export const getTemplateDetails = (portfolio) => {
             assetClasses: primaryAssetClasses,
         });
 
-        // Add to asset class summary
         primaryAssetClasses.forEach((assetClass) => {
-            const current = assetClassSummary.get(assetClass) || 0;
+            const current = assetClassSummary.get(assetClass) ?? 0;
             assetClassSummary.set(assetClass, current + percentage);
         });
     }
 
-    // Get dominant asset classes (sorted by exposure)
     const dominantAssetClasses = Array.from(analysis.assetClasses.entries())
         .sort(([, a], [, b]) => b - a)
         .slice(0, 3)
-        .map(([assetClass]) => assetClass);
+        .map(([assetClass]) => assetClass as AssetClass);
 
-    // Calculate US vs Ex-US equity breakdown
     let usEquityExposure = 0;
     let exUsEquityExposure = 0;
 
-    for (const [ticker, percentage] of portfolio.holdings) {
+    for (const [ticker, holdingValue] of portfolio.holdings) {
+        const percentage = typeof holdingValue === 'number' ? holdingValue : holdingValue.percentage;
         const etf = etfCatalog.find((e) => e.ticker === ticker);
-        if (!etf) continue;
+        if (!etf) {
+            continue;
+        }
 
         const weight = percentage / 100;
 
@@ -639,7 +669,7 @@ export const getTemplateDetails = (portfolio) => {
     }
 
     const totalEquityExposure = usEquityExposure + exUsEquityExposure;
-    const equityBreakdown =
+    const equityBreakdown: EquityBreakdown | null =
         totalEquityExposure > 0
             ? {
                   us: (usEquityExposure / totalEquityExposure) * 100,

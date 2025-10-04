@@ -1,29 +1,45 @@
-import React, { useState } from 'react';
-import { parseExposureKey, deserializePortfolio } from '../../utils';
+import React, { useState, useEffect } from 'react';
+import type { Portfolio, ETF, SerializedPortfolio, Holding } from '@/types/portfolio';
+import { deserializePortfolio } from '../../utils';
 import TickerOrTemplateSelectionTable from './TickerOrTemplateSelectionTable';
-import HoldingsTable from './HoldingsTable';
 import CompositionPanel from './CompositionPanel';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import {
-    Briefcase,
-    Plus,
-    Trash2,
-    Save,
-    EyeOff,
-    Eye,
-    AlertCircle,
-    Settings,
-    Table,
-    BookTemplate,
-    Folder,
-    ArrowRight,
-    CheckCircle,
-    Percent,
-} from 'lucide-react';
+import { Plus, Folder } from 'lucide-react';
 
-const Builder = ({
+interface AllocationUpdate {
+    ticker: string;
+    percentage: number;
+}
+
+interface BuilderProps {
+    customPortfolio: Portfolio;
+    etfCatalog: ETF[];
+    tempInputs: Record<string, number | undefined>;
+    showDetailColumns: boolean;
+    totalAllocation: number;
+    examplePortfolios: Portfolio[];
+    savedPortfolios: SerializedPortfolio[];
+    onAddETF: (ticker: string) => void;
+    onRemoveETF: (ticker: string) => void;
+    onUpdateAllocation: (ticker: string, value: number) => void;
+    onBulkUpdateAllocations: (updates: AllocationUpdate[], overrideLocks: boolean) => void;
+    onToggleLock: (ticker: string) => void;
+    onToggleDisable: (ticker: string) => void;
+    onInputChange: (ticker: string, value: number) => void;
+    onInputBlur: (ticker: string) => void;
+    onResetPortfolio: () => void;
+    onSavePortfolio: () => void;
+    onToggleDetailColumns: () => void;
+    onDeletePortfolio: (portfolioName: string) => void;
+    onUpdatePortfolio: (portfolio: Partial<Portfolio>, isTemplateLoad?: boolean, originalTemplate?: Portfolio | null) => void;
+    onResetToTemplate?: () => void;
+    isTemplateModified?: boolean;
+}
+
+type TabValue = 'build' | 'saved';
+
+const Builder: React.FC<BuilderProps> = ({
     customPortfolio,
     etfCatalog,
     tempInputs,
@@ -48,35 +64,36 @@ const Builder = ({
     isTemplateModified,
 }) => {
     // State for active tab and new portfolio name
-    const [activeTab, setActiveTab] = useState('build');
-    const [showPortfolioNameInput, setShowPortfolioNameInput] = useState(false);
+    const [activeTab, setActiveTab] = useState<TabValue>('build');
     const [portfolioName, setPortfolioName] = useState(customPortfolio.name || '');
 
     // Sync portfolioName with customPortfolio.name when it changes
-    React.useEffect(() => {
+    useEffect(() => {
         setPortfolioName(customPortfolio.name);
     }, [customPortfolio.name]);
 
-    // Function to load a portfolio (example or saved)
-    const loadPortfolio = (portfolio, isSaved = false) => {
+    /**
+     * Load a portfolio (example or saved)
+     */
+    const loadPortfolio = (portfolio: Portfolio | SerializedPortfolio, isSaved = false): void => {
         try {
             // If it's a saved portfolio, it needs to be deserialized
-            const portfolioToLoad = isSaved ? deserializePortfolio(portfolio) : portfolio;
+            const portfolioToLoad = isSaved ? deserializePortfolio(portfolio as SerializedPortfolio) : (portfolio as Portfolio);
 
             // Convert the portfolio's holdings to the format used by the builder
-            const newHoldings = new Map();
+            const newHoldings = new Map<string, Holding>();
 
-            for (const [ticker, percentage] of portfolioToLoad.holdings.entries()) {
-                if (typeof percentage === 'number') {
+            for (const [ticker, holding] of portfolioToLoad.holdings.entries()) {
+                if (typeof holding === 'number') {
                     // Simple percentage (used by example portfolios)
                     newHoldings.set(ticker, {
-                        percentage,
+                        percentage: holding,
                         locked: false,
                         disabled: false,
                     });
                 } else {
                     // Full holding object (used by saved portfolios)
-                    newHoldings.set(ticker, percentage);
+                    newHoldings.set(ticker, holding);
                 }
             }
 
@@ -85,11 +102,10 @@ const Builder = ({
             onUpdatePortfolio(
                 {
                     name: portfolioToLoad.name,
-                    description: portfolioToLoad.description || '',
                     holdings: newHoldings,
                 },
                 isTemplateLoad,
-                isTemplateLoad ? portfolio : null
+                isTemplateLoad ? (portfolio as Portfolio) : null
             );
 
             // Set portfolio name for the input field
@@ -105,21 +121,6 @@ const Builder = ({
 
     const isPortfolioEmpty = customPortfolio.holdings.size === 0;
 
-    // Handle portfolio save with name
-    const handleSaveWithName = () => {
-        // Update the portfolio name before saving
-        onUpdatePortfolio({
-            ...customPortfolio,
-            name: portfolioName,
-        });
-
-        // Save the portfolio
-        onSavePortfolio();
-
-        // Hide the name input field
-        setShowPortfolioNameInput(false);
-    };
-
     // Check if portfolio is ready to be saved
     const isPortfolioValid = Math.abs(totalAllocation - 100) <= 0.1 && customPortfolio.holdings.size > 0;
 
@@ -133,7 +134,7 @@ const Builder = ({
             </div>
 
             {/* Main tabbed interface */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)} className="w-full">
                 <TabsList className="grid grid-cols-3">
                     <TabsTrigger value="build" className="flex items-center gap-1 cursor-pointer">
                         <Plus className="h-4 w-4" />
@@ -152,7 +153,7 @@ const Builder = ({
                         <TickerOrTemplateSelectionTable
                             mode="templates"
                             templates={examplePortfolios}
-                            onSelect={loadPortfolio}
+                            onSelect={(item) => loadPortfolio(item as Portfolio)}
                             title="Search Templates..."
                             etfCatalog={etfCatalog}
                         />
@@ -160,7 +161,7 @@ const Builder = ({
                         {/* Portfolio Allocations */}
                         <CompositionPanel
                             isPortfolioEmpty={isPortfolioEmpty}
-                            setActiveTab={setActiveTab}
+                            setActiveTab={(tab: string) => setActiveTab(tab as TabValue)}
                             customPortfolio={customPortfolio}
                             etfCatalog={etfCatalog}
                             tempInputs={tempInputs}
@@ -178,7 +179,9 @@ const Builder = ({
                             onRemoveETF={onRemoveETF}
                             onResetPortfolio={onResetPortfolio}
                             onSavePortfolio={onSavePortfolio}
-                            setShowPortfolioNameInput={setShowPortfolioNameInput}
+                            setShowPortfolioNameInput={() => {
+                                /* Not used in this implementation */
+                            }}
                             onResetToTemplate={onResetToTemplate}
                             isTemplateModified={isTemplateModified}
                         />
@@ -186,7 +189,7 @@ const Builder = ({
                         {/* ETF Selection */}
                         <TickerOrTemplateSelectionTable
                             etfCatalog={etfCatalog}
-                            onSelect={onAddETF}
+                            onSelect={(item) => onAddETF(item as string)}
                             existingTickers={Array.from(customPortfolio.holdings.keys())}
                         />
                     </div>
@@ -203,8 +206,7 @@ const Builder = ({
                                     <Folder className="h-12 w-12 text-muted-foreground/40 mb-3" />
                                     <h4 className="text-base font-medium mb-2">No Saved Portfolios</h4>
                                     <p className="text-sm text-muted-foreground mb-4">
-                                        You haven't saved any portfolios yet. Build a portfolio and save it to see it
-                                        here.
+                                        You haven&apos;t saved any portfolios yet. Build a portfolio and save it to see it here.
                                     </p>
                                     <button
                                         onClick={() => setActiveTab('build')}
@@ -217,26 +219,17 @@ const Builder = ({
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {savedPortfolios.map((portfolio, index) => (
-                                        <div
-                                            key={`${portfolio.name}-${index}`}
-                                            className="border border-border/40 rounded-lg overflow-hidden group"
-                                        >
+                                        <div key={`${portfolio.name}-${index}`} className="border border-border/40 rounded-lg overflow-hidden group">
                                             <div className="p-4">
-                                                <h4 className="font-medium mb-1">
-                                                    {portfolio.name || 'Unnamed Portfolio'}
-                                                </h4>
+                                                <h4 className="font-medium mb-1">{portfolio.name || 'Unnamed Portfolio'}</h4>
                                                 <p className="text-xs text-muted-foreground mb-3">
-                                                    {portfolio.description ||
+                                                    {(portfolio as SerializedPortfolio & { description?: string }).description ||
                                                         (portfolio.createdAt
-                                                            ? `Created on ${new Date(
-                                                                  portfolio.createdAt
-                                                              ).toLocaleDateString()}`
+                                                            ? `Created on ${new Date(portfolio.createdAt).toLocaleDateString()}`
                                                             : 'No creation date available')}
                                                 </p>
                                                 <div className="text-xs text-muted-foreground mb-3">
-                                                    {portfolio.etfCount ||
-                                                        (portfolio.holdings ? portfolio.holdings.length : '?')}{' '}
-                                                    ETFs
+                                                    {portfolio.etfCount || (portfolio.holdings ? portfolio.holdings.length : '?')} ETFs
                                                 </div>
                                             </div>
 

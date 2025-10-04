@@ -1,14 +1,36 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { roundForDisplay } from '../../utils/precisionUtils';
 import { analyzePortfolio, assetClassColors } from '../../utils/etfData';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { Portfolio, ColorMap } from '@/types/portfolio';
 
-// Component to display asset class exposures as a stacked bar with compact modern visuals
-const ExposureCard = ({
+interface ExposureCardProps {
+    portfolio?: Portfolio;
+    sortByValue?: boolean;
+    showRelative?: boolean;
+    // Generic data props
+    title?: string;
+    data?: Map<string, number> | null;
+    dataAbs?: Map<string, number> | null;
+    dataRel?: Map<string, number> | null;
+    colors?: ColorMap | null;
+    nameMapping?: Record<string, string> | null;
+    showBadge?: boolean;
+    hideZeroValues?: boolean;
+    // Collapsible functionality
+    collapsible?: boolean;
+    defaultExpanded?: boolean;
+    isExpanded?: boolean;
+    onToggleExpanded?: () => void;
+}
+
+/**
+ * Component to display asset class exposures as a stacked bar with compact modern visuals
+ */
+const ExposureCard: React.FC<ExposureCardProps> = ({
     portfolio,
     sortByValue = false,
     showRelative = true,
@@ -28,25 +50,31 @@ const ExposureCard = ({
     onToggleExpanded,
 }) => {
     // State for collapsible functionality - use external state if provided, otherwise local state
-    const [localIsExpanded, setLocalIsExpanded] = useState(defaultExpanded);
+    const [localIsExpanded, setLocalIsExpanded] = useState<boolean>(defaultExpanded);
     const expandedState = isExpanded !== undefined ? isExpanded : localIsExpanded;
-    let items,
-        leverage = 1;
+
+    let items: Array<[string, number]>;
+    let leverage = 1;
 
     if ((dataAbs && dataRel) || data) {
         // Use provided data (for other exposure types)
         const sourceData = dataAbs && dataRel ? (showRelative ? dataRel : dataAbs) : data;
-        items = Array.from(sourceData.entries());
+        items = Array.from(sourceData!.entries());
         leverage = 1; // No leverage calculation for other exposure types
     } else {
         // Use asset class data (original behavior)
+        if (!portfolio) {
+            throw new Error('Portfolio is required when not using explicit data props');
+        }
         const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
         items = Array.from(assetClasses.entries());
         leverage = totalLeverage;
     }
 
-    // Function to get display name
-    const getDisplayName = (name) => {
+    /**
+     * Get display name for asset class or custom mapping
+     */
+    const getDisplayName = (name: string): string => {
         if (nameMapping && nameMapping[name]) {
             return nameMapping[name];
         }
@@ -77,8 +105,10 @@ const ExposureCard = ({
     // Use provided colors or fall back to asset class colors
     const colorMap = colors || assetClassColors;
 
-    // Toggle function for collapsible
-    const toggleExpanded = () => {
+    /**
+     * Toggle function for collapsible
+     */
+    const toggleExpanded = (): void => {
         if (onToggleExpanded) {
             onToggleExpanded();
         } else {
@@ -89,17 +119,14 @@ const ExposureCard = ({
     return (
         <Card className="overflow-hidden border shadow-sm mb-2 py-0 gap-0">
             {collapsible ? (
-                <CardHeader
-                    className={cn('cursor-pointer py-3 px-4 flex flex-row items-center justify-between')}
-                    onClick={toggleExpanded}
-                >
+                <CardHeader className={cn('cursor-pointer py-3 px-4 flex flex-row items-center justify-between')} onClick={toggleExpanded}>
                     <div className="flex items-center">
                         <h3 className="font-medium text-sm mr-2">{title}</h3>
                         {showBadge && leverage > 1 && (
                             <Badge
                                 className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0 cursor-help"
                                 title={`Total Leverage: ${leverage.toFixed(4)}x`}
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
                             >
                                 <span>{leverage.toFixed(2)}x</span> levered
                             </Badge>
@@ -132,16 +159,18 @@ const ExposureCard = ({
                             {/* Main stacked bar */}
                             <div className="space-y-1">
                                 {items.map(([name, value]) => {
-                                    if (hideZeroValues && value === 0) return null;
+                                    if (hideZeroValues && value === 0) {
+                                        return null;
+                                    }
 
                                     const percentage =
                                         (dataAbs && dataRel) || data
                                             ? // For generic data, value is already a percentage
                                               value
                                             : // For asset class data, calculate percentage
-                                            showRelative
-                                            ? roundForDisplay((value / leverage) * 100)
-                                            : roundForDisplay(value * 100);
+                                              showRelative
+                                              ? roundForDisplay((value / leverage) * 100)
+                                              : roundForDisplay(value * 100);
 
                                     const displayName = getDisplayName(name);
 
@@ -150,9 +179,7 @@ const ExposureCard = ({
                                             <div className="flex items-center gap-2">
                                                 {/* Label always on the left */}
                                                 <div className="flex-shrink-0 w-16 text-left">
-                                                    <span className="text-xs font-medium text-foreground">
-                                                        {displayName}
-                                                    </span>
+                                                    <span className="text-xs font-medium text-foreground">{displayName}</span>
                                                 </div>
 
                                                 {/* Bar container */}
@@ -160,17 +187,14 @@ const ExposureCard = ({
                                                     <div
                                                         className="relative h-6 bg-muted rounded-sm overflow-hidden cursor-pointer"
                                                         title={`${name}: ${
-                                                            (dataAbs && dataRel) || data
-                                                                ? value.toFixed(4)
-                                                                : (value * 100).toFixed(4)
+                                                            (dataAbs && dataRel) || data ? value.toFixed(4) : (value * 100).toFixed(4)
                                                         }% (${showRelative ? 'relative' : 'absolute'})`}
                                                     >
                                                         <div
                                                             className="absolute inset-y-0 left-0 rounded-sm"
                                                             style={{
                                                                 width: `${Math.min(percentage, 100)}%`,
-                                                                minWidth:
-                                                                    percentage > 0 && percentage < 3 ? '2px' : 'auto',
+                                                                minWidth: percentage > 0 && percentage < 3 ? '2px' : 'auto',
                                                                 backgroundColor: colorMap[name],
                                                             }}
                                                         />
@@ -185,14 +209,11 @@ const ExposureCard = ({
                                                             (dataAbs && dataRel) || data
                                                                 ? value.toFixed(4)
                                                                 : showRelative
-                                                                ? ((value / leverage) * 100).toFixed(4)
-                                                                : (value * 100).toFixed(4)
+                                                                  ? ((value / leverage) * 100).toFixed(4)
+                                                                  : (value * 100).toFixed(4)
                                                         }%`}
                                                     >
-                                                        {(dataAbs && dataRel) || data
-                                                            ? value.toFixed(1)
-                                                            : percentage.toFixed(1)}
-                                                        %
+                                                        {(dataAbs && dataRel) || data ? value.toFixed(1) : percentage.toFixed(1)}%
                                                     </span>
                                                 </div>
                                             </div>

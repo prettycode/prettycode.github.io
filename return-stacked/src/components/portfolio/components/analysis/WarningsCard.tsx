@@ -2,9 +2,44 @@ import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { AlertTriangle, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { analyzePortfolio, parseExposureKey, etfCatalog } from '../../utils/etfData';
+import { parseExposureKey, etfCatalog } from '../../utils/etfData';
+import type { Portfolio } from '@/types/portfolio';
 
-const getPortfolioExposures = (portfolio) => {
+interface PortfolioExposures {
+    usEquity: number;
+    exUsEquity: number;
+    emEquity: number;
+    intlDeveloped: number;
+    smallCap: number;
+}
+
+interface WarningResult {
+    message: string;
+    description?: string;
+}
+
+interface WarningRule {
+    id: string;
+    check: (portfolio: Portfolio) => WarningResult | null;
+}
+
+interface RuleResult {
+    id: string;
+    passed: boolean;
+    message: string | null;
+    description: string | null;
+}
+
+interface WarningsCardProps {
+    portfolio: Portfolio;
+    isExpanded?: boolean;
+    onToggleExpanded?: () => void;
+}
+
+/**
+ * Calculate portfolio exposures across different dimensions
+ */
+const getPortfolioExposures = (portfolio: Portfolio): PortfolioExposures => {
     let usEquity = 0;
     let exUsEquity = 0;
     let emEquity = 0;
@@ -16,10 +51,14 @@ const getPortfolioExposures = (portfolio) => {
         const percentage = typeof holdingData === 'object' ? holdingData.percentage : holdingData;
         const isDisabled = typeof holdingData === 'object' && holdingData.disabled;
 
-        if (isDisabled) continue;
+        if (isDisabled) {
+            continue;
+        }
 
         const etf = etfCatalog.find((e) => e.ticker === ticker);
-        if (!etf) continue;
+        if (!etf) {
+            continue;
+        }
 
         const weight = percentage / 100; // Convert percentage to decimal
 
@@ -57,11 +96,14 @@ const getPortfolioExposures = (portfolio) => {
     };
 };
 
-const warningRules = [
+/**
+ * Portfolio warning rules
+ */
+const warningRules: WarningRule[] = [
     {
         id: 'single-etf-concentration',
-        check: (portfolio) => {
-            const concentratedETFs = [];
+        check: (portfolio: Portfolio): WarningResult | null => {
+            const concentratedETFs: Array<{ ticker: string; percentage: number }> = [];
 
             for (const [ticker, holdingData] of portfolio.holdings) {
                 const percentage = typeof holdingData === 'object' ? holdingData.percentage : holdingData;
@@ -88,8 +130,8 @@ const warningRules = [
     },
     {
         id: 'high-daily-reset-leverage',
-        check: (portfolio) => {
-            const highLeverageETFs = [];
+        check: (portfolio: Portfolio): WarningResult | null => {
+            const highLeverageETFs: string[] = [];
 
             for (const [ticker, holdingData] of portfolio.holdings) {
                 const isDisabled = typeof holdingData === 'object' && holdingData.disabled;
@@ -122,13 +164,12 @@ const warningRules = [
     },
     {
         id: 'no-intl-developed-exposure',
-        check: (portfolio) => {
+        check: (portfolio: Portfolio): WarningResult | null => {
             const { intlDeveloped } = getPortfolioExposures(portfolio);
             if (intlDeveloped < 10) {
                 return {
                     message: `Insufficient International Developed Markets exposure (${intlDeveloped.toFixed(1)}%)`,
-                    description:
-                        'Consider adding at least 10% International Developed exposure for global diversification',
+                    description: 'Consider adding at least 10% International Developed exposure for global diversification',
                 };
             }
             return null;
@@ -136,7 +177,7 @@ const warningRules = [
     },
     {
         id: 'no-em-exposure',
-        check: (portfolio) => {
+        check: (portfolio: Portfolio): WarningResult | null => {
             const { emEquity } = getPortfolioExposures(portfolio);
             if (emEquity < 10) {
                 return {
@@ -149,7 +190,7 @@ const warningRules = [
     },
     {
         id: 'no-small-cap',
-        check: (portfolio) => {
+        check: (portfolio: Portfolio): WarningResult | null => {
             const { smallCap } = getPortfolioExposures(portfolio);
             if (smallCap < 10) {
                 return {
@@ -162,21 +203,24 @@ const warningRules = [
     },
 ];
 
-const WarningsCard = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
-    const ruleResults = warningRules.map((rule) => {
+/**
+ * Component to display portfolio warnings and optimization suggestions
+ */
+const WarningsCard: React.FC<WarningsCardProps> = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
+    const ruleResults: RuleResult[] = warningRules.map((rule) => {
         const warning = rule.check(portfolio);
         return {
             id: rule.id,
             passed: !warning,
             message: warning ? warning.message : null,
-            description: warning ? warning.description : null,
+            description: warning?.description ?? null,
         };
     });
 
     const hasWarnings = ruleResults.some((result) => !result.passed);
     const warningCount = ruleResults.filter((result) => !result.passed).length;
 
-    const ruleDescriptions = {
+    const ruleDescriptions: Record<string, string> = {
         'single-etf-concentration': 'Avoid single ETF concentration risk',
         'high-daily-reset-leverage': 'Avoid daily reset ETFs',
         'no-intl-developed-exposure': 'International Developed Markets exposure',
@@ -193,31 +237,18 @@ const WarningsCard = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
                     : 'border border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20'
             )}
         >
-            <CardHeader
-                className={cn('cursor-pointer py-3 px-4 flex flex-row items-center justify-between')}
-                onClick={onToggleExpanded}
-            >
+            <CardHeader className={cn('cursor-pointer py-3 px-4 flex flex-row items-center justify-between')} onClick={onToggleExpanded}>
                 <div className="flex items-center space-x-2">
                     {hasWarnings ? (
                         <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
                     ) : (
                         <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
                     )}
-                    <h3
-                        className={cn(
-                            'font-medium text-sm',
-                            hasWarnings ? 'text-amber-900 dark:text-amber-100' : 'text-green-900 dark:text-green-100'
-                        )}
-                    >
+                    <h3 className={cn('font-medium text-sm', hasWarnings ? 'text-amber-900 dark:text-amber-100' : 'text-green-900 dark:text-green-100')}>
                         {hasWarnings ? `Portfolio Optimizations (${warningCount})` : 'Portfolio Optimizations (0)'}
                     </h3>
                 </div>
-                <div
-                    className={cn(
-                        'text-xs flex items-center',
-                        hasWarnings ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400'
-                    )}
-                >
+                <div className={cn('text-xs flex items-center', hasWarnings ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400')}>
                     {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 </div>
             </CardHeader>
@@ -229,9 +260,7 @@ const WarningsCard = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
                             <thead>
                                 <tr className="border-b">
                                     <th className="px-2 py-2 text-left align-middle font-medium">Optimization</th>
-                                    {hasWarnings && (
-                                        <th className="px-2 py-2 text-left align-middle font-medium">Details</th>
-                                    )}
+                                    {hasWarnings && <th className="px-2 py-2 text-left align-middle font-medium">Details</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -240,17 +269,13 @@ const WarningsCard = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
                                         key={result.id}
                                         className={cn(
                                             'border-b',
-                                            result.passed
-                                                ? 'bg-green-50/30 dark:bg-green-950/10'
-                                                : 'bg-amber-50/30 dark:bg-amber-950/10'
+                                            result.passed ? 'bg-green-50/30 dark:bg-green-950/10' : 'bg-amber-50/30 dark:bg-amber-950/10'
                                         )}
                                     >
                                         <td
                                             className={cn(
                                                 'p-2 align-top font-medium text-xs',
-                                                result.passed
-                                                    ? 'text-green-900 dark:text-green-100'
-                                                    : 'text-amber-900 dark:text-amber-100'
+                                                result.passed ? 'text-green-900 dark:text-green-100' : 'text-amber-900 dark:text-amber-100'
                                             )}
                                         >
                                             <div className="flex items-center gap-2">
@@ -266,9 +291,7 @@ const WarningsCard = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
                                             <td
                                                 className={cn(
                                                     'p-2 align-top text-xs',
-                                                    result.passed
-                                                        ? 'text-green-700 dark:text-green-300'
-                                                        : 'text-amber-700 dark:text-amber-300'
+                                                    result.passed ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'
                                                 )}
                                             >
                                                 {!result.passed && (

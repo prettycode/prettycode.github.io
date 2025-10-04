@@ -1,28 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const SaveModal = ({ isOpen, onClose, onSave, initialName }) => {
+interface SaveModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (portfolioName: string) => void;
+    initialName?: string;
+}
+
+const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose, onSave, initialName }) => {
     const [portfolioName, setPortfolioName] = useState(initialName || '');
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     // Focus the input when modal opens
     useEffect(() => {
         if (isOpen && inputRef.current) {
             setTimeout(() => {
-                inputRef.current.focus();
+                inputRef.current?.focus();
             }, 100);
         }
     }, [isOpen]);
 
-    // Handle save
-    const handleSave = () => {
+    /**
+     * Handle save action - validates and triggers save callback
+     */
+    const handleSave = (): void => {
         if (portfolioName.trim()) {
             onSave(portfolioName.trim());
             setPortfolioName('');
         }
     };
 
-    // Handle key press
-    const handleKeyPress = (e) => {
+    /**
+     * Handle keyboard events for better UX
+     */
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
         if (e.key === 'Enter') {
             handleSave();
         } else if (e.key === 'Escape') {
@@ -30,7 +41,9 @@ const SaveModal = ({ isOpen, onClose, onSave, initialName }) => {
         }
     };
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -54,19 +67,14 @@ const SaveModal = ({ isOpen, onClose, onSave, initialName }) => {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-                    >
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={!portfolioName.trim()}
                         className={`px-4 py-2 rounded-md ${
-                            portfolioName.trim()
-                                ? 'bg-gray-800 text-white hover:bg-gray-700'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            portfolioName.trim() ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                     >
                         Save

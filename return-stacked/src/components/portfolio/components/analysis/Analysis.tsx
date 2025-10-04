@@ -1,46 +1,50 @@
 import React, { useState } from 'react';
 import AssetClassExposureBar from './AssetClassExposureBar';
-import ExposureCard from './ExposureCard';
 import DetailedExposures, { ViewToggle } from './DetailedExposures';
 import WarningsCard from './WarningsCard';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-    Layers,
-    AlertCircle,
-    BarChart3,
-    SlidersHorizontal,
-    Percent,
-    ArrowDown10,
-    Filter,
-    LayoutGrid,
-    AlertTriangle,
-} from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { AlertCircle, SlidersHorizontal, Percent, ArrowDown10, Filter, LayoutGrid, AlertTriangle } from 'lucide-react';
+import type { Portfolio } from '@/types/portfolio';
 
-const Analysis = ({ portfolio }) => {
+interface ExpandedCategories {
+    assetClass: boolean;
+    marketRegion: boolean;
+    factorStyle: boolean;
+    sizeFactor: boolean;
+}
+
+interface AnalysisProps {
+    portfolio: Portfolio;
+}
+
+const Analysis: React.FC<AnalysisProps> = ({ portfolio }) => {
     // Shared state for sorting that affects both components
-    const [sortByValue, setSortByValue] = useState(false);
-    const [showRelative, setShowRelative] = useState(true);
-    const [hideZeroValues, setHideZeroValues] = useState(false);
-    const [showControls, setShowControls] = useState(true);
-    const [useCompactView, setUseCompactView] = useState(true);
-    const [showWarnings, setShowWarnings] = useState(true);
+    const [sortByValue, setSortByValue] = useState<boolean>(false);
+    const [showRelative, setShowRelative] = useState<boolean>(true);
+    const [hideZeroValues, setHideZeroValues] = useState<boolean>(false);
+    const [showControls, setShowControls] = useState<boolean>(true);
+    const [useCompactView, setUseCompactView] = useState<boolean>(true);
+    const [showWarnings, setShowWarnings] = useState<boolean>(true);
 
     // Shared state for expanded categories that persists between view modes
-    const [expandedCategories, setExpandedCategories] = useState({
+    const [expandedCategories, setExpandedCategories] = useState<ExpandedCategories>({
         assetClass: true,
         marketRegion: true,
         factorStyle: true,
         sizeFactor: true,
     });
 
-    // Handle changes to sort preference
-    const handleSortChange = (newSortValue) => {
+    /**
+     * Handle changes to sort preference
+     */
+    const handleSortChange = (newSortValue: boolean): void => {
         setSortByValue(newSortValue);
     };
 
-    // Handle toggling expanded state for categories
-    const toggleExpandedCategory = (category) => {
+    /**
+     * Handle toggling expanded state for categories
+     */
+    const toggleExpandedCategory = (category: keyof ExpandedCategories): void => {
         setExpandedCategories((prev) => ({
             ...prev,
             [category]: !prev[category],
@@ -63,9 +67,7 @@ const Analysis = ({ portfolio }) => {
                         className="flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     >
                         <SlidersHorizontal className="h-3 w-3" />
-                        <span className="hidden sm:inline-block">
-                            {showControls ? 'Hide View Options' : 'Show View Options'}
-                        </span>
+                        <span className="hidden sm:inline-block">{showControls ? 'Hide View Options' : 'Show View Options'}</span>
                     </button>
                 )}
             </div>
@@ -110,18 +112,12 @@ const Analysis = ({ portfolio }) => {
                     <CardContent className="p-4 flex flex-col items-center justify-center h-[180px] text-center">
                         <AlertCircle className="h-8 w-8 text-muted-foreground/60 mb-2" />
                         <h3 className="text-base font-medium text-foreground mb-1">No Portfolio Data</h3>
-                        <p className="text-sm text-muted-foreground max-w-md">
-                            Select ETFs or load a portfolio template to start building your portfolio.
-                        </p>
+                        <p className="text-sm text-muted-foreground max-w-md">Select ETFs or load a portfolio template to start building your portfolio.</p>
                     </CardContent>
                 </Card>
             ) : (
                 <div className="space-y-3">
-                    <AssetClassExposureBar
-                        portfolio={portfolio}
-                        sortByValue={sortByValue}
-                        showRelative={showRelative}
-                    />
+                    <AssetClassExposureBar portfolio={portfolio} sortByValue={sortByValue} showRelative={showRelative} />
                     <DetailedExposures
                         portfolio={portfolio}
                         onSortChange={handleSortChange}
@@ -132,11 +128,7 @@ const Analysis = ({ portfolio }) => {
                         expandedCategories={expandedCategories}
                         onToggleCategory={toggleExpandedCategory}
                     />
-                    <WarningsCard
-                        portfolio={portfolio}
-                        isExpanded={showWarnings}
-                        onToggleExpanded={() => setShowWarnings(!showWarnings)}
-                    />
+                    <WarningsCard portfolio={portfolio} isExpanded={showWarnings} onToggleExpanded={() => setShowWarnings(!showWarnings)} />
                 </div>
             )}
         </div>

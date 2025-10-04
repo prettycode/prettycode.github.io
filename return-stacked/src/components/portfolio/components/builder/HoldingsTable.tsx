@@ -1,14 +1,28 @@
 import React from 'react';
+import type { Portfolio, ETF } from '@/types/portfolio';
 import { parseExposureKey } from '../../utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Unlock, Eye, EyeOff, Trash2, BarChart, Info } from 'lucide-react';
+import { Lock, Unlock, Eye, EyeOff, Trash2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const HoldingsTable = ({
+interface HoldingsTableProps {
+    customPortfolio: Portfolio;
+    etfCatalog: ETF[];
+    tempInputs: Record<string, number | undefined>;
+    showDetailColumns: boolean;
+    onUpdateAllocation: (ticker: string, value: number) => void;
+    onToggleLock: (ticker: string) => void;
+    onToggleDisable: (ticker: string) => void;
+    onInputChange: (ticker: string, value: number) => void;
+    onInputBlur: (ticker: string) => void;
+    onRemoveETF: (ticker: string) => void;
+}
+
+const HoldingsTable: React.FC<HoldingsTableProps> = ({
     customPortfolio,
     etfCatalog,
     tempInputs,
@@ -20,11 +34,14 @@ const HoldingsTable = ({
     onInputBlur,
     onRemoveETF,
 }) => {
-    // Check if leverage is effectively 1.0x (within floating point tolerance)
-    const isEffectivelyOneX = (leverage) => {
+    /**
+     * Check if leverage is effectively 1.0x (within floating point tolerance)
+     */
+    const isEffectivelyOneX = (leverage: number): boolean => {
         const tolerance = 0.001; // 0.1% tolerance for floating point precision
         return Math.abs(leverage - 1.0) < tolerance;
     };
+
     return (
         <Table>
             <TableHeader className="bg-muted/30">
@@ -63,7 +80,7 @@ const HoldingsTable = ({
                 {Array.from(customPortfolio.holdings.entries()).map(([ticker, holding], index) => {
                     const etf = etfCatalog.find((e) => e.ticker === ticker);
                     let totalExposure = 0;
-                    const constituents = [];
+                    const constituents: string[] = [];
 
                     if (etf) {
                         for (const [key, amount] of etf.exposures) {
@@ -74,10 +91,16 @@ const HoldingsTable = ({
                             let description = assetClass;
 
                             if (marketRegion || factorStyle || sizeFactor) {
-                                const details = [];
-                                if (sizeFactor) details.push(sizeFactor);
-                                if (factorStyle) details.push(factorStyle);
-                                if (marketRegion) details.push(marketRegion);
+                                const details: string[] = [];
+                                if (sizeFactor) {
+                                    details.push(sizeFactor);
+                                }
+                                if (factorStyle) {
+                                    details.push(factorStyle);
+                                }
+                                if (marketRegion) {
+                                    details.push(marketRegion);
+                                }
                                 description += ` (${details.join(' ')})`;
                             }
 
@@ -85,16 +108,7 @@ const HoldingsTable = ({
                         }
                     }
 
-                    const isLeveraged = totalExposure > 1;
                     const { percentage, locked, disabled } = holding;
-
-                    // Badge variants based on leverage type
-                    const leverageBadgeVariant =
-                        etf?.leverageType === 'Stacked'
-                            ? 'blue'
-                            : etf?.leverageType === 'Daily Reset'
-                            ? 'yellow'
-                            : 'secondary';
 
                     return (
                         <TableRow
@@ -138,8 +152,8 @@ const HoldingsTable = ({
                                                     totalExposure <= 1.2
                                                         ? 'bg-green-100 text-green-800 border-green-200'
                                                         : totalExposure <= 2.2
-                                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                                        : 'bg-red-100 text-red-800 border-red-200'
+                                                          ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                                          : 'bg-red-100 text-red-800 border-red-200'
                                                 )}
                                             >
                                                 {totalExposure.toFixed(1)}x
@@ -147,19 +161,21 @@ const HoldingsTable = ({
                                         )}
                                     </TableCell>
                                     <TableCell className="py-1.5">
-                                        <Badge
-                                            variant="outline"
-                                            className={cn(
-                                                'text-[10px] px-1.5 py-0 font-medium',
-                                                etf.leverageType === 'Stacked'
-                                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                                    : etf.leverageType === 'Daily Reset'
-                                                    ? 'bg-red-100 text-red-800 border-red-200'
-                                                    : 'bg-green-100 text-green-800 border-green-200'
-                                            )}
-                                        >
-                                            {etf.leverageType === 'None' ? 'Unlevered' : etf.leverageType}
-                                        </Badge>
+                                        {etf && (
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    'text-[10px] px-1.5 py-0 font-medium',
+                                                    etf.leverageType === 'Stacked'
+                                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                                        : etf.leverageType === 'Daily Reset'
+                                                          ? 'bg-red-100 text-red-800 border-red-200'
+                                                          : 'bg-green-100 text-green-800 border-green-200'
+                                                )}
+                                            >
+                                                {etf.leverageType === 'None' ? 'Unlevered' : etf.leverageType}
+                                            </Badge>
+                                        )}
                                     </TableCell>
                                 </>
                             )}
@@ -173,10 +189,7 @@ const HoldingsTable = ({
                                             step={0.1}
                                             onValueChange={(values) => onUpdateAllocation(ticker, values[0])}
                                             disabled={locked || disabled}
-                                            className={cn(
-                                                'flex-grow cursor-pointer',
-                                                disabled || (locked && 'opacity-50 cursor-not-allowed')
-                                            )}
+                                            className={cn('flex-grow cursor-pointer', disabled || (locked && 'opacity-50 cursor-not-allowed'))}
                                         />
                                     )}
                                     <div className="flex-shrink-0 flex items-center">
@@ -186,19 +199,13 @@ const HoldingsTable = ({
                                                 min="0"
                                                 max="100"
                                                 step="0.1"
-                                                value={
-                                                    tempInputs[ticker] !== undefined
-                                                        ? tempInputs[ticker]
-                                                        : percentage.toFixed(1)
-                                                }
-                                                onChange={(e) => onInputChange(ticker, e.target.value)}
+                                                value={tempInputs[ticker] !== undefined ? tempInputs[ticker] : percentage.toFixed(1)}
+                                                onChange={(e) => onInputChange(ticker, parseFloat(e.target.value) || 0)}
                                                 onBlur={() => onInputBlur(ticker)}
                                                 disabled={locked || disabled}
                                                 className="pr-5 h-7 text-xs text-right"
                                             />
-                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                                                %
-                                            </span>
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -231,11 +238,7 @@ const HoldingsTable = ({
                                         )}
                                         title={disabled ? 'Enable' : 'Disable'}
                                     >
-                                        {disabled ? (
-                                            <EyeOff className="h-3.5 w-3.5" />
-                                        ) : (
-                                            <Eye className="h-3.5 w-3.5" />
-                                        )}
+                                        {disabled ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                                     </Button>
                                     <Button
                                         onClick={() => onRemoveETF(ticker)}
@@ -243,9 +246,7 @@ const HoldingsTable = ({
                                         size="icon"
                                         className={cn(
                                             'h-6 w-6 text-muted-foreground',
-                                            customPortfolio.holdings.size <= 1
-                                                ? 'opacity-50 cursor-not-allowed'
-                                                : 'cursor-pointer hover:text-destructive'
+                                            customPortfolio.holdings.size <= 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-destructive'
                                         )}
                                         title="Delete"
                                         disabled={customPortfolio.holdings.size <= 1}

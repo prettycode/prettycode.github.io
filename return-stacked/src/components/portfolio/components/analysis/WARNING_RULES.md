@@ -63,9 +63,9 @@ To add a new warning rule, add an object to the `warningRules` array in `Warning
 
 The `getPortfolioExposures` helper function extracts common exposure metrics:
 
--   `usEquity`: Total U.S. equity exposure
--   `exUsEquity`: Total Ex-U.S. equity exposure (International + Emerging)
--   `emEquity`: Total Emerging Markets exposure
--   `smallCap`: Total Small Cap exposure
+- `usEquity`: Total U.S. equity exposure
+- `exUsEquity`: Total Ex-U.S. equity exposure (International + Emerging)
+- `emEquity`: Total Emerging Markets exposure
+- `smallCap`: Total Small Cap exposure
 
 You can add more helper functions or extend this one as needed.

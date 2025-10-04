@@ -1,17 +1,54 @@
-import React, { useState } from 'react';
-import { analyzePortfolio, parseExposureKey, assetClassColors, regionColors } from '../../utils/etfData';
+import React from 'react';
+import { analyzePortfolio, parseExposureKey, assetClassColors } from '../../utils/etfData';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { Percent, GanttChart, Filter, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import ExposureCard from './ExposureCard';
+import type { Portfolio, ColorMap, AssetClass, MarketRegion, FactorStyle, SizeFactor } from '@/types/portfolio';
 
-// Component to display detailed exposures with compact modern visualization
-const DetailedExposures = ({
+interface ExpandedCategories {
+    assetClass: boolean;
+    marketRegion: boolean;
+    factorStyle: boolean;
+    sizeFactor: boolean;
+}
+
+interface DetailedExposuresProps {
+    portfolio: Portfolio;
+    onSortChange?: (sortByValue: boolean) => void;
+    showRelative?: boolean;
+    hideZeroValues?: boolean;
+    sortByValue?: boolean;
+    useCompactView?: boolean;
+    expandedCategories?: ExpandedCategories;
+    onToggleCategory?: (category: keyof ExpandedCategories) => void;
+}
+
+interface ViewToggleProps {
+    label: string;
+    icon: React.ReactNode;
+    isChecked: boolean;
+    onChange: (checked: boolean) => void;
+}
+
+interface DetailedExposureCardProps {
+    id: keyof ExpandedCategories;
+    title: string;
+    icon?: React.ReactNode;
+    exposuresAbs: Map<string, number>;
+    exposuresRel: Map<string, number>;
+    colors: ColorMap;
+}
+
+/**
+ * Component to display detailed exposures with compact modern visualization
+ */
+const DetailedExposures: React.FC<DetailedExposuresProps> = ({
     portfolio,
-    onSortChange,
+    onSortChange: _onSortChange,
     showRelative = true,
     hideZeroValues = false,
     sortByValue = false,
@@ -24,19 +61,19 @@ const DetailedExposures = ({
     },
     onToggleCategory,
 }) => {
-    const { exposures, totalLeverage } = analyzePortfolio(portfolio);
+    const { exposures } = analyzePortfolio(portfolio);
 
     // Define all possible values for each dimension
-    const allAssetClasses = ['Equity', 'U.S. Treasuries', 'Managed Futures', 'Futures Yield', 'Gold', 'Bitcoin'];
-    const allMarketRegions = ['U.S.', 'International Developed', 'Emerging'];
-    const allFactorStyles = ['Blend', 'Value', 'Growth'];
-    const allSizeFactors = ['Large Cap', 'Small Cap'];
+    const allAssetClasses: AssetClass[] = ['Equity', 'U.S. Treasuries', 'Managed Futures', 'Futures Yield', 'Gold', 'Bitcoin'];
+    const allMarketRegions: MarketRegion[] = ['U.S.', 'International Developed', 'Emerging'];
+    const allFactorStyles: FactorStyle[] = ['Blend', 'Value', 'Growth'];
+    const allSizeFactors: SizeFactor[] = ['Large Cap', 'Small Cap'];
 
     // Initialize maps for absolute values with all possible values set to 0
-    const assetClassExposuresAbs = new Map();
-    const marketRegionExposuresAbs = new Map();
-    const factorStyleExposuresAbs = new Map();
-    const sizeFactorExposuresAbs = new Map();
+    const assetClassExposuresAbs = new Map<string, number>();
+    const marketRegionExposuresAbs = new Map<string, number>();
+    const factorStyleExposuresAbs = new Map<string, number>();
+    const sizeFactorExposuresAbs = new Map<string, number>();
 
     // Initialize all maps with zeros
     for (const assetClass of allAssetClasses) {
@@ -88,7 +125,7 @@ const DetailedExposures = ({
     // Now calculate relative values correctly for each category
 
     // For Asset Classes, relative to total leverage
-    const assetClassExposuresRel = new Map();
+    const assetClassExposuresRel = new Map<string, number>();
     let totalAssetExposure = 0;
     for (const amount of assetClassExposuresAbs.values()) {
         totalAssetExposure += amount;
@@ -99,7 +136,7 @@ const DetailedExposures = ({
     }
 
     // For Market Regions, relative to total market exposure
-    const marketRegionExposuresRel = new Map();
+    const marketRegionExposuresRel = new Map<string, number>();
     let totalMarketExposure = 0;
     for (const amount of marketRegionExposuresAbs.values()) {
         totalMarketExposure += amount;
@@ -110,7 +147,7 @@ const DetailedExposures = ({
     }
 
     // For Factor Styles, relative to total factor style exposure
-    const factorStyleExposuresRel = new Map();
+    const factorStyleExposuresRel = new Map<string, number>();
     let totalStyleExposure = 0;
     for (const amount of factorStyleExposuresAbs.values()) {
         totalStyleExposure += amount;
@@ -121,7 +158,7 @@ const DetailedExposures = ({
     }
 
     // For Size Factors, relative to total size factor exposure
-    const sizeFactorExposuresRel = new Map();
+    const sizeFactorExposuresRel = new Map<string, number>();
     let totalSizeExposure = 0;
     for (const amount of sizeFactorExposuresAbs.values()) {
         totalSizeExposure += amount;
@@ -135,58 +172,55 @@ const DetailedExposures = ({
     const equityBlue = assetClassColors.Equity;
 
     // Create dimension-specific colors all using equity blue
-    const factorStyleColors = {
+    const factorStyleColors: ColorMap = {
         Blend: equityBlue,
         Value: equityBlue,
         Growth: equityBlue,
     };
 
-    const sizeFactorColors = {
+    const sizeFactorColors: ColorMap = {
         'Large Cap': equityBlue,
         'Small Cap': equityBlue,
     };
 
     // Create a map with all market regions using equity blue
-    const marketRegionColors = {
+    const marketRegionColors: ColorMap = {
         'U.S.': equityBlue,
         'International Developed': equityBlue,
         Emerging: equityBlue,
     };
 
-    // Notify parent when sortByValue changes
-    const handleSortChange = (newSortValue) => {
-        if (onSortChange) {
-            onSortChange(newSortValue);
-        }
-    };
-
-    // Toggle category expansion
-    const toggleCategory = (category) => {
+    /**
+     * Toggle category expansion
+     */
+    const toggleCategory = (category: keyof ExpandedCategories): void => {
         if (onToggleCategory) {
             onToggleCategory(category);
         }
     };
 
     // Name mapping objects for each exposure type
-    const marketRegionNameMapping = {
+    const marketRegionNameMapping: Record<string, string> = {
         'U.S.': 'US',
-        'International Developed': 'Int’l',
+        'International Developed': "Int'l",
         Emerging: 'EM',
     };
 
-    const factorStyleNameMapping = {
+    const factorStyleNameMapping: Record<string, string> = {
         Blend: 'Blend',
         Value: 'Value',
         Growth: 'Growth',
     };
 
-    const sizeFactorNameMapping = {
+    const sizeFactorNameMapping: Record<string, string> = {
         'Large Cap': 'Large',
         'Small Cap': 'Small',
     };
 
-    // Helper component for exposure category (original style for Asset Class)
-    const DetailedExposureCard = ({ id, title, icon, exposuresAbs, exposuresRel, colors }) => {
+    /**
+     * Helper component for exposure category (original style for Asset Class)
+     */
+    const DetailedExposureCard: React.FC<DetailedExposureCardProps> = ({ id, title, icon, exposuresAbs, exposuresRel, colors }) => {
         // Determine which exposure set to use based on the shared toggle
         const exposuresToUse = showRelative ? exposuresRel : exposuresAbs;
 
@@ -213,10 +247,7 @@ const DetailedExposures = ({
 
         return (
             <Card className="overflow-hidden border shadow-sm gap-0 py-3">
-                <CardHeader
-                    className={cn('cursor-pointer py-0 px-4 flex flex-row items-center justify-between')}
-                    onClick={() => toggleCategory(id)}
-                >
+                <CardHeader className={cn('cursor-pointer py-0 px-4 flex flex-row items-center justify-between')} onClick={() => toggleCategory(id)}>
                     <div className="flex items-center space-x-1.5">
                         {icon}
                         <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -234,12 +265,7 @@ const DetailedExposures = ({
                                     <div key={index} className={cn('space-y-1')}>
                                         <div className="flex justify-between font-medium">
                                             <span className="text-xs">{name}</span>
-                                            <span
-                                                className="text-xs cursor-help"
-                                                title={`${value.toFixed(4)}% (${
-                                                    showRelative ? 'relative' : 'absolute'
-                                                })`}
-                                            >
+                                            <span className="text-xs cursor-help" title={`${value.toFixed(4)}% (${showRelative ? 'relative' : 'absolute'})`}>
                                                 {value.toFixed(1)}%
                                             </span>
                                         </div>
@@ -250,9 +276,11 @@ const DetailedExposures = ({
                                                 indicatorClassName={cn('transition-all', {
                                                     'bg-gradient-to-r from-blue-500 to-blue-600': !colors[name],
                                                 })}
-                                                style={{
-                                                    '--progress-background': colors[name] || '#3b82f6',
-                                                }}
+                                                style={
+                                                    {
+                                                        '--progress-background': colors[name] || '#3b82f6',
+                                                    } as React.CSSProperties
+                                                }
                                             />
                                         </div>
                                     </div>
@@ -370,19 +398,16 @@ const DetailedExposures = ({
     );
 };
 
-// Toggle component for view options
-export const ViewToggle = ({ label, icon, isChecked, onChange }) => (
+/**
+ * Toggle component for view options
+ */
+export const ViewToggle: React.FC<ViewToggleProps> = ({ label, icon, isChecked, onChange }): React.ReactElement => (
     <div className="flex items-center space-x-1.5 px-1.5 py-1 rounded-sm hover:bg-muted">
         {icon}
         <Label htmlFor={`toggle-${label}`} className="text-[10px] cursor-pointer">
             {label}
         </Label>
-        <Switch
-            id={`toggle-${label}`}
-            checked={isChecked}
-            onCheckedChange={onChange}
-            className="data-[state=checked]:bg-primary h-[16px] w-[28px]"
-        />
+        <Switch id={`toggle-${label}`} checked={isChecked} onCheckedChange={onChange} className="data-[state=checked]:bg-primary h-[16px] w-[28px]" />
     </div>
 );
 

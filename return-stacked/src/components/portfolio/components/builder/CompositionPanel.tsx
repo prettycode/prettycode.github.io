@@ -1,36 +1,53 @@
 import React, { useState } from 'react';
+import type { Portfolio, ETF } from '@/types/portfolio';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-    AlertCircle,
-    BookTemplate,
-    EyeOff,
-    Eye,
-    Percent,
-    Trash2,
-    Save,
-    ChevronDown,
-    ChevronUp,
-    Layers,
-    Scale,
-    RotateCcw,
-} from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, RotateCcw, Save, Scale, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import HoldingsTable from './HoldingsTable';
-import { analyzePortfolio } from '../../utils/etfData';
+
+interface AllocationUpdate {
+    ticker: string;
+    percentage: number;
+}
+
+interface CompositionPanelProps {
+    isPortfolioEmpty: boolean;
+    setActiveTab: (tab: string) => void;
+    customPortfolio: Portfolio;
+    etfCatalog: ETF[];
+    tempInputs: Record<string, number | undefined>;
+    showDetailColumns: boolean;
+    totalAllocation: number;
+    isPortfolioValid: boolean;
+    portfolioName: string;
+    onToggleDetailColumns: () => void;
+    onUpdateAllocation: (ticker: string, value: number) => void;
+    onBulkUpdateAllocations: (updates: AllocationUpdate[], overrideLocks: boolean) => void;
+    onToggleLock: (ticker: string) => void;
+    onToggleDisable: (ticker: string) => void;
+    onInputChange: (ticker: string, value: number) => void;
+    onInputBlur: (ticker: string) => void;
+    onRemoveETF: (ticker: string) => void;
+    onResetPortfolio: () => void;
+    onSavePortfolio: () => void;
+    setShowPortfolioNameInput: (show: boolean) => void;
+    onResetToTemplate?: () => void;
+    isTemplateModified?: boolean;
+}
 
 // Animation duration for expand/collapse transition
 const EXPAND_COLLAPSE_DURATION_MS = 300;
 
-const CompositionPanel = ({
+const CompositionPanel: React.FC<CompositionPanelProps> = ({
     isPortfolioEmpty,
-    setActiveTab,
+    setActiveTab: _setActiveTab,
     customPortfolio,
     etfCatalog,
     tempInputs,
     showDetailColumns,
-    totalAllocation,
+    totalAllocation: _totalAllocation,
     isPortfolioValid,
     portfolioName,
     onToggleDetailColumns,
@@ -49,24 +66,30 @@ const CompositionPanel = ({
 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
 
-    const toggleExpand = () => {
+    const toggleExpand = (): void => {
         setIsExpanded(!isExpanded);
     };
 
-    // Handle Equal Weight (Unlocked) - distribute remaining percentage equally among unlocked, non-disabled holdings
-    const handleEqualWeightUnlocked = () => {
-        if (isPortfolioEmpty) return;
+    /**
+     * Handle Equal Weight (Unlocked) - distribute remaining percentage equally among unlocked, non-disabled holdings
+     */
+    const handleEqualWeightUnlocked = (): void => {
+        if (isPortfolioEmpty) {
+            return;
+        }
 
         const holdings = Array.from(customPortfolio.holdings.entries());
-        const unlockedActiveHoldings = holdings.filter(([ticker, holding]) => !holding.locked && !holding.disabled);
+        const unlockedActiveHoldings = holdings.filter(([_ticker, holding]) => !holding.locked && !holding.disabled);
 
         // If no unlocked active holdings, do nothing
-        if (unlockedActiveHoldings.length === 0) return;
+        if (unlockedActiveHoldings.length === 0) {
+            return;
+        }
 
         // Calculate total percentage used by locked or disabled holdings
         const totalLockedOrDisabledPercentage = holdings
-            .filter(([ticker, holding]) => holding.locked || holding.disabled)
-            .reduce((sum, [ticker, holding]) => sum + holding.percentage, 0);
+            .filter(([_ticker, holding]) => holding.locked || holding.disabled)
+            .reduce((sum, [_ticker, holding]) => sum + holding.percentage, 0);
 
         // Calculate remaining percentage to distribute
         const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
@@ -75,7 +98,7 @@ const CompositionPanel = ({
         const targetPercentage = parseFloat((remainingPercentage / unlockedActiveHoldings.length).toFixed(1));
 
         // Create bulk update array for unlocked active holdings
-        const allocationUpdates = unlockedActiveHoldings.map(([ticker, holding]) => ({
+        const allocationUpdates: AllocationUpdate[] = unlockedActiveHoldings.map(([ticker, _holding]) => ({
             ticker,
             percentage: targetPercentage,
         }));
@@ -84,21 +107,27 @@ const CompositionPanel = ({
         onBulkUpdateAllocations(allocationUpdates, false);
     };
 
-    // Handle Equal Weight (All) - distribute 100% equally among all non-disabled holdings, overriding locks
-    const handleEqualWeightAll = () => {
-        if (isPortfolioEmpty) return;
+    /**
+     * Handle Equal Weight (All) - distribute 100% equally among all non-disabled holdings, overriding locks
+     */
+    const handleEqualWeightAll = (): void => {
+        if (isPortfolioEmpty) {
+            return;
+        }
 
         const holdings = Array.from(customPortfolio.holdings.entries());
-        const activeHoldings = holdings.filter(([ticker, holding]) => !holding.disabled);
+        const activeHoldings = holdings.filter(([_ticker, holding]) => !holding.disabled);
 
         // If no active holdings, do nothing
-        if (activeHoldings.length === 0) return;
+        if (activeHoldings.length === 0) {
+            return;
+        }
 
         // Calculate target percentage for each active holding
         const targetPercentage = parseFloat((100 / activeHoldings.length).toFixed(1));
 
         // Create bulk update array for all active holdings
-        const allocationUpdates = activeHoldings.map(([ticker, holding]) => ({
+        const allocationUpdates: AllocationUpdate[] = activeHoldings.map(([ticker, _holding]) => ({
             ticker,
             percentage: targetPercentage,
         }));
@@ -109,41 +138,29 @@ const CompositionPanel = ({
 
     // Calculate helper values for button states
     const holdings = !isPortfolioEmpty ? Array.from(customPortfolio.holdings.entries()) : [];
-    const unlockedActiveHoldings = holdings.filter(([ticker, holding]) => !holding.locked && !holding.disabled);
-    const activeHoldings = holdings.filter(([ticker, holding]) => !holding.disabled);
+    const unlockedActiveHoldings = holdings.filter(([_ticker, holding]) => !holding.locked && !holding.disabled);
+    const activeHoldings = holdings.filter(([_ticker, holding]) => !holding.disabled);
     const hasMultipleUnlockedActiveHoldings = unlockedActiveHoldings.length >= 2;
     const hasMultipleActiveHoldings = activeHoldings.length >= 2;
 
     // Check if already at equal weight (within 0.1% tolerance for rounding)
     const isAlreadyEqualWeightAll =
         hasMultipleActiveHoldings &&
-        (() => {
+        ((): boolean => {
             const targetPercentage = 100 / activeHoldings.length;
-            return activeHoldings.every(([ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1);
+            return activeHoldings.every(([_ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1);
         })();
 
     const isAlreadyEqualWeightUnlocked =
         hasMultipleUnlockedActiveHoldings &&
-        (() => {
+        ((): boolean => {
             const totalLockedOrDisabledPercentage = holdings
-                .filter(([ticker, holding]) => holding.locked || holding.disabled)
-                .reduce((sum, [ticker, holding]) => sum + holding.percentage, 0);
+                .filter(([_ticker, holding]) => holding.locked || holding.disabled)
+                .reduce((sum, [_ticker, holding]) => sum + holding.percentage, 0);
             const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
             const targetPercentage = remainingPercentage / unlockedActiveHoldings.length;
-            return unlockedActiveHoldings.every(
-                ([ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1
-            );
+            return unlockedActiveHoldings.every(([_ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1);
         })();
-
-    // Calculate total leverage using analyzePortfolio
-    const { totalLeverage = 0 } = !isPortfolioEmpty ? analyzePortfolio(customPortfolio) : { totalLeverage: 0 };
-
-    // Determine color based on leverage level
-    const getLeverageColor = (leverage) => {
-        if (leverage < 1.5) return 'bg-green-100 text-green-800';
-        if (leverage < 2) return 'bg-amber-100 text-amber-800';
-        return 'bg-red-100 text-red-800';
-    };
 
     return (
         <>
@@ -153,8 +170,7 @@ const CompositionPanel = ({
                         <AlertCircle className="h-10 w-10 text-muted-foreground/60 mb-4" />
                         <h3 className="text-lg font-medium text-foreground mb-2">This Portfolio is Empty</h3>
                         <p className="text-sm text-muted-foreground max-w-md mb-4">
-                            Start by adding ETFs from the list below, or switch to the Templates tab to use a pre-built
-                            portfolio.
+                            Start by adding ETFs from the list below, or switch to the Templates tab to use a pre-built portfolio.
                         </p>
                     </CardContent>
                 </Card>
@@ -168,47 +184,25 @@ const CompositionPanel = ({
 
                             <div className="flex items-center gap-2">
                                 <div
-                                    className={cn(
-                                        'flex items-center gap-2 transition-opacity ease-in-out',
-                                        isExpanded ? 'opacity-100' : 'opacity-0'
-                                    )}
+                                    className={cn('flex items-center gap-2 transition-opacity ease-in-out', isExpanded ? 'opacity-100' : 'opacity-0')}
                                     style={{ transitionDuration: `${EXPAND_COLLAPSE_DURATION_MS}ms` }}
                                 >
-                                    <Switch
-                                        checked={showDetailColumns}
-                                        onCheckedChange={onToggleDetailColumns}
-                                        className="data-[state=checked]:bg-blue-500"
-                                    />
-                                    <label
-                                        className="text-xs text-muted-foreground cursor-pointer"
-                                        onClick={onToggleDetailColumns}
-                                    >
+                                    <Switch checked={showDetailColumns} onCheckedChange={onToggleDetailColumns} className="data-[state=checked]:bg-blue-500" />
+                                    <label className="text-xs text-muted-foreground cursor-pointer" onClick={onToggleDetailColumns}>
                                         <span className="hidden sm:inline-block">Detailed View</span>
                                         <span className="sm:hidden">Details</span>
                                     </label>
                                 </div>
 
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={toggleExpand}
-                                    className="h-7 w-7 p-0 cursor-pointer"
-                                >
-                                    {isExpanded ? (
-                                        <ChevronUp className="h-4 w-4" />
-                                    ) : (
-                                        <ChevronDown className="h-4 w-4" />
-                                    )}
+                                <Button variant="ghost" size="sm" onClick={toggleExpand} className="h-7 w-7 p-0 cursor-pointer">
+                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 </Button>
                             </div>
                         </div>
                     </div>
 
                     <div
-                        className={cn(
-                            'overflow-hidden transition-all ease-in-out',
-                            isExpanded ? 'max-h-[800px]' : 'max-h-0'
-                        )}
+                        className={cn('overflow-hidden transition-all ease-in-out', isExpanded ? 'max-h-[800px]' : 'max-h-0')}
                         style={{ transitionDuration: `${EXPAND_COLLAPSE_DURATION_MS}ms` }}
                     >
                         <HoldingsTable
@@ -229,12 +223,7 @@ const CompositionPanel = ({
                             <div className="flex items-center justify-between">
                                 {/* Left side - Portfolio manipulation actions */}
                                 <div className="flex items-center gap-2">
-                                    <Button
-                                        onClick={onResetPortfolio}
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-xs h-8 cursor-pointer"
-                                    >
+                                    <Button onClick={onResetPortfolio} variant="outline" size="sm" className="text-xs h-8 cursor-pointer">
                                         <Trash2 className="h-3.5 w-3.5 mr-1" />
                                         <span>Remove all</span>
                                     </Button>
@@ -245,15 +234,8 @@ const CompositionPanel = ({
                                             disabled={!isTemplateModified}
                                             variant="outline"
                                             size="sm"
-                                            className={cn(
-                                                'text-xs h-8',
-                                                isTemplateModified ? 'cursor-pointer' : 'cursor-not-allowed'
-                                            )}
-                                            title={
-                                                isTemplateModified
-                                                    ? 'Reset to original template'
-                                                    : 'Portfolio has not been modified from template'
-                                            }
+                                            className={cn('text-xs h-8', isTemplateModified ? 'cursor-pointer' : 'cursor-not-allowed')}
+                                            title={isTemplateModified ? 'Reset to original template' : 'Portfolio has not been modified from template'}
                                         >
                                             <RotateCcw className="h-3.5 w-3.5 mr-1" />
                                             <span>Reset Template</span>
@@ -267,16 +249,14 @@ const CompositionPanel = ({
                                         size="sm"
                                         className={cn(
                                             'text-xs h-8',
-                                            hasMultipleUnlockedActiveHoldings && !isAlreadyEqualWeightUnlocked
-                                                ? 'cursor-pointer'
-                                                : 'cursor-not-allowed'
+                                            hasMultipleUnlockedActiveHoldings && !isAlreadyEqualWeightUnlocked ? 'cursor-pointer' : 'cursor-not-allowed'
                                         )}
                                         title={
                                             !hasMultipleUnlockedActiveHoldings
                                                 ? 'Requires 2+ unlocked, active ETFs'
                                                 : isAlreadyEqualWeightUnlocked
-                                                ? 'Already at equal weight'
-                                                : 'Distribute remaining portfolio equally among unlocked, active ETFs'
+                                                  ? 'Already at equal weight'
+                                                  : 'Distribute remaining portfolio equally among unlocked, active ETFs'
                                         }
                                     >
                                         <Scale className="h-3.5 w-3.5 mr-1" />
@@ -290,16 +270,14 @@ const CompositionPanel = ({
                                         size="sm"
                                         className={cn(
                                             'text-xs h-8',
-                                            hasMultipleActiveHoldings && !isAlreadyEqualWeightAll
-                                                ? 'cursor-pointer'
-                                                : 'cursor-not-allowed'
+                                            hasMultipleActiveHoldings && !isAlreadyEqualWeightAll ? 'cursor-pointer' : 'cursor-not-allowed'
                                         )}
                                         title={
                                             !hasMultipleActiveHoldings
                                                 ? 'Requires 2+ active ETFs'
                                                 : isAlreadyEqualWeightAll
-                                                ? 'Already at equal weight'
-                                                : 'Distribute 100% equally among all active ETFs'
+                                                  ? 'Already at equal weight'
+                                                  : 'Distribute 100% equally among all active ETFs'
                                         }
                                     >
                                         <Scale className="h-3.5 w-3.5 mr-1" />
@@ -321,10 +299,7 @@ const CompositionPanel = ({
                                     disabled={!isPortfolioValid}
                                     variant={isPortfolioValid ? 'default' : 'outline'}
                                     size="sm"
-                                    className={cn(
-                                        'text-xs h-8',
-                                        isPortfolioValid ? 'cursor-pointer' : 'cursor-not-allowed'
-                                    )}
+                                    className={cn('text-xs h-8', isPortfolioValid ? 'cursor-pointer' : 'cursor-not-allowed')}
                                 >
                                     <Save className="h-3.5 w-3.5 mr-1" />
                                     <span>Save&hellip;</span>

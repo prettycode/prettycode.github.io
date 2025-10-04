@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(del \"src\\components\\portfolio\\components\\analysis\\Analysis.jsx\")",
+      "Bash(del \"src\\components\\portfolio\\components\\analysis\\ExposureCard.jsx\")",
+      "Bash(del \"src\\components\\portfolio\\components\\analysis\\AssetClassExposureBar.jsx\")",
+      "Bash(del \"src\\components\\portfolio\\components\\analysis\\DetailedExposures.jsx\")",
+      "Bash(del \"src\\components\\portfolio\\components\\analysis\\WarningsCard.jsx\")",
+      "Bash(npm run type-check:*)",
+      "Bash(npx tsc:*)",
+      "Bash(dir:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run lint:ci:*)",
+      "Bash(del:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
