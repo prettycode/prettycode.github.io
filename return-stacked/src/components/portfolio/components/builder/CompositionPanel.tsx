@@ -143,23 +143,32 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
     const hasMultipleUnlockedActiveHoldings = unlockedActiveHoldings.length >= 2;
     const hasMultipleActiveHoldings = activeHoldings.length >= 2;
 
-    // Check if already at equal weight (within 0.1% tolerance for rounding)
+    // Check if already at equal weight using basis points for exact comparison
     const isAlreadyEqualWeightAll =
         hasMultipleActiveHoldings &&
         ((): boolean => {
             const targetPercentage = 100 / activeHoldings.length;
-            return activeHoldings.every(([_ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1);
+            const targetBasisPoints = Math.round(targetPercentage * 100);
+            return activeHoldings.every(([_ticker, holding]) => {
+                const holdingBasisPoints = holding.basisPoints ?? Math.round(holding.percentage * 100);
+                // Allow 1 basis point (0.01%) difference for rounding
+                return Math.abs(holdingBasisPoints - targetBasisPoints) <= 1;
+            });
         })();
 
     const isAlreadyEqualWeightUnlocked =
         hasMultipleUnlockedActiveHoldings &&
         ((): boolean => {
-            const totalLockedOrDisabledPercentage = holdings
+            const totalLockedOrDisabledBasisPoints = holdings
                 .filter(([_ticker, holding]) => holding.locked || holding.disabled)
-                .reduce((sum, [_ticker, holding]) => sum + holding.percentage, 0);
-            const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
-            const targetPercentage = remainingPercentage / unlockedActiveHoldings.length;
-            return unlockedActiveHoldings.every(([_ticker, holding]) => Math.abs(holding.percentage - targetPercentage) <= 0.1);
+                .reduce((sum, [_ticker, holding]) => sum + (holding.basisPoints ?? Math.round(holding.percentage * 100)), 0);
+            const remainingBasisPoints = Math.max(0, 10000 - totalLockedOrDisabledBasisPoints);
+            const targetBasisPoints = Math.round(remainingBasisPoints / unlockedActiveHoldings.length);
+            return unlockedActiveHoldings.every(([_ticker, holding]) => {
+                const holdingBasisPoints = holding.basisPoints ?? Math.round(holding.percentage * 100);
+                // Allow 1 basis point (0.01%) difference for rounding
+                return Math.abs(holdingBasisPoints - targetBasisPoints) <= 1;
+            });
         })();
 
     return (
@@ -184,10 +193,17 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
 
                             <div className="flex items-center gap-2">
                                 <div
-                                    className={cn('flex items-center gap-2 transition-opacity ease-in-out', isExpanded ? 'opacity-100' : 'opacity-0')}
+                                    className={cn(
+                                        'flex items-center gap-2 transition-opacity ease-in-out',
+                                        isExpanded ? 'opacity-100' : 'opacity-0'
+                                    )}
                                     style={{ transitionDuration: `${EXPAND_COLLAPSE_DURATION_MS}ms` }}
                                 >
-                                    <Switch checked={showDetailColumns} onCheckedChange={onToggleDetailColumns} className="data-[state=checked]:bg-blue-500" />
+                                    <Switch
+                                        checked={showDetailColumns}
+                                        onCheckedChange={onToggleDetailColumns}
+                                        className="data-[state=checked]:bg-blue-500"
+                                    />
                                     <label className="text-xs text-muted-foreground cursor-pointer" onClick={onToggleDetailColumns}>
                                         <span className="hidden sm:inline-block">Detailed View</span>
                                         <span className="sm:hidden">Details</span>
@@ -235,7 +251,11 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                             variant="outline"
                                             size="sm"
                                             className={cn('text-xs h-8', isTemplateModified ? 'cursor-pointer' : 'cursor-not-allowed')}
-                                            title={isTemplateModified ? 'Reset to original template' : 'Portfolio has not been modified from template'}
+                                            title={
+                                                isTemplateModified
+                                                    ? 'Reset to original template'
+                                                    : 'Portfolio has not been modified from template'
+                                            }
                                         >
                                             <RotateCcw className="h-3.5 w-3.5 mr-1" />
                                             <span>Reset Template</span>
@@ -249,7 +269,9 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                         size="sm"
                                         className={cn(
                                             'text-xs h-8',
-                                            hasMultipleUnlockedActiveHoldings && !isAlreadyEqualWeightUnlocked ? 'cursor-pointer' : 'cursor-not-allowed'
+                                            hasMultipleUnlockedActiveHoldings && !isAlreadyEqualWeightUnlocked
+                                                ? 'cursor-pointer'
+                                                : 'cursor-not-allowed'
                                         )}
                                         title={
                                             !hasMultipleUnlockedActiveHoldings

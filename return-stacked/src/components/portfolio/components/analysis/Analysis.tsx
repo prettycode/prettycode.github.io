@@ -112,7 +112,9 @@ const Analysis: React.FC<AnalysisProps> = ({ portfolio }) => {
                     <CardContent className="p-4 flex flex-col items-center justify-center h-[180px] text-center">
                         <AlertCircle className="h-8 w-8 text-muted-foreground/60 mb-2" />
                         <h3 className="text-base font-medium text-foreground mb-1">No Portfolio Data</h3>
-                        <p className="text-sm text-muted-foreground max-w-md">Select ETFs or load a portfolio template to start building your portfolio.</p>
+                        <p className="text-sm text-muted-foreground max-w-md">
+                            Select ETFs or load a portfolio template to start building your portfolio.
+                        </p>
                     </CardContent>
                 </Card>
             ) : (
@@ -128,7 +130,7 @@ const Analysis: React.FC<AnalysisProps> = ({ portfolio }) => {
                         expandedCategories={expandedCategories}
                         onToggleCategory={toggleExpandedCategory}
                     />
-                    <WarningsCard portfolio={portfolio} isExpanded={showWarnings} onToggleExpanded={() => setShowWarnings(!showWarnings)} />
+                    {showWarnings && <WarningsCard portfolio={portfolio} />}
                 </div>
             )}
         </div>

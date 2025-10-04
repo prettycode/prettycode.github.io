@@ -247,7 +247,10 @@ const DetailedExposures: React.FC<DetailedExposuresProps> = ({
 
         return (
             <Card className="overflow-hidden border shadow-sm gap-0 py-3">
-                <CardHeader className={cn('cursor-pointer py-0 px-4 flex flex-row items-center justify-between')} onClick={() => toggleCategory(id)}>
+                <CardHeader
+                    className={cn('cursor-pointer py-0 px-4 flex flex-row items-center justify-between')}
+                    onClick={() => toggleCategory(id)}
+                >
                     <div className="flex items-center space-x-1.5">
                         {icon}
                         <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -265,7 +268,10 @@ const DetailedExposures: React.FC<DetailedExposuresProps> = ({
                                     <div key={index} className={cn('space-y-1')}>
                                         <div className="flex justify-between font-medium">
                                             <span className="text-xs">{name}</span>
-                                            <span className="text-xs cursor-help" title={`${value.toFixed(4)}% (${showRelative ? 'relative' : 'absolute'})`}>
+                                            <span
+                                                className="text-xs cursor-help"
+                                                title={`${value.toFixed(4)}% (${showRelative ? 'relative' : 'absolute'})`}
+                                            >
                                                 {value.toFixed(1)}%
                                             </span>
                                         </div>
@@ -407,7 +413,12 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ label, icon, isChecked, 
         <Label htmlFor={`toggle-${label}`} className="text-[10px] cursor-pointer">
             {label}
         </Label>
-        <Switch id={`toggle-${label}`} checked={isChecked} onCheckedChange={onChange} className="data-[state=checked]:bg-primary h-[16px] w-[28px]" />
+        <Switch
+            id={`toggle-${label}`}
+            checked={isChecked}
+            onCheckedChange={onChange}
+            className="data-[state=checked]:bg-primary h-[16px] w-[28px]"
+        />
     </div>
 );
 

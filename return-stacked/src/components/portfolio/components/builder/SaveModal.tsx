@@ -67,14 +67,19 @@ const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose, onSave, initialN
                 </div>
 
                 <div className="flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                    >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={!portfolioName.trim()}
                         className={`px-4 py-2 rounded-md ${
-                            portfolioName.trim() ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            portfolioName.trim()
+                                ? 'bg-gray-800 text-white hover:bg-gray-700'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                     >
                         Save

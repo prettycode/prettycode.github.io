@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Portfolio, ETF, SerializedPortfolio, Holding } from '@/types/portfolio';
-import { deserializePortfolio } from '../../utils';
+import { deserializePortfolio } from '../../utils/storageUtils';
 import TickerOrTemplateSelectionTable from './TickerOrTemplateSelectionTable';
 import CompositionPanel from './CompositionPanel';
 import { Card, CardContent } from '@/components/ui/card';
@@ -121,8 +121,8 @@ const Builder: React.FC<BuilderProps> = ({
 
     const isPortfolioEmpty = customPortfolio.holdings.size === 0;
 
-    // Check if portfolio is ready to be saved
-    const isPortfolioValid = Math.abs(totalAllocation - 100) <= 0.1 && customPortfolio.holdings.size > 0;
+    // Check if portfolio is ready to be saved - use exact 100% check
+    const isPortfolioValid = Math.abs(totalAllocation - 100) < 0.01 && customPortfolio.holdings.size > 0;
 
     return (
         <div className="space-y-3">
@@ -219,7 +219,10 @@ const Builder: React.FC<BuilderProps> = ({
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {savedPortfolios.map((portfolio, index) => (
-                                        <div key={`${portfolio.name}-${index}`} className="border border-border/40 rounded-lg overflow-hidden group">
+                                        <div
+                                            key={`${portfolio.name}-${index}`}
+                                            className="border border-border/40 rounded-lg overflow-hidden group"
+                                        >
                                             <div className="p-4">
                                                 <h4 className="font-medium mb-1">{portfolio.name || 'Unnamed Portfolio'}</h4>
                                                 <p className="text-xs text-muted-foreground mb-3">

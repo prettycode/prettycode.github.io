@@ -14,7 +14,12 @@ interface AssetClassExposureBarProps {
 /**
  * Component to display asset class exposures as a stacked bar with compact modern visuals
  */
-const AssetClassExposureBar: React.FC<AssetClassExposureBarProps> = ({ portfolio, sortByValue = false, showRelative = true, hideZeroValues = false }) => {
+const AssetClassExposureBar: React.FC<AssetClassExposureBarProps> = ({
+    portfolio,
+    sortByValue = false,
+    showRelative = true,
+    hideZeroValues = false,
+}) => {
     const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
 
     /**

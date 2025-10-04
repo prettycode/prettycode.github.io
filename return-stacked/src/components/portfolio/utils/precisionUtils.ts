@@ -63,7 +63,9 @@ export const redistributeWithPrecisionConstraints = (
     const newBasisPoints = percentToBasisPoints(newPercentage);
     const maxBasisPoints = MAX_BASIS_POINTS;
 
-    const adjustableEntries = Array.from(holdings.entries()).filter(([ticker, holding]) => ticker !== changedTicker && !holding.locked && !holding.disabled);
+    const adjustableEntries = Array.from(holdings.entries()).filter(
+        ([ticker, holding]) => ticker !== changedTicker && !holding.locked && !holding.disabled
+    );
 
     if (adjustableEntries.length === 0) {
         return null;
@@ -111,7 +113,10 @@ export const redistributeWithPrecisionConstraints = (
             if (isLast) {
                 targetBasisPoints = remainingBasisPoints - distributedBasisPoints;
             } else {
-                const proportion = currentAdjustableBasisPoints > 0 ? (holding.basisPoints ?? 0) / currentAdjustableBasisPoints : 1 / adjustableEntries.length;
+                const proportion =
+                    currentAdjustableBasisPoints > 0
+                        ? (holding.basisPoints ?? 0) / currentAdjustableBasisPoints
+                        : 1 / adjustableEntries.length;
                 targetBasisPoints = Math.round(remainingBasisPoints * proportion);
                 distributedBasisPoints += targetBasisPoints;
             }
@@ -154,7 +159,19 @@ export const isPortfolioPrecise = (holdings: Map<string, Holding>): boolean => {
 
 /**
  * Converts legacy holdings to precision-enhanced holdings
+ * Also ensures existing holdings have consistent basis points
  */
 export const migrateToPrecisionHoldings = (legacyHoldings: Map<string, Holding>): Map<string, Holding> => {
-    return enhanceHoldingsWithPrecision(legacyHoldings);
+    const migrated = new Map<string, Holding>();
+    for (const [ticker, holding] of legacyHoldings.entries()) {
+        const basisPoints = holding.basisPoints ?? percentToBasisPoints(holding.percentage);
+        const percentage = basisPointsToPercent(basisPoints);
+        migrated.set(ticker, {
+            ...holding,
+            percentage,
+            basisPoints,
+            displayPercentage: roundForDisplay(percentage),
+        });
+    }
+    return migrated;
 };

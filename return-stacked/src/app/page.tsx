@@ -1,6 +1,6 @@
 'use client';
 
-import PortfolioManager from '@/components/portfolio';
+import PortfolioManager from '@/components/portfolio/PortfolioManager';
 
 export default function Home(): React.ReactElement {
     return (

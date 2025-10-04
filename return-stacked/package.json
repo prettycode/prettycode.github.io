@@ -11,8 +11,8 @@
         "prettier:fix": "prettier --write .",
         "prettier:ci": "prettier --check .",
         "tsc:ci": "tsc --noEmit",
-        "test:ci": "npm run lint:ci && npm run tsc:ci && npm run prettier:ci && npm run build",
-        "pretest:ci": "npm run prettier:fix && npm run lint:fix"
+        "test": "npm run prettier:fix && npm run lint:fix && npm run test:ci",
+        "test:ci": "npm run lint:ci && npm run tsc:ci && npm run prettier:ci && npm run build"
     },
     "dependencies": {
         "@radix-ui/react-dialog": "^1.1.6",

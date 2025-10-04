@@ -32,8 +32,6 @@ interface RuleResult {
 
 interface WarningsCardProps {
     portfolio: Portfolio;
-    isExpanded?: boolean;
-    onToggleExpanded?: () => void;
 }
 
 /**
@@ -206,7 +204,8 @@ const warningRules: WarningRule[] = [
 /**
  * Component to display portfolio warnings and optimization suggestions
  */
-const WarningsCard: React.FC<WarningsCardProps> = ({ portfolio, isExpanded = false, onToggleExpanded }) => {
+const WarningsCard: React.FC<WarningsCardProps> = ({ portfolio }) => {
+    const [isExpanded, setIsExpanded] = React.useState(false);
     const ruleResults: RuleResult[] = warningRules.map((rule) => {
         const warning = rule.check(portfolio);
         return {
@@ -237,18 +236,31 @@ const WarningsCard: React.FC<WarningsCardProps> = ({ portfolio, isExpanded = fal
                     : 'border border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20'
             )}
         >
-            <CardHeader className={cn('cursor-pointer py-3 px-4 flex flex-row items-center justify-between')} onClick={onToggleExpanded}>
+            <CardHeader
+                className={cn('cursor-pointer py-3 px-4 flex flex-row items-center justify-between')}
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
                 <div className="flex items-center space-x-2">
                     {hasWarnings ? (
                         <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
                     ) : (
                         <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
                     )}
-                    <h3 className={cn('font-medium text-sm', hasWarnings ? 'text-amber-900 dark:text-amber-100' : 'text-green-900 dark:text-green-100')}>
+                    <h3
+                        className={cn(
+                            'font-medium text-sm',
+                            hasWarnings ? 'text-amber-900 dark:text-amber-100' : 'text-green-900 dark:text-green-100'
+                        )}
+                    >
                         {hasWarnings ? `Portfolio Optimizations (${warningCount})` : 'Portfolio Optimizations (0)'}
                     </h3>
                 </div>
-                <div className={cn('text-xs flex items-center', hasWarnings ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400')}>
+                <div
+                    className={cn(
+                        'text-xs flex items-center',
+                        hasWarnings ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400'
+                    )}
+                >
                     {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 </div>
             </CardHeader>
@@ -291,7 +303,9 @@ const WarningsCard: React.FC<WarningsCardProps> = ({ portfolio, isExpanded = fal
                                             <td
                                                 className={cn(
                                                     'p-2 align-top text-xs',
-                                                    result.passed ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'
+                                                    result.passed
+                                                        ? 'text-green-700 dark:text-green-300'
+                                                        : 'text-amber-700 dark:text-amber-300'
                                                 )}
                                             >
                                                 {!result.passed && (

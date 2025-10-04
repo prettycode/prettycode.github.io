@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Portfolio, ETF } from '@/types/portfolio';
-import { parseExposureKey } from '../../utils';
+import { parseExposureKey } from '../../utils/etfData';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -189,7 +189,10 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({
                                             step={0.1}
                                             onValueChange={(values) => onUpdateAllocation(ticker, values[0])}
                                             disabled={locked || disabled}
-                                            className={cn('flex-grow cursor-pointer', disabled || (locked && 'opacity-50 cursor-not-allowed'))}
+                                            className={cn(
+                                                'flex-grow cursor-pointer',
+                                                disabled || (locked && 'opacity-50 cursor-not-allowed')
+                                            )}
                                         />
                                     )}
                                     <div className="flex-shrink-0 flex items-center">
@@ -199,13 +202,19 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({
                                                 min="0"
                                                 max="100"
                                                 step="0.1"
-                                                value={tempInputs[ticker] !== undefined ? tempInputs[ticker] : percentage.toFixed(1)}
+                                                value={
+                                                    tempInputs[ticker] !== undefined
+                                                        ? tempInputs[ticker]
+                                                        : Math.max(0, percentage).toFixed(1)
+                                                }
                                                 onChange={(e) => onInputChange(ticker, parseFloat(e.target.value) || 0)}
                                                 onBlur={() => onInputBlur(ticker)}
                                                 disabled={locked || disabled}
                                                 className="pr-5 h-7 text-xs text-right"
                                             />
-                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                                                %
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -246,7 +255,9 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({
                                         size="icon"
                                         className={cn(
                                             'h-6 w-6 text-muted-foreground',
-                                            customPortfolio.holdings.size <= 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-destructive'
+                                            customPortfolio.holdings.size <= 1
+                                                ? 'opacity-50 cursor-not-allowed'
+                                                : 'cursor-pointer hover:text-destructive'
                                         )}
                                         title="Delete"
                                         disabled={customPortfolio.holdings.size <= 1}

@@ -2,21 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import type { Portfolio, Holding, SerializedPortfolio } from '@/types/portfolio';
-import {
-    etfCatalog,
-    examplePortfolios,
-    createPortfolio,
-    DEFAULT_PORTFOLIO_NAME,
-    redistributeAfterRemoval,
-    updateAllocation,
-    calculateTotalAllocation,
-    savePortfolio,
-    getSavedPortfolios,
-    deletePortfolio,
-} from './utils';
+import { etfCatalog, createPortfolio } from './utils/etfData';
+import { examplePortfolios } from './utils/templates';
+import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils/allocationUtils';
+import { migrateToPrecisionHoldings } from './utils/precisionUtils';
+import { savePortfolio, getSavedPortfolios, deletePortfolio } from './utils/storageUtils';
 import Builder from './components/builder/Builder';
 import SaveModal from './components/builder/SaveModal';
 import Analysis from './components/analysis/Analysis';
+
+const DEFAULT_PORTFOLIO_NAME = 'New, Unsaved Portfolio';
 
 /**
  * Allocation update for bulk operations
@@ -48,16 +43,21 @@ const convertExampleToCustomPortfolio = (examplePortfolio: Portfolio): Portfolio
         });
     }
 
+    // Ensure all holdings have basis points
+    const preciseHoldings = migrateToPrecisionHoldings(holdings);
+
     return {
         name: examplePortfolio.name,
-        holdings,
+        holdings: preciseHoldings,
     };
 };
 
 const PortfolioManager: React.FC = () => {
     const selectedTemplate = examplePortfolios.length > 0 ? examplePortfolios[new Date().getSeconds() % examplePortfolios.length] : null;
 
-    const defaultPortfolio = selectedTemplate ? convertExampleToCustomPortfolio(selectedTemplate) : createPortfolio(DEFAULT_PORTFOLIO_NAME, []);
+    const defaultPortfolio = selectedTemplate
+        ? convertExampleToCustomPortfolio(selectedTemplate)
+        : createPortfolio(DEFAULT_PORTFOLIO_NAME, []);
 
     const [customPortfolio, setCustomPortfolio] = useState<Portfolio>(defaultPortfolio);
     const [originalTemplate, setOriginalTemplate] = useState<Portfolio | null>(selectedTemplate);
@@ -153,14 +153,9 @@ const PortfolioManager: React.FC = () => {
             }
         });
 
-        for (const [ticker, holding] of holdings.entries()) {
-            holdings.set(ticker, {
-                ...holding,
-                percentage: parseFloat(holding.percentage.toFixed(1)),
-            });
-        }
-
-        updateCustomPortfolio(holdings);
+        // Migrate to ensure basis points are set
+        const preciseHoldings = migrateToPrecisionHoldings(holdings);
+        updateCustomPortfolio(preciseHoldings);
     };
 
     const toggleLockETF = (ticker: string): void => {
@@ -222,46 +217,18 @@ const PortfolioManager: React.FC = () => {
         }
 
         if (oldPercentage > 0) {
-            const currentAdjustableTotal = adjustableETFs.reduce((sum, etf) => {
-                const holding = holdings.get(etf);
-                return sum + (holding?.percentage ?? 0);
-            }, 0);
-
-            if (currentAdjustableTotal <= 0) {
-                const equalShare = oldPercentage / adjustableETFs.length;
-
-                for (const etf of adjustableETFs) {
-                    const holding = holdings.get(etf);
-                    if (holding) {
-                        holdings.set(etf, {
-                            ...holding,
-                            percentage: equalShare,
-                        });
-                    }
-                }
-            } else {
-                for (const etf of adjustableETFs) {
-                    const holding = holdings.get(etf);
-                    if (holding) {
-                        const proportion = holding.percentage / currentAdjustableTotal;
-
-                        holdings.set(etf, {
-                            ...holding,
-                            percentage: holding.percentage + oldPercentage * proportion,
-                        });
-                    }
-                }
-            }
-
-            for (const [etf, holding] of holdings.entries()) {
-                holdings.set(etf, {
-                    ...holding,
-                    percentage: parseFloat(holding.percentage.toFixed(1)),
-                });
-            }
+            // Use redistributeAfterRemoval to handle the allocation properly with basis points
+            const tempTicker = `__temp_disabled_${ticker}__`;
+            holdings.set(tempTicker, {
+                percentage: oldPercentage,
+                locked: false,
+                disabled: false,
+            });
+            const redistributed = redistributeAfterRemoval(holdings, tempTicker);
+            updateCustomPortfolio(redistributed);
+        } else {
+            updateCustomPortfolio(holdings);
         }
-
-        updateCustomPortfolio(holdings);
     };
 
     const totalAllocation = calculateTotalAllocation(customPortfolio.holdings);
@@ -304,6 +271,7 @@ const PortfolioManager: React.FC = () => {
             return true;
         }
 
+        // Use basis points for exact comparison (10 basis points = 0.1%)
         for (const [ticker, templateHoldingValue] of originalTemplate.holdings.entries()) {
             const templatePercentage = typeof templateHoldingValue === 'number' ? templateHoldingValue : templateHoldingValue.percentage;
             const currentHolding = customPortfolio.holdings.get(ticker);
@@ -311,7 +279,11 @@ const PortfolioManager: React.FC = () => {
                 return true;
             }
 
-            if (Math.abs(currentHolding.percentage - templatePercentage) > 0.1) {
+            // Convert to basis points for comparison
+            const templateBasisPoints = Math.round(templatePercentage * 100);
+            const currentBasisPoints = currentHolding.basisPoints ?? Math.round(currentHolding.percentage * 100);
+
+            if (templateBasisPoints !== currentBasisPoints) {
                 return true;
             }
         }

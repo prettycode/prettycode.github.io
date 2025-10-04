@@ -592,7 +592,13 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                         />
                     </div>
                     {mode === 'etfs' && (
-                        <Button variant="ghost" size="sm" onClick={toggleFilters} className="ml-2 h-8 w-8 p-0 cursor-pointer" title="Toggle filters">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleFilters}
+                            className="ml-2 h-8 w-8 p-0 cursor-pointer"
+                            title="Toggle filters"
+                        >
                             <FilterIcon className="h-4 w-4" />
                         </Button>
                     )}
@@ -834,7 +840,11 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                                             className="hover:bg-accent/50 rounded p-0.5 transition-colors"
                                                             onClick={(e) => toggleTemplateExpansion(item.name, e)}
                                                         >
-                                                            {isTemplateExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                                            {isTemplateExpanded ? (
+                                                                <ChevronDown className="h-3 w-3" />
+                                                            ) : (
+                                                                <ChevronRight className="h-3 w-3" />
+                                                            )}
                                                         </span>
                                                     )}
                                                     <span>{item.name}</span>
@@ -869,7 +879,11 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                                                 className={cn(
                                                                     'py-1.5 px-2 text-center text-xs',
                                                                     amount > 0
-                                                                        ? cn('font-medium', getAssetClassColor(assetClass), getAssetClassBgColor(assetClass))
+                                                                        ? cn(
+                                                                              'font-medium',
+                                                                              getAssetClassColor(assetClass),
+                                                                              getAssetClassBgColor(assetClass)
+                                                                          )
                                                                         : 'text-muted-foreground',
                                                                     isEquity && 'border-l-2 border-blue-200'
                                                                 )}
@@ -881,17 +895,26 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                                                 <>
                                                                     <td className="py-1.5 px-1 text-center bg-blue-50/20">
                                                                         <span className="text-xs font-medium text-blue-700">
-                                                                            {formatRegionalEquity(regionalBreakdown.us, regionalBreakdown.total)}
+                                                                            {formatRegionalEquity(
+                                                                                regionalBreakdown.us,
+                                                                                regionalBreakdown.total
+                                                                            )}
                                                                         </span>
                                                                     </td>
                                                                     <td className="py-1.5 px-1 text-center bg-blue-50/20">
                                                                         <span className="text-xs font-medium text-blue-700">
-                                                                            {formatRegionalEquity(regionalBreakdown.intl, regionalBreakdown.total)}
+                                                                            {formatRegionalEquity(
+                                                                                regionalBreakdown.intl,
+                                                                                regionalBreakdown.total
+                                                                            )}
                                                                         </span>
                                                                     </td>
                                                                     <td className="py-1.5 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20">
                                                                         <span className="text-xs font-medium text-blue-700">
-                                                                            {formatRegionalEquity(regionalBreakdown.em, regionalBreakdown.total)}
+                                                                            {formatRegionalEquity(
+                                                                                regionalBreakdown.em,
+                                                                                regionalBreakdown.total
+                                                                            )}
                                                                         </span>
                                                                     </td>
                                                                 </>
@@ -908,7 +931,10 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                                     ) : (
                                                         <Badge
                                                             variant="outline"
-                                                            className={cn('text-[10px] px-1.5 py-0 font-medium', getLeverageTypeColor(item.leverageType))}
+                                                            className={cn(
+                                                                'text-[10px] px-1.5 py-0 font-medium',
+                                                                getLeverageTypeColor(item.leverageType)
+                                                            )}
                                                         >
                                                             {item.leverageType}
                                                         </Badge>
@@ -920,121 +946,142 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                         {/* Subrows for expanded templates */}
                                         {mode === 'templates' && isTemplateExpanded && item.template?.holdings && (
                                             <>
-                                                {Array.from(item.template.holdings.entries()).map(([ticker, holding], subIndex, subArray) => {
-                                                    const constituentEtf = etfCatalog.find((e) => e.ticker === ticker);
-                                                    const percentage = typeof holding === 'number' ? holding : holding.percentage;
-                                                    const isLastSubrow = subIndex === subArray.length - 1;
-                                                    return (
-                                                        <tr
-                                                            key={`${item.id}-${ticker}`}
-                                                            className={cn(
-                                                                'border-t border-border/40 hover:bg-accent/60 transition-colors bg-accent/40',
-                                                                isLastSubrow && 'border-b-[3px] border-border'
-                                                            )}
-                                                        >
-                                                            <td className="py-1.5 px-3 pl-10 text-xs font-medium border-l-4 border-accent">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span>{ticker}</span>
-                                                                    <span className="text-[10px] text-muted-foreground">({percentage.toFixed(0)}%)</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-1.5 px-2 text-center text-xs">
-                                                                {constituentEtf &&
-                                                                !isEffectivelyOneX(
-                                                                    calculateTotalExposure({ exposures: constituentEtf.exposures }, true) as number
-                                                                ) ? (
-                                                                    <Badge
-                                                                        variant="outline"
-                                                                        className={cn(
-                                                                            'text-[10px] px-1.5 py-0 font-medium',
-                                                                            getLeverageAmountColor(
+                                                {Array.from(item.template.holdings.entries()).map(
+                                                    ([ticker, holding], subIndex, subArray) => {
+                                                        const constituentEtf = etfCatalog.find((e) => e.ticker === ticker);
+                                                        const percentage = typeof holding === 'number' ? holding : holding.percentage;
+                                                        const isLastSubrow = subIndex === subArray.length - 1;
+                                                        return (
+                                                            <tr
+                                                                key={`${item.id}-${ticker}`}
+                                                                className={cn(
+                                                                    'border-t border-border/40 hover:bg-accent/60 transition-colors bg-accent/40',
+                                                                    isLastSubrow && 'border-b-[3px] border-border'
+                                                                )}
+                                                            >
+                                                                <td className="py-1.5 px-3 pl-10 text-xs font-medium border-l-4 border-accent">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span>{ticker}</span>
+                                                                        <span className="text-[10px] text-muted-foreground">
+                                                                            ({percentage.toFixed(0)}%)
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-1.5 px-2 text-center text-xs">
+                                                                    {constituentEtf &&
+                                                                    !isEffectivelyOneX(
+                                                                        calculateTotalExposure(
+                                                                            { exposures: constituentEtf.exposures },
+                                                                            true
+                                                                        ) as number
+                                                                    ) ? (
+                                                                        <Badge
+                                                                            variant="outline"
+                                                                            className={cn(
+                                                                                'text-[10px] px-1.5 py-0 font-medium',
+                                                                                getLeverageAmountColor(
+                                                                                    calculateTotalExposure(
+                                                                                        {
+                                                                                            exposures: constituentEtf.exposures,
+                                                                                        },
+                                                                                        true
+                                                                                    ) as number
+                                                                                )
+                                                                            )}
+                                                                        >
+                                                                            {(
                                                                                 calculateTotalExposure(
                                                                                     {
                                                                                         exposures: constituentEtf.exposures,
                                                                                     },
                                                                                     true
                                                                                 ) as number
-                                                                            )
-                                                                        )}
-                                                                    >
-                                                                        {(
-                                                                            calculateTotalExposure({ exposures: constituentEtf.exposures }, true) as number
-                                                                        ).toFixed(1)}
-                                                                        x
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <span className="text-muted-foreground">-</span>
-                                                                )}
-                                                            </td>
-                                                            {assetClasses.map((assetClass) => {
-                                                                const isEquity = assetClass === 'Equity';
-                                                                let amount = 0;
+                                                                            ).toFixed(1)}
+                                                                            x
+                                                                        </Badge>
+                                                                    ) : (
+                                                                        <span className="text-muted-foreground">-</span>
+                                                                    )}
+                                                                </td>
+                                                                {assetClasses.map((assetClass) => {
+                                                                    const isEquity = assetClass === 'Equity';
+                                                                    let amount = 0;
 
-                                                                if (constituentEtf) {
-                                                                    for (const [key, amt] of constituentEtf.exposures) {
-                                                                        const { assetClass: ac } = parseExposureKey(key);
-                                                                        if (ac === assetClass) {
-                                                                            amount += amt;
+                                                                    if (constituentEtf) {
+                                                                        for (const [key, amt] of constituentEtf.exposures) {
+                                                                            const { assetClass: ac } = parseExposureKey(key);
+                                                                            if (ac === assetClass) {
+                                                                                amount += amt;
+                                                                            }
                                                                         }
                                                                     }
-                                                                }
 
-                                                                const regionalBreakdown = getRegionalEquityBreakdown({
-                                                                    type: 'etf',
-                                                                    id: ticker,
-                                                                    name: ticker,
-                                                                    leverageType: 'None',
-                                                                    totalLeverage: 0,
-                                                                    exposures: new Map(),
-                                                                    etf: constituentEtf || {
-                                                                        ticker,
-                                                                        exposures: new Map(),
+                                                                    const regionalBreakdown = getRegionalEquityBreakdown({
+                                                                        type: 'etf',
+                                                                        id: ticker,
+                                                                        name: ticker,
                                                                         leverageType: 'None',
-                                                                    },
-                                                                });
+                                                                        totalLeverage: 0,
+                                                                        exposures: new Map(),
+                                                                        etf: constituentEtf || {
+                                                                            ticker,
+                                                                            exposures: new Map(),
+                                                                            leverageType: 'None',
+                                                                        },
+                                                                    });
 
-                                                                return (
-                                                                    <React.Fragment key={assetClass}>
-                                                                        <td
-                                                                            className={cn(
-                                                                                'py-1.5 px-2 text-center text-xs',
-                                                                                amount > 0
-                                                                                    ? cn(
-                                                                                          'font-medium',
-                                                                                          getAssetClassColor(assetClass),
-                                                                                          getAssetClassBgColor(assetClass)
-                                                                                      )
-                                                                                    : 'text-muted-foreground',
-                                                                                isEquity && 'border-l-2 border-blue-200'
+                                                                    return (
+                                                                        <React.Fragment key={assetClass}>
+                                                                            <td
+                                                                                className={cn(
+                                                                                    'py-1.5 px-2 text-center text-xs',
+                                                                                    amount > 0
+                                                                                        ? cn(
+                                                                                              'font-medium',
+                                                                                              getAssetClassColor(assetClass),
+                                                                                              getAssetClassBgColor(assetClass)
+                                                                                          )
+                                                                                        : 'text-muted-foreground',
+                                                                                    isEquity && 'border-l-2 border-blue-200'
+                                                                                )}
+                                                                            >
+                                                                                {amount > 0 ? formatPercent(amount) : '-'}
+                                                                            </td>
+                                                                            {isEquity && (
+                                                                                <>
+                                                                                    <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                                        <span className="text-xs font-medium text-blue-700">
+                                                                                            {formatRegionalEquity(
+                                                                                                regionalBreakdown.us,
+                                                                                                regionalBreakdown.total
+                                                                                            )}
+                                                                                        </span>
+                                                                                    </td>
+                                                                                    <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                                        <span className="text-xs font-medium text-blue-700">
+                                                                                            {formatRegionalEquity(
+                                                                                                regionalBreakdown.intl,
+                                                                                                regionalBreakdown.total
+                                                                                            )}
+                                                                                        </span>
+                                                                                    </td>
+                                                                                    <td className="py-1.5 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20">
+                                                                                        <span className="text-xs font-medium text-blue-700">
+                                                                                            {formatRegionalEquity(
+                                                                                                regionalBreakdown.em,
+                                                                                                regionalBreakdown.total
+                                                                                            )}
+                                                                                        </span>
+                                                                                    </td>
+                                                                                </>
                                                                             )}
-                                                                        >
-                                                                            {amount > 0 ? formatPercent(amount) : '-'}
-                                                                        </td>
-                                                                        {isEquity && (
-                                                                            <>
-                                                                                <td className="py-1.5 px-1 text-center bg-blue-50/20">
-                                                                                    <span className="text-xs font-medium text-blue-700">
-                                                                                        {formatRegionalEquity(regionalBreakdown.us, regionalBreakdown.total)}
-                                                                                    </span>
-                                                                                </td>
-                                                                                <td className="py-1.5 px-1 text-center bg-blue-50/20">
-                                                                                    <span className="text-xs font-medium text-blue-700">
-                                                                                        {formatRegionalEquity(regionalBreakdown.intl, regionalBreakdown.total)}
-                                                                                    </span>
-                                                                                </td>
-                                                                                <td className="py-1.5 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20">
-                                                                                    <span className="text-xs font-medium text-blue-700">
-                                                                                        {formatRegionalEquity(regionalBreakdown.em, regionalBreakdown.total)}
-                                                                                    </span>
-                                                                                </td>
-                                                                            </>
-                                                                        )}
-                                                                    </React.Fragment>
-                                                                );
-                                                            })}
-                                                        </tr>
-                                                    );
-                                                })}
+                                                                        </React.Fragment>
+                                                                    );
+                                                                })}
+                                                            </tr>
+                                                        );
+                                                    }
+                                                )}
                                             </>
                                         )}
                                     </React.Fragment>
