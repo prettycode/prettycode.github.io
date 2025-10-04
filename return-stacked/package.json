@@ -6,7 +6,13 @@
         "dev": "next dev --turbopack -p 1984",
         "build": "next build",
         "start": "npm run build && next start",
-        "lint": "next lint"
+        "lint:ci": "next lint --max-warnings=0",
+        "lint:fix": "next lint --fix",
+        "prettier:fix": "prettier --write .",
+        "prettier:ci": "prettier --check .",
+        "tsc:ci": "tsc --noEmit",
+        "test:ci": "npm run lint:ci && npm run tsc:ci && npm run prettier:ci && npm run build",
+        "pretest": "npm run prettier:fix && npm run lint:fix"
     },
     "dependencies": {
         "@radix-ui/react-dialog": "^1.1.6",
