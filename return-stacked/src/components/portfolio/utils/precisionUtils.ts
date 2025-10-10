@@ -35,24 +35,6 @@ export const getDisplayPercentage = (holding: Holding): number => {
 };
 
 /**
- * Enhances holdings with dual-precision values
- */
-export const enhanceHoldingsWithPrecision = (holdings: Map<string, Holding>): Map<string, Holding> => {
-    const enhanced = new Map<string, Holding>();
-
-    for (const [ticker, holding] of holdings.entries()) {
-        enhanced.set(ticker, {
-            ...holding,
-            basisPoints: percentToBasisPoints(holding.percentage),
-            displayPercentage: roundForDisplay(holding.percentage),
-            percentage: holding.percentage,
-        });
-    }
-
-    return enhanced;
-};
-
-/**
  * Redistributes allocation with precision constraints, guaranteeing exact 100% total
  */
 export const redistributeWithPrecisionConstraints = (
@@ -155,23 +137,4 @@ export const calculateTotalBasisPoints = (holdings: Map<string, Holding>): numbe
 export const isPortfolioPrecise = (holdings: Map<string, Holding>): boolean => {
     const totalBasisPoints = calculateTotalBasisPoints(holdings);
     return totalBasisPoints === MAX_BASIS_POINTS;
-};
-
-/**
- * Converts legacy holdings to precision-enhanced holdings
- * Also ensures existing holdings have consistent basis points
- */
-export const migrateToPrecisionHoldings = (legacyHoldings: Map<string, Holding>): Map<string, Holding> => {
-    const migrated = new Map<string, Holding>();
-    for (const [ticker, holding] of legacyHoldings.entries()) {
-        const basisPoints = holding.basisPoints ?? percentToBasisPoints(holding.percentage);
-        const percentage = basisPointsToPercent(basisPoints);
-        migrated.set(ticker, {
-            ...holding,
-            percentage,
-            basisPoints,
-            displayPercentage: roundForDisplay(percentage),
-        });
-    }
-    return migrated;
 };

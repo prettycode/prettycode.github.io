@@ -5,7 +5,6 @@ import type { Portfolio, Holding, SerializedPortfolio } from '@/types/portfolio'
 import { etfCatalog, createPortfolio } from './utils/etfData';
 import { examplePortfolios } from './utils/templates';
 import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils/allocationUtils';
-import { migrateToPrecisionHoldings } from './utils/precisionUtils';
 import { savePortfolio, getSavedPortfolios, deletePortfolio } from './utils/storageUtils';
 import Builder from './components/builder/Builder';
 import SaveModal from './components/builder/SaveModal';
@@ -36,19 +35,22 @@ const convertExampleToCustomPortfolio = (examplePortfolio: Portfolio): Portfolio
 
     for (const [ticker, holdingValue] of examplePortfolio.holdings) {
         const percentage = typeof holdingValue === 'number' ? holdingValue : holdingValue.percentage;
+        // Calculate basis points directly (1% = 100 basis points)
+        const basisPoints = Math.round(percentage * 100);
+        const precisePercentage = basisPoints / 100;
+
         holdings.set(ticker, {
-            percentage,
+            percentage: precisePercentage,
+            basisPoints: basisPoints,
+            displayPercentage: Math.round(precisePercentage * 10) / 10,
             locked: false,
             disabled: false,
         });
     }
 
-    // Ensure all holdings have basis points
-    const preciseHoldings = migrateToPrecisionHoldings(holdings);
-
     return {
         name: examplePortfolio.name,
-        holdings: preciseHoldings,
+        holdings,
     };
 };
 
@@ -146,16 +148,20 @@ const PortfolioManager: React.FC = () => {
                     return;
                 }
 
+                // Calculate basis points from percentage for precision
+                const basisPoints = Math.round(percentage * 100);
+                const precisePercentage = basisPoints / 100;
+
                 holdings.set(ticker, {
                     ...currentHolding,
-                    percentage,
+                    percentage: precisePercentage,
+                    basisPoints: basisPoints,
+                    displayPercentage: Math.round(precisePercentage * 10) / 10,
                 });
             }
         });
 
-        // Migrate to ensure basis points are set
-        const preciseHoldings = migrateToPrecisionHoldings(holdings);
-        updateCustomPortfolio(preciseHoldings);
+        updateCustomPortfolio(holdings);
     };
 
     const toggleLockETF = (ticker: string): void => {
