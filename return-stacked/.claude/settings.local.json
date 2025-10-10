@@ -14,7 +14,8 @@
             "Bash(npm run lint:ci:*)",
             "Bash(del:*)",
             "Bash(grep:*)",
-            "Bash(npm run:*)"
+            "Bash(npm run:*)",
+            "Bash(git config:*)"
         ],
         "deny": [],
         "ask": []
