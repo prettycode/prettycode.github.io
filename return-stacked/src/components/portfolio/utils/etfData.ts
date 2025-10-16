@@ -12,6 +12,7 @@ import type {
     TemplateDetails,
     Holding,
 } from '@/types/portfolio';
+import { percentToWeight, weightToPercent, calculateRelativePercent } from './precisionUtils';
 
 /**
  * Creates a unique key for exposure categorization
@@ -552,7 +553,7 @@ export const analyzePortfolio = (portfolio: Portfolio): PortfolioAnalysis => {
             continue;
         }
 
-        const weight = percentage / 100;
+        const weight = percentToWeight(percentage);
 
         for (const [key, amount] of etf.exposures) {
             const weightedAmount = amount * weight;
@@ -570,8 +571,8 @@ export const analyzePortfolio = (portfolio: Portfolio): PortfolioAnalysis => {
     const assetAllocationTable: Record<string, Record<string, string | number>> = {};
     for (const [assetClass, amount] of assetClasses) {
         assetAllocationTable[assetClass] = {
-            'Absolute Exposure': `${(amount * 100).toFixed(2)}%`,
-            'Relative Exposure': `${((amount / totalExposure) * 100).toFixed(2)}%`,
+            'Absolute Exposure': `${weightToPercent(amount).toFixed(2)}%`,
+            'Relative Exposure': `${calculateRelativePercent(amount, totalExposure).toFixed(2)}%`,
             'Raw Value': amount.toFixed(4),
         };
     }
@@ -652,7 +653,7 @@ export const getTemplateDetails = (portfolio: Portfolio): TemplateDetails => {
             continue;
         }
 
-        const weight = percentage / 100;
+        const weight = percentToWeight(percentage);
 
         for (const [exposureKey, amount] of etf.exposures) {
             const parsed = parseExposureKey(exposureKey);
@@ -672,8 +673,8 @@ export const getTemplateDetails = (portfolio: Portfolio): TemplateDetails => {
     const equityBreakdown: EquityBreakdown | null =
         totalEquityExposure > 0
             ? {
-                  us: (usEquityExposure / totalEquityExposure) * 100,
-                  exUs: (exUsEquityExposure / totalEquityExposure) * 100,
+                  us: calculateRelativePercent(usEquityExposure, totalEquityExposure),
+                  exUs: calculateRelativePercent(exUsEquityExposure, totalEquityExposure),
                   totalEquity: totalEquityExposure,
               }
             : null;

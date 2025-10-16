@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { AlertTriangle, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseExposureKey, etfCatalog } from '../../utils/etfData';
+import { percentToWeight, weightToPercent } from '../../utils/precisionUtils';
 import type { Portfolio } from '@/types/portfolio';
 
 interface PortfolioExposures {
@@ -58,7 +59,7 @@ const getPortfolioExposures = (portfolio: Portfolio): PortfolioExposures => {
             continue;
         }
 
-        const weight = percentage / 100; // Convert percentage to decimal
+        const weight = percentToWeight(percentage);
 
         for (const [key, amount] of etf.exposures) {
             const { assetClass, marketRegion, sizeFactor } = parseExposureKey(key);
@@ -84,13 +85,12 @@ const getPortfolioExposures = (portfolio: Portfolio): PortfolioExposures => {
         }
     }
 
-    // Convert to percentages
     return {
-        usEquity: usEquity * 100,
-        exUsEquity: exUsEquity * 100,
-        emEquity: emEquity * 100,
-        intlDeveloped: intlDeveloped * 100,
-        smallCap: smallCap * 100,
+        usEquity: weightToPercent(usEquity),
+        exUsEquity: weightToPercent(exUsEquity),
+        emEquity: weightToPercent(emEquity),
+        intlDeveloped: weightToPercent(intlDeveloped),
+        smallCap: weightToPercent(smallCap),
     };
 };
 

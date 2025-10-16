@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Portfolio, ETF, AssetClass, TemplateDetails } from '@/types/portfolio';
 import { parseExposureKey, getTemplateDetails } from '../../utils/etfData';
+import { percentToWeight, roundToWholePercent, calculateRelativePercent } from '../../utils/precisionUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -239,7 +240,7 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                 }
 
                 const percentage = typeof holding === 'number' ? holding : holding.percentage;
-                const weight = percentage / 100;
+                const weight = percentToWeight(percentage);
 
                 for (const [exposureKey, amount] of etf.exposures) {
                     const parsed = parseExposureKey(exposureKey);
@@ -298,7 +299,7 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
         if (total === 0 || amount === 0) {
             return '-';
         }
-        const percent = Math.round((amount / total) * 100);
+        const percent = roundToWholePercent(calculateRelativePercent(amount, total));
         return `${percent}%`;
     };
 
@@ -492,7 +493,7 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
      * Format percentage for display
      */
     const formatPercent = (value: number): string => {
-        const percent = Math.round(value * 100);
+        const percent = roundToWholePercent(calculateRelativePercent(value, 1));
         if (percent === 0) {
             return '-';
         }

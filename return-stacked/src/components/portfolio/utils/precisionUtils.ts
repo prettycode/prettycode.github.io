@@ -138,3 +138,35 @@ export const isPortfolioPrecise = (holdings: Map<string, Holding>): boolean => {
     const totalBasisPoints = calculateTotalBasisPoints(holdings);
     return totalBasisPoints === MAX_BASIS_POINTS;
 };
+
+/**
+ * Converts percentage to decimal weight (for multiplication)
+ * Example: 25% -> 0.25
+ */
+export const percentToWeight = (percentage: number): number => {
+    return percentage / 100;
+};
+
+/**
+ * Converts decimal weight to percentage
+ * Example: 0.25 -> 25
+ */
+export const weightToPercent = (weight: number): number => {
+    return weight * 100;
+};
+
+/**
+ * Calculates relative percentage of a part to a total
+ * Example: 50 out of 200 -> 25%
+ */
+export const calculateRelativePercent = (part: number, total: number): number => {
+    return total > 0 ? (part / total) * 100 : 0;
+};
+
+/**
+ * Rounds percentage to whole number
+ * Example: 25.7% -> 26%
+ */
+export const roundToWholePercent = (percentage: number): number => {
+    return Math.round(percentage);
+};

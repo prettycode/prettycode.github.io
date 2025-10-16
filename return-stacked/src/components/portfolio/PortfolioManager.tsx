@@ -6,6 +6,7 @@ import { etfCatalog, createPortfolio } from './utils/etfData';
 import { examplePortfolios } from './utils/templates';
 import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils/allocationUtils';
 import { savePortfolio, getSavedPortfolios, deletePortfolio } from './utils/storageUtils';
+import { percentToBasisPoints, basisPointsToPercent, roundForDisplay } from './utils/precisionUtils';
 import Builder from './components/builder/Builder';
 import SaveModal from './components/builder/SaveModal';
 import Analysis from './components/analysis/Analysis';
@@ -35,14 +36,13 @@ const convertExampleToCustomPortfolio = (examplePortfolio: Portfolio): Portfolio
 
     for (const [ticker, holdingValue] of examplePortfolio.holdings) {
         const percentage = typeof holdingValue === 'number' ? holdingValue : holdingValue.percentage;
-        // Calculate basis points directly (1% = 100 basis points)
-        const basisPoints = Math.round(percentage * 100);
-        const precisePercentage = basisPoints / 100;
+        const basisPoints = percentToBasisPoints(percentage);
+        const precisePercentage = basisPointsToPercent(basisPoints);
 
         holdings.set(ticker, {
             percentage: precisePercentage,
             basisPoints: basisPoints,
-            displayPercentage: Math.round(precisePercentage * 10) / 10,
+            displayPercentage: roundForDisplay(precisePercentage),
             locked: false,
             disabled: false,
         });
@@ -148,15 +148,14 @@ const PortfolioManager: React.FC = () => {
                     return;
                 }
 
-                // Calculate basis points from percentage for precision
-                const basisPoints = Math.round(percentage * 100);
-                const precisePercentage = basisPoints / 100;
+                const basisPoints = percentToBasisPoints(percentage);
+                const precisePercentage = basisPointsToPercent(basisPoints);
 
                 holdings.set(ticker, {
                     ...currentHolding,
                     percentage: precisePercentage,
                     basisPoints: basisPoints,
-                    displayPercentage: Math.round(precisePercentage * 10) / 10,
+                    displayPercentage: roundForDisplay(precisePercentage),
                 });
             }
         });
@@ -286,8 +285,8 @@ const PortfolioManager: React.FC = () => {
             }
 
             // Convert to basis points for comparison
-            const templateBasisPoints = Math.round(templatePercentage * 100);
-            const currentBasisPoints = currentHolding.basisPoints ?? Math.round(currentHolding.percentage * 100);
+            const templateBasisPoints = percentToBasisPoints(templatePercentage);
+            const currentBasisPoints = currentHolding.basisPoints ?? percentToBasisPoints(currentHolding.percentage);
 
             if (templateBasisPoints !== currentBasisPoints) {
                 return true;

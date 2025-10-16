@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Portfolio, ETF } from '@/types/portfolio';
 import { parseExposureKey } from '../../utils/etfData';
+import { weightToPercent } from '../../utils/precisionUtils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -104,7 +105,7 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({
                                 description += ` (${details.join(' ')})`;
                             }
 
-                            constituents.push(`${description}: ${(amount * 100).toFixed(1)}%`);
+                            constituents.push(`${description}: ${weightToPercent(amount).toFixed(1)}%`);
                         }
                     }
 

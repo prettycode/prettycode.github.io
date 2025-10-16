@@ -1,5 +1,6 @@
 import React from 'react';
 import { analyzePortfolio, parseExposureKey, assetClassColors } from '../../utils/etfData';
+import { weightToPercent, calculateRelativePercent } from '../../utils/precisionUtils';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -97,7 +98,7 @@ const DetailedExposures: React.FC<DetailedExposuresProps> = ({
         const { assetClass, marketRegion, factorStyle, sizeFactor } = parseExposureKey(key);
 
         // Calculate absolute amount (as percentage of portfolio)
-        const absAmount = amount * 100;
+        const absAmount = weightToPercent(amount);
 
         // Add to asset class exposures
         const currentAssetAmount = assetClassExposuresAbs.get(assetClass) || 0;
@@ -132,7 +133,7 @@ const DetailedExposures: React.FC<DetailedExposuresProps> = ({
     }
 
     for (const [assetClass, amount] of assetClassExposuresAbs.entries()) {
-        assetClassExposuresRel.set(assetClass, totalAssetExposure > 0 ? (amount / totalAssetExposure) * 100 : 0);
+        assetClassExposuresRel.set(assetClass, calculateRelativePercent(amount, totalAssetExposure));
     }
 
     // For Market Regions, relative to total market exposure
@@ -143,7 +144,7 @@ const DetailedExposures: React.FC<DetailedExposuresProps> = ({
     }
 
     for (const [region, amount] of marketRegionExposuresAbs.entries()) {
-        marketRegionExposuresRel.set(region, totalMarketExposure > 0 ? (amount / totalMarketExposure) * 100 : 0);
+        marketRegionExposuresRel.set(region, calculateRelativePercent(amount, totalMarketExposure));
     }
 
     // For Factor Styles, relative to total factor style exposure
@@ -154,7 +155,7 @@ const DetailedExposures: React.FC<DetailedExposuresProps> = ({
     }
 
     for (const [style, amount] of factorStyleExposuresAbs.entries()) {
-        factorStyleExposuresRel.set(style, totalStyleExposure > 0 ? (amount / totalStyleExposure) * 100 : 0);
+        factorStyleExposuresRel.set(style, calculateRelativePercent(amount, totalStyleExposure));
     }
 
     // For Size Factors, relative to total size factor exposure
@@ -165,7 +166,7 @@ const DetailedExposures: React.FC<DetailedExposuresProps> = ({
     }
 
     for (const [size, amount] of sizeFactorExposuresAbs.entries()) {
-        sizeFactorExposuresRel.set(size, totalSizeExposure > 0 ? (amount / totalSizeExposure) * 100 : 0);
+        sizeFactorExposuresRel.set(size, calculateRelativePercent(amount, totalSizeExposure));
     }
 
     // Get the equity blue color from assetClassColors

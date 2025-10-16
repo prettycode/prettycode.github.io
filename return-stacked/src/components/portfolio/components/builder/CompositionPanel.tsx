@@ -5,6 +5,7 @@ import { AlertCircle, ChevronDown, ChevronUp, RotateCcw, Save, Scale, Trash2 } f
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { percentToBasisPoints } from '../../utils/precisionUtils';
 import HoldingsTable from './HoldingsTable';
 
 interface AllocationUpdate {
@@ -148,9 +149,9 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
         hasMultipleActiveHoldings &&
         ((): boolean => {
             const targetPercentage = 100 / activeHoldings.length;
-            const targetBasisPoints = Math.round(targetPercentage * 100);
+            const targetBasisPoints = percentToBasisPoints(targetPercentage);
             return activeHoldings.every(([_ticker, holding]) => {
-                const holdingBasisPoints = holding.basisPoints ?? Math.round(holding.percentage * 100);
+                const holdingBasisPoints = holding.basisPoints ?? percentToBasisPoints(holding.percentage);
                 // Allow 1 basis point (0.01%) difference for rounding
                 return Math.abs(holdingBasisPoints - targetBasisPoints) <= 1;
             });
@@ -161,11 +162,11 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
         ((): boolean => {
             const totalLockedOrDisabledBasisPoints = holdings
                 .filter(([_ticker, holding]) => holding.locked || holding.disabled)
-                .reduce((sum, [_ticker, holding]) => sum + (holding.basisPoints ?? Math.round(holding.percentage * 100)), 0);
+                .reduce((sum, [_ticker, holding]) => sum + (holding.basisPoints ?? percentToBasisPoints(holding.percentage)), 0);
             const remainingBasisPoints = Math.max(0, 10000 - totalLockedOrDisabledBasisPoints);
             const targetBasisPoints = Math.round(remainingBasisPoints / unlockedActiveHoldings.length);
             return unlockedActiveHoldings.every(([_ticker, holding]) => {
-                const holdingBasisPoints = holding.basisPoints ?? Math.round(holding.percentage * 100);
+                const holdingBasisPoints = holding.basisPoints ?? percentToBasisPoints(holding.percentage);
                 // Allow 1 basis point (0.01%) difference for rounding
                 return Math.abs(holdingBasisPoints - targetBasisPoints) <= 1;
             });
