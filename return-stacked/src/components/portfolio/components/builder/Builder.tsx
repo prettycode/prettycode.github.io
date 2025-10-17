@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Portfolio, ETF, SerializedPortfolio, Holding } from '@/types/portfolio';
 import { deserializePortfolio } from '../../utils/storageUtils';
 import TickerOrTemplateSelectionTable from './TickerOrTemplateSelectionTable';
 import CompositionPanel from './CompositionPanel';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, Folder } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Download, Upload } from 'lucide-react';
 
 interface AllocationUpdate {
     ticker: string;
@@ -19,7 +18,6 @@ interface BuilderProps {
     showDetailColumns: boolean;
     totalAllocation: number;
     examplePortfolios: Portfolio[];
-    savedPortfolios: SerializedPortfolio[];
     onAddETF: (ticker: string) => void;
     onRemoveETF: (ticker: string) => void;
     onUpdateAllocation: (ticker: string, value: number) => void;
@@ -31,13 +29,12 @@ interface BuilderProps {
     onResetPortfolio: () => void;
     onSavePortfolio: () => void;
     onToggleDetailColumns: () => void;
-    onDeletePortfolio: (portfolioName: string) => void;
     onUpdatePortfolio: (portfolio: Partial<Portfolio>, isTemplateLoad?: boolean, originalTemplate?: Portfolio | null) => void;
     onResetToTemplate?: () => void;
     isTemplateModified?: boolean;
+    onExportPortfolio?: () => void;
+    onImportPortfolio?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
-
-type TabValue = 'build' | 'saved';
 
 const Builder: React.FC<BuilderProps> = ({
     customPortfolio,
@@ -46,7 +43,6 @@ const Builder: React.FC<BuilderProps> = ({
     showDetailColumns,
     totalAllocation,
     examplePortfolios,
-    savedPortfolios,
     onAddETF,
     onRemoveETF,
     onUpdateAllocation,
@@ -58,14 +54,14 @@ const Builder: React.FC<BuilderProps> = ({
     onResetPortfolio,
     onSavePortfolio,
     onToggleDetailColumns,
-    onDeletePortfolio,
     onUpdatePortfolio,
     onResetToTemplate,
     isTemplateModified,
+    onExportPortfolio,
+    onImportPortfolio,
 }) => {
-    // State for active tab and new portfolio name
-    const [activeTab, setActiveTab] = useState<TabValue>('build');
     const [portfolioName, setPortfolioName] = useState(customPortfolio.name || '');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Sync portfolioName with customPortfolio.name when it changes
     useEffect(() => {
@@ -110,9 +106,6 @@ const Builder: React.FC<BuilderProps> = ({
 
             // Set portfolio name for the input field
             setPortfolioName(portfolioToLoad.name);
-
-            // Switch to the build tab after loading
-            setActiveTab('build');
         } catch (error) {
             console.error('Error loading portfolio:', error);
             alert('There was an error loading the portfolio. Please try again.');
@@ -131,134 +124,86 @@ const Builder: React.FC<BuilderProps> = ({
                 <div className="flex items-center space-x-2">
                     <h2 className="text-xl font-bold">Portfolio Builder</h2>
                 </div>
+                <div className="flex gap-2">
+                    {onExportPortfolio && (
+                        <Button
+                            onClick={onExportPortfolio}
+                            variant="outline"
+                            size="sm"
+                            className="h-8 cursor-pointer"
+                            title="Export current portfolio as JSON"
+                            disabled={customPortfolio.holdings.size === 0}
+                        >
+                            <Download className="h-4 w-4 mr-1" />
+                            <span className="hidden sm:inline">Export</span>
+                        </Button>
+                    )}
+                    {onImportPortfolio && (
+                        <>
+                            <Button
+                                onClick={() => fileInputRef.current?.click()}
+                                variant="outline"
+                                size="sm"
+                                className="h-8 cursor-pointer"
+                                title="Import portfolio from JSON file"
+                            >
+                                <Upload className="h-4 w-4 mr-1" />
+                                <span className="hidden sm:inline">Import</span>
+                            </Button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".json"
+                                onChange={onImportPortfolio}
+                                className="hidden"
+                                aria-label="Import portfolio file"
+                            />
+                        </>
+                    )}
+                </div>
             </div>
 
-            {/* Main tabbed interface */}
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)} className="w-full">
-                <TabsList className="grid grid-cols-3">
-                    <TabsTrigger value="build" className="flex items-center gap-1 cursor-pointer">
-                        <Plus className="h-4 w-4" />
-                        <span>Build</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="saved" className="flex items-center gap-1 cursor-pointer">
-                        <Folder className="h-4 w-4" />
-                        <span>Saved</span>
-                    </TabsTrigger>
-                </TabsList>
+            {/* Template Selection Table */}
+            <TickerOrTemplateSelectionTable
+                mode="templates"
+                templates={examplePortfolios}
+                onSelect={(item) => loadPortfolio(item as Portfolio)}
+                title="Search Templates..."
+                etfCatalog={etfCatalog}
+            />
 
-                {/* Build Tab */}
-                <TabsContent value="build">
-                    <div className="space-y-3">
-                        {/* Template Selection Table */}
-                        <TickerOrTemplateSelectionTable
-                            mode="templates"
-                            templates={examplePortfolios}
-                            onSelect={(item) => loadPortfolio(item as Portfolio)}
-                            title="Search Templates..."
-                            etfCatalog={etfCatalog}
-                        />
+            {/* Portfolio Allocations */}
+            <CompositionPanel
+                isPortfolioEmpty={isPortfolioEmpty}
+                setActiveTab={() => {}}
+                customPortfolio={customPortfolio}
+                etfCatalog={etfCatalog}
+                tempInputs={tempInputs}
+                showDetailColumns={showDetailColumns}
+                totalAllocation={totalAllocation}
+                isPortfolioValid={isPortfolioValid}
+                portfolioName={portfolioName}
+                onToggleDetailColumns={onToggleDetailColumns}
+                onUpdateAllocation={onUpdateAllocation}
+                onBulkUpdateAllocations={onBulkUpdateAllocations}
+                onToggleLock={onToggleLock}
+                onToggleDisable={onToggleDisable}
+                onInputChange={onInputChange}
+                onInputBlur={onInputBlur}
+                onRemoveETF={onRemoveETF}
+                onResetPortfolio={onResetPortfolio}
+                onSavePortfolio={onSavePortfolio}
+                setShowPortfolioNameInput={() => {}}
+                onResetToTemplate={onResetToTemplate}
+                isTemplateModified={isTemplateModified}
+            />
 
-                        {/* Portfolio Allocations */}
-                        <CompositionPanel
-                            isPortfolioEmpty={isPortfolioEmpty}
-                            setActiveTab={(tab: string) => setActiveTab(tab as TabValue)}
-                            customPortfolio={customPortfolio}
-                            etfCatalog={etfCatalog}
-                            tempInputs={tempInputs}
-                            showDetailColumns={showDetailColumns}
-                            totalAllocation={totalAllocation}
-                            isPortfolioValid={isPortfolioValid}
-                            portfolioName={portfolioName}
-                            onToggleDetailColumns={onToggleDetailColumns}
-                            onUpdateAllocation={onUpdateAllocation}
-                            onBulkUpdateAllocations={onBulkUpdateAllocations}
-                            onToggleLock={onToggleLock}
-                            onToggleDisable={onToggleDisable}
-                            onInputChange={onInputChange}
-                            onInputBlur={onInputBlur}
-                            onRemoveETF={onRemoveETF}
-                            onResetPortfolio={onResetPortfolio}
-                            onSavePortfolio={onSavePortfolio}
-                            setShowPortfolioNameInput={() => {
-                                /* Not used in this implementation */
-                            }}
-                            onResetToTemplate={onResetToTemplate}
-                            isTemplateModified={isTemplateModified}
-                        />
-
-                        {/* ETF Selection */}
-                        <TickerOrTemplateSelectionTable
-                            etfCatalog={etfCatalog}
-                            onSelect={(item) => onAddETF(item as string)}
-                            existingTickers={Array.from(customPortfolio.holdings.keys())}
-                        />
-                    </div>
-                </TabsContent>
-
-                {/* Saved portfolios Tab */}
-                <TabsContent value="saved">
-                    <Card className="bg-gradient-to-br from-background to-muted/20 border border-border/40 py-0">
-                        <CardContent className="p-6">
-                            <h3 className="text-lg font-medium mb-4">Your Saved Portfolios</h3>
-
-                            {savedPortfolios.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-8 text-center">
-                                    <Folder className="h-12 w-12 text-muted-foreground/40 mb-3" />
-                                    <h4 className="text-base font-medium mb-2">No Saved Portfolios</h4>
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                        You haven&apos;t saved any portfolios yet. Build a portfolio and save it to see it here.
-                                    </p>
-                                    <button
-                                        onClick={() => setActiveTab('build')}
-                                        className="flex items-center gap-1 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
-                                    >
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        <span>Create a Portfolio</span>
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {savedPortfolios.map((portfolio, index) => (
-                                        <div
-                                            key={`${portfolio.name}-${index}`}
-                                            className="border border-border/40 rounded-lg overflow-hidden group"
-                                        >
-                                            <div className="p-4">
-                                                <h4 className="font-medium mb-1">{portfolio.name || 'Unnamed Portfolio'}</h4>
-                                                <p className="text-xs text-muted-foreground mb-3">
-                                                    {(portfolio as SerializedPortfolio & { description?: string }).description ||
-                                                        (portfolio.createdAt
-                                                            ? `Created on ${new Date(portfolio.createdAt).toLocaleDateString()}`
-                                                            : 'No creation date available')}
-                                                </p>
-                                                <div className="text-xs text-muted-foreground mb-3">
-                                                    {portfolio.etfCount || (portfolio.holdings ? portfolio.holdings.length : '?')} ETFs
-                                                </div>
-                                            </div>
-
-                                            <div className="flex border-t border-border/40">
-                                                <button
-                                                    onClick={() => loadPortfolio(portfolio, true)}
-                                                    className="flex-1 py-2 text-xs font-medium text-center hover:bg-muted/50 transition-colors text-foreground cursor-pointer"
-                                                >
-                                                    Load
-                                                </button>
-                                                <div className="w-px bg-border/40"></div>
-                                                <button
-                                                    onClick={() => onDeletePortfolio(portfolio.name)}
-                                                    className="flex-1 py-2 text-xs font-medium text-center hover:bg-red-50 hover:text-red-600 transition-colors text-muted-foreground cursor-pointer"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+            {/* ETF Selection */}
+            <TickerOrTemplateSelectionTable
+                etfCatalog={etfCatalog}
+                onSelect={(item) => onAddETF(item as string)}
+                existingTickers={Array.from(customPortfolio.holdings.keys())}
+            />
         </div>
     );
 };

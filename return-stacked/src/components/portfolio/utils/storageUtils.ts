@@ -11,7 +11,6 @@ export const savePortfolio = (portfolio: Portfolio): SerializedPortfolio[] => {
             name: portfolio.name,
             holdings: Array.from(portfolio.holdings.entries()),
             createdAt: portfolio.createdAt ?? Date.now(),
-            etfCount: portfolio.holdings.size,
         };
 
         const savedPortfolios = getSavedPortfolios();

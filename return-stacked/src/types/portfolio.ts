@@ -72,7 +72,6 @@ export interface Portfolio {
     name: string;
     holdings: Map<string, Holding>;
     createdAt?: number;
-    etfCount?: number;
 }
 
 /**
@@ -82,7 +81,7 @@ export interface SerializedPortfolio {
     name: string;
     holdings: Array<[string, Holding]>;
     createdAt: number;
-    etfCount: number;
+    etfCount?: number; // Optional for backward compatibility with existing saved portfolios
 }
 
 /**

@@ -1,15 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import type { Portfolio, Holding, SerializedPortfolio } from '@/types/portfolio';
+import type { Portfolio, Holding } from '@/types/portfolio';
 import { etfCatalog, createPortfolio } from './utils/etfData';
 import { examplePortfolios } from './utils/templates';
 import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils/allocationUtils';
-import { savePortfolio, getSavedPortfolios, deletePortfolio } from './utils/storageUtils';
+import { savePortfolio, deserializePortfolio } from './utils/storageUtils';
 import { percentToBasisPoints, basisPointsToPercent, roundForDisplay } from './utils/precisionUtils';
+import { exportPortfolio, importPortfolio } from './utils/exportImportUtils';
 import Builder from './components/builder/Builder';
 import SaveModal from './components/builder/SaveModal';
 import Analysis from './components/analysis/Analysis';
+import { useToast } from '@/components/ui/toast';
 
 const DEFAULT_PORTFOLIO_NAME = 'New, Unsaved Portfolio';
 
@@ -55,6 +57,7 @@ const convertExampleToCustomPortfolio = (examplePortfolio: Portfolio): Portfolio
 };
 
 const PortfolioManager: React.FC = () => {
+    const { showToast } = useToast();
     const selectedTemplate = examplePortfolios.length > 0 ? examplePortfolios[new Date().getSeconds() % examplePortfolios.length] : null;
 
     const defaultPortfolio = selectedTemplate
@@ -65,17 +68,48 @@ const PortfolioManager: React.FC = () => {
     const [originalTemplate, setOriginalTemplate] = useState<Portfolio | null>(selectedTemplate);
     const [tempInputs, setTempInputs] = useState<TempInputs>({});
     const [showDetailColumns, setShowDetailColumns] = useState<boolean>(false);
-    const [savedPortfolios, setSavedPortfolios] = useState<SerializedPortfolio[]>([]);
     const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
 
+    // Track unsaved changes
     useEffect(() => {
-        loadSavedPortfolios();
-    }, []);
+        setHasUnsavedChanges(true);
+    }, [customPortfolio.holdings]);
 
-    const loadSavedPortfolios = (): void => {
-        const portfolios = getSavedPortfolios();
-        setSavedPortfolios(portfolios);
-    };
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent): void => {
+            // Ctrl+S or Cmd+S to save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                const currentTotal = calculateTotalAllocation(customPortfolio.holdings);
+                const isPortfolioValid = Math.abs(currentTotal - 100) < 0.01 && customPortfolio.holdings.size > 0;
+                if (isPortfolioValid) {
+                    openSaveModal();
+                }
+            }
+            // Escape to close modal
+            if (e.key === 'Escape' && showSaveModal) {
+                setShowSaveModal(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return (): void => window.removeEventListener('keydown', handleKeyDown);
+    }, [customPortfolio.holdings, showSaveModal]);
+
+    // Warn before leaving with unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+            if (hasUnsavedChanges && customPortfolio.holdings.size > 0) {
+                e.preventDefault();
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return (): void => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges, customPortfolio.holdings.size]);
+
 
     const updateCustomPortfolio = (updatedHoldings: Map<string, Holding>): void => {
         setCustomPortfolio({
@@ -238,22 +272,6 @@ const PortfolioManager: React.FC = () => {
 
     const totalAllocation = calculateTotalAllocation(customPortfolio.holdings);
 
-    const handleDeletePortfolio = (portfolioName: string): void => {
-        try {
-            const updatedPortfolios = deletePortfolio(portfolioName);
-
-            setSavedPortfolios(updatedPortfolios);
-
-            if (customPortfolio.name === portfolioName) {
-                resetPortfolio();
-            }
-
-            alert(`Portfolio "${portfolioName}" deleted successfully.`);
-        } catch (error) {
-            console.error('Error deleting portfolio:', error);
-            alert('There was an error deleting the portfolio. Please try again.');
-        }
-    };
 
     const resetPortfolio = (): void => {
         setCustomPortfolio(createPortfolio(DEFAULT_PORTFOLIO_NAME, []));
@@ -325,8 +343,7 @@ const PortfolioManager: React.FC = () => {
                 name: portfolioName,
             };
 
-            const updatedSavedPortfolios = savePortfolio(portfolioToSave);
-            setSavedPortfolios(updatedSavedPortfolios);
+            savePortfolio(portfolioToSave);
 
             setCustomPortfolio((prev) => ({
                 ...prev,
@@ -334,16 +351,49 @@ const PortfolioManager: React.FC = () => {
             }));
 
             setShowSaveModal(false);
+            setHasUnsavedChanges(false);
 
-            alert(`Portfolio "${portfolioName}" saved successfully!`);
+            showToast(`Portfolio "${portfolioName}" saved successfully!`, 'success');
         } catch (error) {
             console.error('Error saving portfolio:', error);
-            alert('There was an error saving your portfolio. Please try again.');
+            showToast('There was an error saving your portfolio. Please try again.', 'error');
         }
     };
 
     const toggleDetailColumns = (): void => {
         setShowDetailColumns(!showDetailColumns);
+    };
+
+    const handleExportPortfolio = (): void => {
+        try {
+            exportPortfolio(customPortfolio);
+            showToast('Portfolio exported successfully!', 'success');
+        } catch (error) {
+            console.error('Error exporting portfolio:', error);
+            showToast('Failed to export portfolio. Please try again.', 'error');
+        }
+    };
+
+    const handleImportPortfolio = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+        const file = event.target.files?.[0];
+        if (!file) {
+            return;
+        }
+
+        try {
+            const serializedPortfolio = await importPortfolio(file);
+            const portfolio = deserializePortfolio(serializedPortfolio);
+            setCustomPortfolio(portfolio);
+            setOriginalTemplate(null);
+            setHasUnsavedChanges(true);
+            showToast(`Portfolio "${portfolio.name}" imported successfully!`, 'success');
+        } catch (error) {
+            console.error('Error importing portfolio:', error);
+            showToast('Failed to import portfolio. Please check the file format.', 'error');
+        }
+
+        // Reset the input so the same file can be imported again
+        event.target.value = '';
     };
 
     return (
@@ -358,7 +408,6 @@ const PortfolioManager: React.FC = () => {
                             showDetailColumns={showDetailColumns}
                             totalAllocation={totalAllocation}
                             examplePortfolios={examplePortfolios}
-                            savedPortfolios={savedPortfolios}
                             onAddETF={addETFToPortfolio}
                             onRemoveETF={removeETFFromPortfolio}
                             onUpdateAllocation={updateETFAllocation}
@@ -370,10 +419,11 @@ const PortfolioManager: React.FC = () => {
                             onResetPortfolio={resetPortfolio}
                             onSavePortfolio={openSaveModal}
                             onToggleDetailColumns={toggleDetailColumns}
-                            onDeletePortfolio={handleDeletePortfolio}
                             onUpdatePortfolio={updatePortfolio}
                             onResetToTemplate={resetToTemplate}
                             isTemplateModified={isTemplateModified()}
+                            onExportPortfolio={handleExportPortfolio}
+                            onImportPortfolio={handleImportPortfolio}
                         />
                     </div>
                 </div>
