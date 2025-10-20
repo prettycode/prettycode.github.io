@@ -12,6 +12,10 @@ interface PortfolioExposures {
     emEquity: number;
     intlDeveloped: number;
     smallCap: number;
+    totalEquity: number;
+    treasuries: number;
+    gold: number;
+    alternatives: number;
 }
 
 interface WarningResult {
@@ -44,6 +48,10 @@ const getPortfolioExposures = (portfolio: Portfolio): PortfolioExposures => {
     let emEquity = 0;
     let intlDeveloped = 0;
     let smallCap = 0;
+    let totalEquity = 0;
+    let treasuries = 0;
+    let gold = 0;
+    let alternatives = 0;
 
     // Calculate exposures directly from portfolio holdings
     for (const [ticker, holdingData] of portfolio.holdings) {
@@ -66,6 +74,7 @@ const getPortfolioExposures = (portfolio: Portfolio): PortfolioExposures => {
             const weightedAmount = amount * weight;
 
             if (assetClass === 'Equity') {
+                totalEquity += weightedAmount;
                 if (marketRegion === 'U.S.') {
                     usEquity += weightedAmount;
                 } else if (marketRegion === 'International Developed' || marketRegion === 'Emerging') {
@@ -81,6 +90,12 @@ const getPortfolioExposures = (portfolio: Portfolio): PortfolioExposures => {
                 if (sizeFactor === 'Small Cap') {
                     smallCap += weightedAmount;
                 }
+            } else if (assetClass === 'U.S. Treasuries') {
+                treasuries += weightedAmount;
+            } else if (assetClass === 'Gold') {
+                gold += weightedAmount;
+            } else if (assetClass === 'Managed Futures' || assetClass === 'Futures Yield' || assetClass === 'Bitcoin') {
+                alternatives += weightedAmount;
             }
         }
     }
@@ -91,6 +106,10 @@ const getPortfolioExposures = (portfolio: Portfolio): PortfolioExposures => {
         emEquity: weightToPercent(emEquity),
         intlDeveloped: weightToPercent(intlDeveloped),
         smallCap: weightToPercent(smallCap),
+        totalEquity: weightToPercent(totalEquity),
+        treasuries: weightToPercent(treasuries),
+        gold: weightToPercent(gold),
+        alternatives: weightToPercent(alternatives),
     };
 };
 

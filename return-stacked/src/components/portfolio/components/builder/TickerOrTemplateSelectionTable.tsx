@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { Portfolio, ETF, AssetClass, TemplateDetails } from '@/types/portfolio';
+import type { Portfolio, ETF, AssetClass, TemplateDetails, SerializedPortfolio } from '@/types/portfolio';
 import { parseExposureKey, getTemplateDetails } from '../../utils/etfData';
 import { percentToWeight, roundToWholePercent, calculateRelativePercent } from '../../utils/precisionUtils';
+import { deserializePortfolio } from '../../utils/storageUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,11 +13,13 @@ import { cn } from '@/lib/utils';
 
 interface TickerOrTemplateSelectionTableProps {
     etfCatalog: ETF[];
-    onSelect: (item: string | Portfolio) => void;
+    onSelect: (item: string | Portfolio | SerializedPortfolio) => void;
     existingTickers?: string[];
-    mode?: 'etfs' | 'templates';
+    mode?: 'etfs' | 'templates' | 'saved' | 'templates-and-saved';
     templates?: Portfolio[];
+    savedPortfolios?: SerializedPortfolio[];
     title?: string;
+    initiallyExpanded?: boolean;
 }
 
 interface LeverageTypeAllocation {
@@ -28,6 +31,7 @@ interface UnifiedItem {
     id: string;
     name: string;
     type: 'etf' | 'template';
+    source?: 'template' | 'saved'; // Only applicable for template type
     leverageType: string;
     leverageTypesByAllocation?: LeverageTypeAllocation[];
     totalLeverage: number;
@@ -53,15 +57,18 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
     existingTickers = [],
     mode = 'etfs',
     templates = [],
+    savedPortfolios = [],
     title = 'Search ETFs...',
+    initiallyExpanded = true,
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTab, setSelectedTab] = useState('all');
     const [selectedAssetClassFilter, setSelectedAssetClassFilter] = useState('all');
+    const [selectedSourceFilter, setSelectedSourceFilter] = useState<'all' | 'template' | 'saved'>('all');
     const [highlightedIndex, setHighlightedIndex] = useState(0);
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [sortColumn, setSortColumn] = useState<SortColumn>('ticker');
-    const [isExpanded, setIsExpanded] = useState(true);
+    const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
     const [showFilters, setShowFilters] = useState(false);
     const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set());
     const listRef = useRef<HTMLDivElement>(null);
@@ -112,23 +119,54 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                 .map(([type, allocation]) => ({ type, allocation }));
         };
 
-        if (mode === 'templates') {
-            return templates.map((template) => {
-                const details = getTemplateDetails(template);
-                const leverageTypesByAllocation = calculateLeverageTypesByAllocation(template);
+        if (mode === 'templates' || mode === 'saved' || mode === 'templates-and-saved') {
+            const allItems: UnifiedItem[] = [];
 
-                return {
-                    id: template.name,
-                    name: template.name,
-                    type: 'template' as const,
-                    leverageType: details.isLevered ? 'Mixed' : 'None',
-                    leverageTypesByAllocation: leverageTypesByAllocation,
-                    totalLeverage: details.totalLeverage,
-                    exposures: details.analysis.assetClasses,
-                    template: template,
-                    details: details,
-                };
-            });
+            // Add templates if in templates or combined mode
+            if (mode === 'templates' || mode === 'templates-and-saved') {
+                templates.forEach((template) => {
+                    const details = getTemplateDetails(template);
+                    const leverageTypesByAllocation = calculateLeverageTypesByAllocation(template);
+
+                    allItems.push({
+                        id: `template-${template.name}`,
+                        name: template.name,
+                        type: 'template' as const,
+                        source: 'template' as const,
+                        leverageType: details.isLevered ? 'Mixed' : 'None',
+                        leverageTypesByAllocation: leverageTypesByAllocation,
+                        totalLeverage: details.totalLeverage,
+                        exposures: details.analysis.assetClasses,
+                        template: template,
+                        details: details,
+                    });
+                });
+            }
+
+            // Add saved portfolios if in saved or combined mode
+            if (mode === 'saved' || mode === 'templates-and-saved') {
+                savedPortfolios
+                    .map((sp) => deserializePortfolio(sp))
+                    .forEach((template) => {
+                        const details = getTemplateDetails(template);
+                        const leverageTypesByAllocation = calculateLeverageTypesByAllocation(template);
+
+                        allItems.push({
+                            id: `saved-${template.name}`,
+                            name: template.name,
+                            type: 'template' as const,
+                            source: 'saved' as const,
+                            leverageType: details.isLevered ? 'Mixed' : 'None',
+                            leverageTypesByAllocation: leverageTypesByAllocation,
+                            totalLeverage: details.totalLeverage,
+                            exposures: details.analysis.assetClasses,
+                            template: template,
+                            details: details,
+                        });
+                    });
+            }
+
+            return allItems;
         } else {
             return etfCatalog.map((etf) => ({
                 id: etf.ticker,
@@ -140,11 +178,11 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                 etf: etf,
             }));
         }
-    }, [mode, templates, etfCatalog]);
+    }, [mode, templates, savedPortfolios, etfCatalog]);
 
     // Get unique leverage types for tabs
     const leverageTypes = useMemo(() => {
-        if (mode === 'templates') {
+        if (mode === 'templates' || mode === 'saved' || mode === 'templates-and-saved') {
             return ['All', 'Levered', 'Unlevered'];
         } else {
             return ['All', ...new Set(etfCatalog.map((etf) => (etf.leverageType === 'None' ? 'Unlevered' : etf.leverageType)))];
@@ -307,11 +345,12 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
     const filteredItems = items
         .filter((item) => {
             const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-            const notInPortfolio = mode === 'templates' ? true : !existingTickers.includes(item.id);
+            const notInPortfolio =
+                mode === 'templates' || mode === 'saved' || mode === 'templates-and-saved' ? true : !existingTickers.includes(item.id);
 
             let matchesTab = selectedTab === 'all';
             if (!matchesTab) {
-                if (mode === 'templates') {
+                if (mode === 'templates' || mode === 'saved' || mode === 'templates-and-saved') {
                     if (selectedTab === 'Levered') {
                         matchesTab = item.details!.isLevered;
                     } else if (selectedTab === 'Unlevered') {
@@ -328,7 +367,12 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                 matchesAssetClass = assetClassAmount > 0;
             }
 
-            return matchesSearch && notInPortfolio && matchesTab && matchesAssetClass;
+            let matchesSource = selectedSourceFilter === 'all';
+            if (!matchesSource && item.source) {
+                matchesSource = item.source === selectedSourceFilter;
+            }
+
+            return matchesSearch && notInPortfolio && matchesTab && matchesAssetClass && matchesSource;
         })
         .sort((a, b) => {
             try {
@@ -415,7 +459,7 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
      * Handle selection of an item
      */
     const handleSelect = (item: UnifiedItem): void => {
-        if (mode === 'templates') {
+        if (mode === 'templates' || mode === 'saved' || mode === 'templates-and-saved') {
             onSelect(item.template!);
         } else {
             onSelect(item.id);
@@ -552,8 +596,8 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
     // Toggle filters visibility
     const toggleFilters = (): void => {
         setShowFilters(!showFilters);
-        // If the card is collapsed and filter button is pressed, expand the card (ETF mode only)
-        if (mode === 'etfs' && !isExpanded) {
+        // If the card is collapsed and filter button is pressed, expand the card
+        if ((mode === 'etfs' || mode === 'templates-and-saved') && !isExpanded) {
             setIsExpanded(true);
         }
     };
@@ -592,7 +636,7 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                             className="pl-9 h-8"
                         />
                     </div>
-                    {mode === 'etfs' && (
+                    {(mode === 'etfs' || mode === 'templates-and-saved') && (
                         <Button
                             variant="ghost"
                             size="sm"
@@ -612,38 +656,64 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
             <div className={cn(isExpanded ? 'border-b' : '')}>
                 {showFilters && isExpanded && (
                     <div className="space-y-0">
-                        <Tabs defaultValue="all" onValueChange={setSelectedTab} className="w-full">
-                            <div className="flex items-center w-full px-3 pt-2">
-                                <div className="text-xs font-medium text-muted-foreground mr-2 min-w-fit">Type:</div>
-                                <TabsList className="flex-1 bg-muted/50 rounded-md h-7">
-                                    <TabsTrigger value="all" className="text-xs cursor-pointer h-6">
-                                        All
-                                    </TabsTrigger>
-                                    {leverageTypes
-                                        .filter((type) => type !== 'All')
-                                        .map((type) => (
-                                            <TabsTrigger key={type} value={type} className="text-xs cursor-pointer h-6">
-                                                {type}
+                        {mode === 'templates-and-saved' && (
+                            <Tabs
+                                defaultValue="all"
+                                onValueChange={(value) => setSelectedSourceFilter(value as 'all' | 'template' | 'saved')}
+                                className="w-full"
+                            >
+                                <div className="flex items-center w-full px-3 pt-2 pb-2">
+                                    <div className="text-xs font-medium text-muted-foreground mr-2 min-w-fit">Source:</div>
+                                    <TabsList className="flex-1 bg-muted/50 rounded-md h-7">
+                                        <TabsTrigger value="all" className="text-xs cursor-pointer h-6">
+                                            All
+                                        </TabsTrigger>
+                                        <TabsTrigger value="template" className="text-xs cursor-pointer h-6">
+                                            Templates
+                                        </TabsTrigger>
+                                        <TabsTrigger value="saved" className="text-xs cursor-pointer h-6">
+                                            Saved
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </div>
+                            </Tabs>
+                        )}
+                        {mode === 'etfs' && (
+                            <Tabs defaultValue="all" onValueChange={setSelectedTab} className="w-full">
+                                <div className="flex items-center w-full px-3 pt-2">
+                                    <div className="text-xs font-medium text-muted-foreground mr-2 min-w-fit">Type:</div>
+                                    <TabsList className="flex-1 bg-muted/50 rounded-md h-7">
+                                        <TabsTrigger value="all" className="text-xs cursor-pointer h-6">
+                                            All
+                                        </TabsTrigger>
+                                        {leverageTypes
+                                            .filter((type) => type !== 'All')
+                                            .map((type) => (
+                                                <TabsTrigger key={type} value={type} className="text-xs cursor-pointer h-6">
+                                                    {type}
+                                                </TabsTrigger>
+                                            ))}
+                                    </TabsList>
+                                </div>
+                            </Tabs>
+                        )}
+                        {mode === 'etfs' && (
+                            <Tabs defaultValue="all" onValueChange={setSelectedAssetClassFilter} className="w-full">
+                                <div className="flex items-center w-full px-3 pb-2">
+                                    <div className="text-xs font-medium text-muted-foreground mr-2 min-w-fit">Asset:</div>
+                                    <TabsList className="flex-1 bg-muted/50 rounded-md h-7">
+                                        <TabsTrigger value="all" className="text-xs cursor-pointer h-6">
+                                            All
+                                        </TabsTrigger>
+                                        {assetClasses.map((assetClass) => (
+                                            <TabsTrigger key={assetClass} value={assetClass} className="text-xs cursor-pointer h-6">
+                                                {getAssetClassDisplayName(assetClass)}
                                             </TabsTrigger>
                                         ))}
-                                </TabsList>
-                            </div>
-                        </Tabs>
-                        <Tabs defaultValue="all" onValueChange={setSelectedAssetClassFilter} className="w-full">
-                            <div className="flex items-center w-full px-3 pb-2">
-                                <div className="text-xs font-medium text-muted-foreground mr-2 min-w-fit">Asset:</div>
-                                <TabsList className="flex-1 bg-muted/50 rounded-md h-7">
-                                    <TabsTrigger value="all" className="text-xs cursor-pointer h-6">
-                                        All
-                                    </TabsTrigger>
-                                    {assetClasses.map((assetClass) => (
-                                        <TabsTrigger key={assetClass} value={assetClass} className="text-xs cursor-pointer h-6">
-                                            {getAssetClassDisplayName(assetClass)}
-                                        </TabsTrigger>
-                                    ))}
-                                </TabsList>
-                            </div>
-                        </Tabs>
+                                    </TabsList>
+                                </div>
+                            </Tabs>
+                        )}
                     </div>
                 )}
             </div>
@@ -658,7 +728,17 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                 {filteredItems.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                         <FilterIcon className="mx-auto h-10 w-10 opacity-20 mb-2" />
-                        <p>No matching {mode === 'templates' ? 'templates' : 'ETFs'} found</p>
+                        <p>
+                            No matching{' '}
+                            {mode === 'saved'
+                                ? 'saved portfolios'
+                                : mode === 'templates'
+                                  ? 'templates'
+                                  : mode === 'templates-and-saved'
+                                    ? 'templates or saved portfolios'
+                                    : 'ETFs'}{' '}
+                            found
+                        </p>
                         <p className="text-xs mt-1">Try adjusting your search or filters</p>
                     </div>
                 ) : (
@@ -667,10 +747,22 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                             <tr>
                                 <th
                                     className="px-3 text-left font-medium cursor-pointer hover:bg-muted/40 transition-colors whitespace-nowrap"
-                                    onClick={() => handleSort(mode === 'templates' ? 'name' : 'ticker')}
+                                    onClick={() =>
+                                        handleSort(
+                                            mode === 'templates' || mode === 'saved' || mode === 'templates-and-saved' ? 'name' : 'ticker'
+                                        )
+                                    }
                                 >
                                     <div className="flex items-center gap-1">
-                                        <span>{mode === 'templates' ? 'Template' : 'Ticker'}</span>
+                                        <span>
+                                            {mode === 'saved'
+                                                ? 'Portfolio'
+                                                : mode === 'templates'
+                                                  ? 'Template'
+                                                  : mode === 'templates-and-saved'
+                                                    ? 'Name'
+                                                    : 'Ticker'}
+                                        </span>
                                         {sortColumn === 'ticker' || sortColumn === 'name' ? (
                                             sortDirection === 'asc' ? (
                                                 <ArrowUp className="h-3 w-3 flex-shrink-0" />
@@ -797,7 +889,7 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                     );
                                 })}
 
-                                {mode !== 'templates' && (
+                                {mode !== 'templates' && mode !== 'saved' && mode !== 'templates-and-saved' && (
                                     <th
                                         className="py-2 px-2 text-center font-medium cursor-pointer hover:bg-muted/40 transition-colors min-w-[75px] whitespace-nowrap"
                                         onClick={() => handleSort('type')}
@@ -822,7 +914,9 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                         </thead>
                         <tbody>
                             {filteredItems.map((item, index) => {
-                                const isTemplateExpanded = mode === 'templates' && expandedTemplates.has(item.name);
+                                const isTemplateExpanded =
+                                    (mode === 'templates' || mode === 'saved' || mode === 'templates-and-saved') &&
+                                    expandedTemplates.has(item.name);
                                 return (
                                     <React.Fragment key={item.id}>
                                         <tr
@@ -836,7 +930,7 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                         >
                                             <td className="py-1.5 px-3 font-medium whitespace-nowrap">
                                                 <div className="flex items-center gap-1">
-                                                    {mode === 'templates' && (
+                                                    {(mode === 'templates' || mode === 'saved' || mode === 'templates-and-saved') && (
                                                         <span
                                                             className="hover:bg-accent/50 rounded p-0.5 transition-colors"
                                                             onClick={(e) => toggleTemplateExpansion(item.name, e)}
@@ -849,6 +943,19 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                                         </span>
                                                     )}
                                                     <span>{item.name}</span>
+                                                    {mode === 'templates-and-saved' && item.source && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={cn(
+                                                                'text-[10px] px-1.5 py-0 font-medium ml-1',
+                                                                item.source === 'saved'
+                                                                    ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                                                    : 'bg-gray-100 text-gray-800 border-gray-200'
+                                                            )}
+                                                        >
+                                                            {item.source === 'saved' ? 'Saved' : 'Template'}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             </td>
 
@@ -925,7 +1032,7 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                                 });
                                             })()}
 
-                                            {mode !== 'templates' && (
+                                            {mode !== 'templates' && mode !== 'saved' && mode !== 'templates-and-saved' && (
                                                 <td className="py-1.5 px-2 text-center">
                                                     {item.leverageType === 'None' ? (
                                                         <span className="text-xs text-muted-foreground">-</span>
@@ -945,146 +1052,148 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
                                         </tr>
 
                                         {/* Subrows for expanded templates */}
-                                        {mode === 'templates' && isTemplateExpanded && item.template?.holdings && (
-                                            <>
-                                                {Array.from(item.template.holdings.entries()).map(
-                                                    ([ticker, holding], subIndex, subArray) => {
-                                                        const constituentEtf = etfCatalog.find((e) => e.ticker === ticker);
-                                                        const percentage = typeof holding === 'number' ? holding : holding.percentage;
-                                                        const isLastSubrow = subIndex === subArray.length - 1;
-                                                        return (
-                                                            <tr
-                                                                key={`${item.id}-${ticker}`}
-                                                                className={cn(
-                                                                    'border-t border-border/40 hover:bg-accent/60 transition-colors bg-accent/40',
-                                                                    isLastSubrow && 'border-b-[3px] border-border'
-                                                                )}
-                                                            >
-                                                                <td className="py-1.5 px-3 pl-10 text-xs font-medium border-l-4 border-accent">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span>{ticker}</span>
-                                                                        <span className="text-[10px] text-muted-foreground">
-                                                                            ({percentage.toFixed(0)}%)
-                                                                        </span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="py-1.5 px-2 text-center text-xs">
-                                                                    {constituentEtf &&
-                                                                    !isEffectivelyOneX(
-                                                                        calculateTotalExposure(
-                                                                            { exposures: constituentEtf.exposures },
-                                                                            true
-                                                                        ) as number
-                                                                    ) ? (
-                                                                        <Badge
-                                                                            variant="outline"
-                                                                            className={cn(
-                                                                                'text-[10px] px-1.5 py-0 font-medium',
-                                                                                getLeverageAmountColor(
+                                        {(mode === 'templates' || mode === 'saved' || mode === 'templates-and-saved') &&
+                                            isTemplateExpanded &&
+                                            item.template?.holdings && (
+                                                <>
+                                                    {Array.from(item.template.holdings.entries()).map(
+                                                        ([ticker, holding], subIndex, subArray) => {
+                                                            const constituentEtf = etfCatalog.find((e) => e.ticker === ticker);
+                                                            const percentage = typeof holding === 'number' ? holding : holding.percentage;
+                                                            const isLastSubrow = subIndex === subArray.length - 1;
+                                                            return (
+                                                                <tr
+                                                                    key={`${item.id}-${ticker}`}
+                                                                    className={cn(
+                                                                        'border-t border-border/40 hover:bg-accent/60 transition-colors bg-accent/40',
+                                                                        isLastSubrow && 'border-b-[3px] border-border'
+                                                                    )}
+                                                                >
+                                                                    <td className="py-1.5 px-3 pl-10 text-xs font-medium border-l-4 border-accent">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span>{ticker}</span>
+                                                                            <span className="text-[10px] text-muted-foreground">
+                                                                                ({percentage.toFixed(0)}%)
+                                                                            </span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="py-1.5 px-2 text-center text-xs">
+                                                                        {constituentEtf &&
+                                                                        !isEffectivelyOneX(
+                                                                            calculateTotalExposure(
+                                                                                { exposures: constituentEtf.exposures },
+                                                                                true
+                                                                            ) as number
+                                                                        ) ? (
+                                                                            <Badge
+                                                                                variant="outline"
+                                                                                className={cn(
+                                                                                    'text-[10px] px-1.5 py-0 font-medium',
+                                                                                    getLeverageAmountColor(
+                                                                                        calculateTotalExposure(
+                                                                                            {
+                                                                                                exposures: constituentEtf.exposures,
+                                                                                            },
+                                                                                            true
+                                                                                        ) as number
+                                                                                    )
+                                                                                )}
+                                                                            >
+                                                                                {(
                                                                                     calculateTotalExposure(
                                                                                         {
                                                                                             exposures: constituentEtf.exposures,
                                                                                         },
                                                                                         true
                                                                                     ) as number
-                                                                                )
-                                                                            )}
-                                                                        >
-                                                                            {(
-                                                                                calculateTotalExposure(
-                                                                                    {
-                                                                                        exposures: constituentEtf.exposures,
-                                                                                    },
-                                                                                    true
-                                                                                ) as number
-                                                                            ).toFixed(1)}
-                                                                            x
-                                                                        </Badge>
-                                                                    ) : (
-                                                                        <span className="text-muted-foreground">-</span>
-                                                                    )}
-                                                                </td>
-                                                                {assetClasses.map((assetClass) => {
-                                                                    const isEquity = assetClass === 'Equity';
-                                                                    let amount = 0;
+                                                                                ).toFixed(1)}
+                                                                                x
+                                                                            </Badge>
+                                                                        ) : (
+                                                                            <span className="text-muted-foreground">-</span>
+                                                                        )}
+                                                                    </td>
+                                                                    {assetClasses.map((assetClass) => {
+                                                                        const isEquity = assetClass === 'Equity';
+                                                                        let amount = 0;
 
-                                                                    if (constituentEtf) {
-                                                                        for (const [key, amt] of constituentEtf.exposures) {
-                                                                            const { assetClass: ac } = parseExposureKey(key);
-                                                                            if (ac === assetClass) {
-                                                                                amount += amt;
+                                                                        if (constituentEtf) {
+                                                                            for (const [key, amt] of constituentEtf.exposures) {
+                                                                                const { assetClass: ac } = parseExposureKey(key);
+                                                                                if (ac === assetClass) {
+                                                                                    amount += amt;
+                                                                                }
                                                                             }
                                                                         }
-                                                                    }
 
-                                                                    const regionalBreakdown = getRegionalEquityBreakdown({
-                                                                        type: 'etf',
-                                                                        id: ticker,
-                                                                        name: ticker,
-                                                                        leverageType: 'None',
-                                                                        totalLeverage: 0,
-                                                                        exposures: new Map(),
-                                                                        etf: constituentEtf || {
-                                                                            ticker,
-                                                                            exposures: new Map(),
+                                                                        const regionalBreakdown = getRegionalEquityBreakdown({
+                                                                            type: 'etf',
+                                                                            id: ticker,
+                                                                            name: ticker,
                                                                             leverageType: 'None',
-                                                                        },
-                                                                    });
+                                                                            totalLeverage: 0,
+                                                                            exposures: new Map(),
+                                                                            etf: constituentEtf || {
+                                                                                ticker,
+                                                                                exposures: new Map(),
+                                                                                leverageType: 'None',
+                                                                            },
+                                                                        });
 
-                                                                    return (
-                                                                        <React.Fragment key={assetClass}>
-                                                                            <td
-                                                                                className={cn(
-                                                                                    'py-1.5 px-2 text-center text-xs',
-                                                                                    amount > 0
-                                                                                        ? cn(
-                                                                                              'font-medium',
-                                                                                              getAssetClassColor(assetClass),
-                                                                                              getAssetClassBgColor(assetClass)
-                                                                                          )
-                                                                                        : 'text-muted-foreground',
-                                                                                    isEquity && 'border-l-2 border-blue-200'
+                                                                        return (
+                                                                            <React.Fragment key={assetClass}>
+                                                                                <td
+                                                                                    className={cn(
+                                                                                        'py-1.5 px-2 text-center text-xs',
+                                                                                        amount > 0
+                                                                                            ? cn(
+                                                                                                  'font-medium',
+                                                                                                  getAssetClassColor(assetClass),
+                                                                                                  getAssetClassBgColor(assetClass)
+                                                                                              )
+                                                                                            : 'text-muted-foreground',
+                                                                                        isEquity && 'border-l-2 border-blue-200'
+                                                                                    )}
+                                                                                >
+                                                                                    {amount > 0 ? formatPercent(amount) : '-'}
+                                                                                </td>
+                                                                                {isEquity && (
+                                                                                    <>
+                                                                                        <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                                            <span className="text-xs font-medium text-blue-700">
+                                                                                                {formatRegionalEquity(
+                                                                                                    regionalBreakdown.us,
+                                                                                                    regionalBreakdown.total
+                                                                                                )}
+                                                                                            </span>
+                                                                                        </td>
+                                                                                        <td className="py-1.5 px-1 text-center bg-blue-50/20">
+                                                                                            <span className="text-xs font-medium text-blue-700">
+                                                                                                {formatRegionalEquity(
+                                                                                                    regionalBreakdown.intl,
+                                                                                                    regionalBreakdown.total
+                                                                                                )}
+                                                                                            </span>
+                                                                                        </td>
+                                                                                        <td className="py-1.5 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20">
+                                                                                            <span className="text-xs font-medium text-blue-700">
+                                                                                                {formatRegionalEquity(
+                                                                                                    regionalBreakdown.em,
+                                                                                                    regionalBreakdown.total
+                                                                                                )}
+                                                                                            </span>
+                                                                                        </td>
+                                                                                    </>
                                                                                 )}
-                                                                            >
-                                                                                {amount > 0 ? formatPercent(amount) : '-'}
-                                                                            </td>
-                                                                            {isEquity && (
-                                                                                <>
-                                                                                    <td className="py-1.5 px-1 text-center bg-blue-50/20">
-                                                                                        <span className="text-xs font-medium text-blue-700">
-                                                                                            {formatRegionalEquity(
-                                                                                                regionalBreakdown.us,
-                                                                                                regionalBreakdown.total
-                                                                                            )}
-                                                                                        </span>
-                                                                                    </td>
-                                                                                    <td className="py-1.5 px-1 text-center bg-blue-50/20">
-                                                                                        <span className="text-xs font-medium text-blue-700">
-                                                                                            {formatRegionalEquity(
-                                                                                                regionalBreakdown.intl,
-                                                                                                regionalBreakdown.total
-                                                                                            )}
-                                                                                        </span>
-                                                                                    </td>
-                                                                                    <td className="py-1.5 px-1 text-center border-r-2 border-blue-200 bg-blue-50/20">
-                                                                                        <span className="text-xs font-medium text-blue-700">
-                                                                                            {formatRegionalEquity(
-                                                                                                regionalBreakdown.em,
-                                                                                                regionalBreakdown.total
-                                                                                            )}
-                                                                                        </span>
-                                                                                    </td>
-                                                                                </>
-                                                                            )}
-                                                                        </React.Fragment>
-                                                                    );
-                                                                })}
-                                                            </tr>
-                                                        );
-                                                    }
-                                                )}
-                                            </>
-                                        )}
+                                                                            </React.Fragment>
+                                                                        );
+                                                                    })}
+                                                                </tr>
+                                                            );
+                                                        }
+                                                    )}
+                                                </>
+                                            )}
                                     </React.Fragment>
                                 );
                             })}

@@ -15,7 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
     title: 'Return Stacked Portfolio Builder',
-    description: 'Build and analyze return-stacked ETF portfolios with real-time asset allocation, leverage analysis, and exposure breakdowns.',
+    description:
+        'Build and analyze return-stacked ETF portfolios with real-time asset allocation, leverage analysis, and exposure breakdowns.',
 };
 
 export default function RootLayout({

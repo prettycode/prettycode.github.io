@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import type { Portfolio, Holding } from '@/types/portfolio';
+import type { Portfolio, Holding, SerializedPortfolio } from '@/types/portfolio';
 import { etfCatalog, createPortfolio } from './utils/etfData';
 import { examplePortfolios } from './utils/templates';
 import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils/allocationUtils';
-import { savePortfolio, deserializePortfolio } from './utils/storageUtils';
+import { savePortfolio, deserializePortfolio, getSavedPortfolios } from './utils/storageUtils';
 import { percentToBasisPoints, basisPointsToPercent, roundForDisplay } from './utils/precisionUtils';
 import { exportPortfolio, importPortfolio } from './utils/exportImportUtils';
 import Builder from './components/builder/Builder';
@@ -58,18 +58,20 @@ const convertExampleToCustomPortfolio = (examplePortfolio: Portfolio): Portfolio
 
 const PortfolioManager: React.FC = () => {
     const { showToast } = useToast();
-    const selectedTemplate = examplePortfolios.length > 0 ? examplePortfolios[new Date().getSeconds() % examplePortfolios.length] : null;
-
-    const defaultPortfolio = selectedTemplate
-        ? convertExampleToCustomPortfolio(selectedTemplate)
-        : createPortfolio(DEFAULT_PORTFOLIO_NAME, []);
+    const defaultPortfolio = createPortfolio(DEFAULT_PORTFOLIO_NAME, []);
 
     const [customPortfolio, setCustomPortfolio] = useState<Portfolio>(defaultPortfolio);
-    const [originalTemplate, setOriginalTemplate] = useState<Portfolio | null>(selectedTemplate);
+    const [originalTemplate, setOriginalTemplate] = useState<Portfolio | null>(null);
     const [tempInputs, setTempInputs] = useState<TempInputs>({});
     const [showDetailColumns, setShowDetailColumns] = useState<boolean>(false);
     const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+    const [savedPortfolios, setSavedPortfolios] = useState<SerializedPortfolio[]>([]);
+
+    // Load saved portfolios on mount (client-side only)
+    useEffect(() => {
+        setSavedPortfolios(getSavedPortfolios());
+    }, []);
 
     // Track unsaved changes
     useEffect(() => {
@@ -109,7 +111,6 @@ const PortfolioManager: React.FC = () => {
         window.addEventListener('beforeunload', handleBeforeUnload);
         return (): void => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [hasUnsavedChanges, customPortfolio.holdings.size]);
-
 
     const updateCustomPortfolio = (updatedHoldings: Map<string, Holding>): void => {
         setCustomPortfolio({
@@ -272,7 +273,6 @@ const PortfolioManager: React.FC = () => {
 
     const totalAllocation = calculateTotalAllocation(customPortfolio.holdings);
 
-
     const resetPortfolio = (): void => {
         setCustomPortfolio(createPortfolio(DEFAULT_PORTFOLIO_NAME, []));
         setOriginalTemplate(null);
@@ -353,6 +353,9 @@ const PortfolioManager: React.FC = () => {
             setShowSaveModal(false);
             setHasUnsavedChanges(false);
 
+            // Update saved portfolios list
+            setSavedPortfolios(getSavedPortfolios());
+
             showToast(`Portfolio "${portfolioName}" saved successfully!`, 'success');
         } catch (error) {
             console.error('Error saving portfolio:', error);
@@ -408,6 +411,7 @@ const PortfolioManager: React.FC = () => {
                             showDetailColumns={showDetailColumns}
                             totalAllocation={totalAllocation}
                             examplePortfolios={examplePortfolios}
+                            savedPortfolios={savedPortfolios}
                             onAddETF={addETFToPortfolio}
                             onRemoveETF={removeETFFromPortfolio}
                             onUpdateAllocation={updateETFAllocation}

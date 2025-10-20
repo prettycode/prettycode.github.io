@@ -180,7 +180,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                         <AlertCircle className="h-10 w-10 text-muted-foreground/60 mb-4" />
                         <h3 className="text-lg font-medium text-foreground mb-2">This Portfolio is Empty</h3>
                         <p className="text-sm text-muted-foreground max-w-md mb-4">
-                            Start by adding ETFs from the list below, or switch to the Templates tab to use a pre-built portfolio.
+                            Select a portfolio above, or add ETFs from the table below.
                         </p>
                     </CardContent>
                 </Card>
@@ -283,7 +283,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                         }
                                     >
                                         <Scale className="h-3.5 w-3.5 mr-1" />
-                                        <span>Equal Weight (Unlocked)</span>
+                                        <span>EW (Unlocked)</span>
                                     </Button>
 
                                     <Button
@@ -304,7 +304,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                         }
                                     >
                                         <Scale className="h-3.5 w-3.5 mr-1" />
-                                        <span>Equal Weight (Unlocked & Locked)</span>
+                                        <span>EW (Unlocked & Locked)</span>
                                     </Button>
                                 </div>
 

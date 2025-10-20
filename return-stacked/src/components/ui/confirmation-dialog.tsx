@@ -58,9 +58,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                     <button
                         onClick={handleConfirm}
                         className={`px-4 py-2 rounded-md transition-colors ${
-                            variant === 'danger'
-                                ? 'bg-red-600 text-white hover:bg-red-700'
-                                : 'bg-gray-800 text-white hover:bg-gray-700'
+                            variant === 'danger' ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-800 text-white hover:bg-gray-700'
                         }`}
                     >
                         {confirmText}

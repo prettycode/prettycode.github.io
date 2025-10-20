@@ -10,7 +10,30 @@ export const examplePortfolios: Portfolio[] = [
         { ticker: 'ZROZ', percentage: 30 },
         { ticker: 'GLDM', percentage: 20 },
     ]),
-    createPortfolio('SSO/ZROZ/GLD+ A', [
+    createPortfolio('HFEA', [
+        { ticker: 'UPRO', percentage: 55 },
+        { ticker: 'TMF', percentage: 45 },
+    ]),
+    createPortfolio('Return Stacked® Max', [
+        { ticker: 'RSSB', percentage: 25 },
+        { ticker: 'RSST', percentage: 25 },
+        { ticker: 'RSSY', percentage: 25 },
+        { ticker: 'RSSX', percentage: 25 },
+    ]),
+    createPortfolio('Value Barbell', [
+        { ticker: 'RSST', percentage: 25 },
+        { ticker: 'RSSB', percentage: 25 },
+        { ticker: 'AVDV', percentage: 15 },
+        { ticker: 'DGS', percentage: 15 },
+        { ticker: 'AVUV', percentage: 20 },
+    ]),
+];
+
+/**
+ * Default portfolios that always appear in saved portfolios
+ */
+export const defaultSavedPortfolios: Portfolio[] = [
+    createPortfolio('SSO/ZROZ/GLD alt. A', [
         { ticker: 'SSO', percentage: 20 },
         { ticker: 'ZROZ', percentage: 20 },
         { ticker: 'RSSX', percentage: 15 },
@@ -18,7 +41,7 @@ export const examplePortfolios: Portfolio[] = [
         { ticker: 'AVDS', percentage: 15 },
         { ticker: 'AVEE', percentage: 15 },
     ]),
-    createPortfolio('SSO/ZROZ/GLD+ B', [
+    createPortfolio('SSO/ZROZ/GLD alt. B', [
         { ticker: 'SSO', percentage: 25 },
         { ticker: 'RSSX', percentage: 10 },
         { ticker: 'RSSY', percentage: 10 },
@@ -28,25 +51,14 @@ export const examplePortfolios: Portfolio[] = [
         { ticker: 'KMLM', percentage: 7.5 },
         { ticker: 'CTA', percentage: 7.5 },
     ]),
-    createPortfolio('HFEA', [
-        { ticker: 'UPRO', percentage: 55 },
-        { ticker: 'TMF', percentage: 45 },
-    ]),
-    createPortfolio('HFEA+', [
+    createPortfolio('HFEA Tamed', [
         { ticker: 'SSO', percentage: 50 },
         { ticker: 'ZROZ', percentage: 50 / 3 },
         { ticker: 'KMLM', percentage: 50 / 6 },
         { ticker: 'CTA', percentage: 50 / 6 },
         { ticker: 'BTGD', percentage: 50 / 3 },
     ]),
-    createPortfolio('Value Barbell', [
-        { ticker: 'RSST', percentage: 25 },
-        { ticker: 'RSSB', percentage: 25 },
-        { ticker: 'AVDV', percentage: 15 },
-        { ticker: 'DGS', percentage: 15 },
-        { ticker: 'AVUV', percentage: 20 },
-    ]),
-    createPortfolio('Return Stacked® Max+', [
+    createPortfolio('Global Return Stacked® Max', [
         { ticker: 'RSSB', percentage: 17.5 },
         { ticker: 'RSST', percentage: 17.5 },
         { ticker: 'RSSY', percentage: 17.5 },
@@ -54,18 +66,13 @@ export const examplePortfolios: Portfolio[] = [
         { ticker: 'AVDS', percentage: 15 },
         { ticker: 'AVEE', percentage: 15 },
     ]),
-    createPortfolio('Return Stacked® Max', [
-        { ticker: 'RSSB', percentage: 25 },
-        { ticker: 'RSST', percentage: 25 },
-        { ticker: 'RSSY', percentage: 25 },
-        { ticker: 'RSSX', percentage: 25 },
-    ]),
 ];
 
 /**
- * Validate all template portfolios sum to 100%
+ * Validate all portfolios sum to 100%
  */
-examplePortfolios.forEach((portfolio) => {
+const allPortfolios = [...examplePortfolios, ...defaultSavedPortfolios];
+allPortfolios.forEach((portfolio) => {
     const total = Array.from(portfolio.holdings.values()).reduce((sum, val) => {
         const percentage = typeof val === 'number' ? val : val.percentage;
         return sum + percentage;

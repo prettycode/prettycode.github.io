@@ -18,6 +18,7 @@ interface BuilderProps {
     showDetailColumns: boolean;
     totalAllocation: number;
     examplePortfolios: Portfolio[];
+    savedPortfolios: SerializedPortfolio[];
     onAddETF: (ticker: string) => void;
     onRemoveETF: (ticker: string) => void;
     onUpdateAllocation: (ticker: string, value: number) => void;
@@ -43,6 +44,7 @@ const Builder: React.FC<BuilderProps> = ({
     showDetailColumns,
     totalAllocation,
     examplePortfolios,
+    savedPortfolios,
     onAddETF,
     onRemoveETF,
     onUpdateAllocation,
@@ -71,8 +73,11 @@ const Builder: React.FC<BuilderProps> = ({
     /**
      * Load a portfolio (example or saved)
      */
-    const loadPortfolio = (portfolio: Portfolio | SerializedPortfolio, isSaved = false): void => {
+    const loadPortfolio = (portfolio: Portfolio | SerializedPortfolio): void => {
         try {
+            // Check if this is a SerializedPortfolio by checking if it has a 'version' field
+            const isSaved = 'version' in portfolio;
+
             // If it's a saved portfolio, it needs to be deserialized
             const portfolioToLoad = isSaved ? deserializePortfolio(portfolio as SerializedPortfolio) : (portfolio as Portfolio);
 
@@ -163,15 +168,30 @@ const Builder: React.FC<BuilderProps> = ({
                 </div>
             </div>
 
-            {/* Template Selection Table */}
-            <TickerOrTemplateSelectionTable
-                mode="templates"
-                templates={examplePortfolios}
-                onSelect={(item) => loadPortfolio(item as Portfolio)}
-                title="Search Templates..."
-                etfCatalog={etfCatalog}
-            />
+            {/* Introduction Message */}
+            {
+                <div>
+                    <h3 className="text-lg font-semibold mb-2 mt-5">Load a Portfolio</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Start from a template or saved portfolio by selecting one from the table below.
+                    </p>
+                    {/* Template and Saved Portfolios Selection Table */}
+                    {
+                        <TickerOrTemplateSelectionTable
+                            mode="templates-and-saved"
+                            templates={examplePortfolios}
+                            savedPortfolios={savedPortfolios}
+                            onSelect={(item) => loadPortfolio(item as Portfolio | SerializedPortfolio)}
+                            title="Search Templates and Saved Portfolios..."
+                            etfCatalog={etfCatalog}
+                            initiallyExpanded={false}
+                        />
+                    }
+                </div>
+            }
 
+            <h3 className="text-lg font-semibold mb-2 mt-5">Modify Portfolio Allocations</h3>
+            <p className="text-sm text-muted-foreground mb-4">Change the portfolio composition using the controls below:</p>
             {/* Portfolio Allocations */}
             <CompositionPanel
                 isPortfolioEmpty={isPortfolioEmpty}
@@ -198,12 +218,21 @@ const Builder: React.FC<BuilderProps> = ({
                 isTemplateModified={isTemplateModified}
             />
 
-            {/* ETF Selection */}
-            <TickerOrTemplateSelectionTable
-                etfCatalog={etfCatalog}
-                onSelect={(item) => onAddETF(item as string)}
-                existingTickers={Array.from(customPortfolio.holdings.keys())}
-            />
+            {/* Introduction Message */}
+            {
+                <div>
+                    <h3 className="text-lg font-semibold mb-2 mt-5">Add ETFs to Your Portfolio</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Add ETFs to your portfolio by selecting them from the table below.</p>
+                    {/* Template and Saved Portfolios Selection Table */}
+                    {
+                        <TickerOrTemplateSelectionTable
+                            etfCatalog={etfCatalog}
+                            onSelect={(item) => onAddETF(item as string)}
+                            existingTickers={Array.from(customPortfolio.holdings.keys())}
+                        />
+                    }
+                </div>
+            }
         </div>
     );
 };
