@@ -1,9 +1,10 @@
 import React from 'react';
-import { analyzePortfolio, assetClassColors } from '../../utils/etfData';
-import { weightToPercent, calculateRelativePercent } from '../../utils/precisionUtils';
+import { assetClassColors } from '@/core/data/constants/assetClassColors';
+import { weightToPercent, calculateRelativePercent } from '@/core/calculators/precision';
+import { AnalysisService } from '@/core/services/AnalysisService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Portfolio } from '@/types/portfolio';
+import type { Portfolio } from '@/core/domain/Portfolio';
 
 interface AssetClassExposureBarProps {
     portfolio: Portfolio;
@@ -21,7 +22,8 @@ const AssetClassExposureBar: React.FC<AssetClassExposureBarProps> = ({
     showRelative = true,
     hideZeroValues = false,
 }) => {
-    const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
+    const analysisService = new AnalysisService();
+    const { assetClasses, totalLeverage } = analysisService.analyze(portfolio);
 
     /**
      * Get display name for asset classes

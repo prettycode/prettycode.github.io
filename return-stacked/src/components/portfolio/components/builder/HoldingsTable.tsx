@@ -1,7 +1,8 @@
 import React from 'react';
-import type { Portfolio, ETF } from '@/types/portfolio';
-import { parseExposureKey } from '../../utils/etfData';
-import { weightToPercent } from '../../utils/precisionUtils';
+import type { Portfolio } from '@/core/domain/Portfolio';
+import type { ETF } from '@/core/domain/ETF';
+import { parseExposureKey } from '@/core/utils/exposureKeys';
+import { weightToPercent } from '@/core/calculators/precision';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';

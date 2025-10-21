@@ -2,9 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { AlertTriangle, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { parseExposureKey, etfCatalog } from '../../utils/etfData';
-import { percentToWeight, weightToPercent } from '../../utils/precisionUtils';
-import type { Portfolio } from '@/types/portfolio';
+import { parseExposureKey } from '@/core/utils/exposureKeys';
+import { etfCatalog } from '@/core/data/catalogs/etfCatalog';
+import { percentToWeight, weightToPercent } from '@/core/calculators/precision';
+import type { Portfolio } from '@/core/domain/Portfolio';
 
 interface PortfolioExposures {
     usEquity: number;

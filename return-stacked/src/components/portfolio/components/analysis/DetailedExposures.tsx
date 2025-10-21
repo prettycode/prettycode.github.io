@@ -1,14 +1,19 @@
 import React from 'react';
-import { analyzePortfolio, parseExposureKey, assetClassColors } from '../../utils/etfData';
-import { weightToPercent, calculateRelativePercent } from '../../utils/precisionUtils';
+import { parseExposureKey } from '@/core/utils/exposureKeys';
+import { assetClassColors } from '@/core/data/constants/assetClassColors';
+import { weightToPercent, calculateRelativePercent } from '@/core/calculators/precision';
+import { AnalysisService } from '@/core/services/AnalysisService';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import ExposureCard from './ExposureCard';
-import type { Portfolio, ColorMap, AssetClass, MarketRegion, FactorStyle, SizeFactor } from '@/types/portfolio';
+import type { Portfolio } from '@/core/domain/Portfolio';
+import type { ColorMap } from '@/core/domain/ColorMap';
+import type { AssetClass } from '@/core/domain/AssetClass';
+import type { MarketRegion } from '@/core/domain/MarketRegion';
+import type { FactorStyle } from '@/core/domain/FactorStyle';
+import type { SizeFactor } from '@/core/domain/SizeFactor';
 
 interface ExpandedCategories {
     assetClass: boolean;
@@ -26,13 +31,6 @@ interface DetailedExposuresProps {
     useCompactView?: boolean;
     expandedCategories?: ExpandedCategories;
     onToggleCategory?: (category: keyof ExpandedCategories) => void;
-}
-
-interface ViewToggleProps {
-    label: string;
-    icon: React.ReactNode;
-    isChecked: boolean;
-    onChange: (checked: boolean) => void;
 }
 
 interface DetailedExposureCardProps {
@@ -62,7 +60,8 @@ const DetailedExposures: React.FC<DetailedExposuresProps> = ({
     },
     onToggleCategory,
 }) => {
-    const { exposures } = analyzePortfolio(portfolio);
+    const analysisService = new AnalysisService();
+    const { exposures } = analysisService.analyze(portfolio);
 
     // Define all possible values for each dimension
     const allAssetClasses: AssetClass[] = ['Equity', 'U.S. Treasuries', 'Managed Futures', 'Futures Yield', 'Gold', 'Bitcoin'];
@@ -404,23 +403,5 @@ const DetailedExposures: React.FC<DetailedExposuresProps> = ({
         </div>
     );
 };
-
-/**
- * Toggle component for view options
- */
-export const ViewToggle: React.FC<ViewToggleProps> = ({ label, icon, isChecked, onChange }): React.ReactElement => (
-    <div className="flex items-center space-x-1.5 px-1.5 py-1 rounded-sm hover:bg-muted">
-        {icon}
-        <Label htmlFor={`toggle-${label}`} className="text-[10px] cursor-pointer">
-            {label}
-        </Label>
-        <Switch
-            id={`toggle-${label}`}
-            checked={isChecked}
-            onCheckedChange={onChange}
-            className="data-[state=checked]:bg-primary h-[16px] w-[28px]"
-        />
-    </div>
-);
 
 export default DetailedExposures;

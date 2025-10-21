@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { roundForDisplay } from '../../utils/precisionUtils';
-import { analyzePortfolio, assetClassColors } from '../../utils/etfData';
+import { roundForDisplay } from '@/core/calculators/precision';
+import { assetClassColors } from '@/core/data/constants/assetClassColors';
+import { AnalysisService } from '@/core/services/AnalysisService';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Portfolio, ColorMap } from '@/types/portfolio';
+import type { Portfolio } from '@/core/domain/Portfolio';
+import type { ColorMap } from '@/core/domain/ColorMap';
 
 interface ExposureCardProps {
     portfolio?: Portfolio;
@@ -66,7 +68,8 @@ const ExposureCard: React.FC<ExposureCardProps> = ({
         if (!portfolio) {
             throw new Error('Portfolio is required when not using explicit data props');
         }
-        const { assetClasses, totalLeverage } = analyzePortfolio(portfolio);
+        const analysisService = new AnalysisService();
+        const { assetClasses, totalLeverage } = analysisService.analyze(portfolio);
         items = Array.from(assetClasses.entries());
         leverage = totalLeverage;
     }

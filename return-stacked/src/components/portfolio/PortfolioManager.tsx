@@ -1,19 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import type { Portfolio, Holding, SerializedPortfolio } from '@/types/portfolio';
-import { etfCatalog, createPortfolio } from './utils/etfData';
-import { examplePortfolios } from './utils/templates';
-import { redistributeAfterRemoval, updateAllocation, calculateTotalAllocation } from './utils/allocationUtils';
-import { savePortfolio, deserializePortfolio, getSavedPortfolios } from './utils/storageUtils';
-import { percentToBasisPoints, basisPointsToPercent, roundForDisplay } from './utils/precisionUtils';
-import { exportPortfolio, importPortfolio } from './utils/exportImportUtils';
+import React, { useState, useEffect, useCallback } from 'react';
+import type { Portfolio } from '@/core/domain/Portfolio';
+import type { SerializedPortfolio } from '@/core/domain/SerializedPortfolio';
+import { DEFAULT_PORTFOLIO_NAME, PRECISION_TOLERANCE, ALLOCATION_TOTAL_TARGET } from '@/core/data/constants';
+import { etfCatalog } from '@/core/data/catalogs/etfCatalog';
+import { examplePortfolios } from '@/core/data/catalogs/portfolioTemplates';
+import { isPortfolioModified } from '@/core/utils/portfolioComparison';
+import { logger } from '@/core/utils/logger';
+import { LocalStorageAdapter } from '@/adapters/storage/LocalStorageAdapter';
+import { usePortfolio } from '@/adapters/react/hooks/usePortfolio';
+import { usePersistence } from '@/adapters/react/hooks/usePersistence';
 import Builder from './components/builder/Builder';
 import SaveModal from './components/builder/SaveModal';
 import Analysis from './components/analysis/Analysis';
 import { useToast } from '@/components/ui/toast';
-
-const DEFAULT_PORTFOLIO_NAME = 'New, Unsaved Portfolio';
+import { serializePortfolio, deserializePortfolio } from '@/core/utils/serialization';
 
 /**
  * Allocation update for bulk operations
@@ -33,50 +35,33 @@ interface TempInputs {
 /**
  * Converts example portfolio to custom portfolio format with holding metadata
  */
-const convertExampleToCustomPortfolio = (examplePortfolio: Portfolio): Portfolio => {
-    const holdings = new Map<string, Holding>();
-
-    for (const [ticker, holdingValue] of examplePortfolio.holdings) {
-        const percentage = typeof holdingValue === 'number' ? holdingValue : holdingValue.percentage;
-        const basisPoints = percentToBasisPoints(percentage);
-        const precisePercentage = basisPointsToPercent(basisPoints);
-
-        holdings.set(ticker, {
-            percentage: precisePercentage,
-            basisPoints: basisPoints,
-            displayPercentage: roundForDisplay(precisePercentage),
-            locked: false,
-            disabled: false,
-        });
-    }
-
-    return {
-        name: examplePortfolio.name,
-        holdings,
-    };
+const convertExampleToCustomPortfolio = (examplePortfolio: Portfolio, service: ReturnType<typeof usePortfolio>['service']): Portfolio => {
+    const holdings = new Map(examplePortfolio.holdings);
+    return service.clone({ ...examplePortfolio, holdings }, examplePortfolio.name);
 };
 
 const PortfolioManager: React.FC = () => {
     const { showToast } = useToast();
-    const defaultPortfolio = createPortfolio(DEFAULT_PORTFOLIO_NAME, []);
+    const [storageAdapter] = useState(() => new LocalStorageAdapter());
 
-    const [customPortfolio, setCustomPortfolio] = useState<Portfolio>(defaultPortfolio);
+    // Use the new hooks!
+    const portfolioHook = usePortfolio({
+        initialPortfolio: undefined, // Will be created by the hook
+    });
+
+    const { savedPortfolios } = usePersistence();
+
     const [originalTemplate, setOriginalTemplate] = useState<Portfolio | null>(null);
+    const [originalSavedPortfolio, setOriginalSavedPortfolio] = useState<Portfolio | null>(null);
     const [tempInputs, setTempInputs] = useState<TempInputs>({});
     const [showDetailColumns, setShowDetailColumns] = useState<boolean>(false);
     const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
-    const [savedPortfolios, setSavedPortfolios] = useState<SerializedPortfolio[]>([]);
-
-    // Load saved portfolios on mount (client-side only)
-    useEffect(() => {
-        setSavedPortfolios(getSavedPortfolios());
-    }, []);
 
     // Track unsaved changes
     useEffect(() => {
         setHasUnsavedChanges(true);
-    }, [customPortfolio.holdings]);
+    }, [portfolioHook.portfolio.holdings]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -84,8 +69,8 @@ const PortfolioManager: React.FC = () => {
             // Ctrl+S or Cmd+S to save
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
-                const currentTotal = calculateTotalAllocation(customPortfolio.holdings);
-                const isPortfolioValid = Math.abs(currentTotal - 100) < 0.01 && customPortfolio.holdings.size > 0;
+                const currentTotal = portfolioHook.totalAllocation;
+                const isPortfolioValid = Math.abs(currentTotal - ALLOCATION_TOTAL_TARGET) < PRECISION_TOLERANCE && portfolioHook.portfolio.holdings.size > 0;
                 if (isPortfolioValid) {
                     openSaveModal();
                 }
@@ -98,26 +83,7 @@ const PortfolioManager: React.FC = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return (): void => window.removeEventListener('keydown', handleKeyDown);
-    }, [customPortfolio.holdings, showSaveModal]);
-
-    // Warn before leaving with unsaved changes
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
-            if (hasUnsavedChanges && customPortfolio.holdings.size > 0) {
-                e.preventDefault();
-            }
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return (): void => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [hasUnsavedChanges, customPortfolio.holdings.size]);
-
-    const updateCustomPortfolio = (updatedHoldings: Map<string, Holding>): void => {
-        setCustomPortfolio({
-            ...customPortfolio,
-            holdings: new Map(updatedHoldings),
-        });
-    };
+    }, [portfolioHook.totalAllocation, portfolioHook.portfolio.holdings.size, showSaveModal]);
 
     const updatePortfolio = (portfolioData: Partial<Portfolio>, isTemplateLoad = false, templateData: Portfolio | null = null): void => {
         const fullPortfolio: Portfolio = {
@@ -125,194 +91,142 @@ const PortfolioManager: React.FC = () => {
             holdings: portfolioData.holdings ?? new Map(),
             ...portfolioData,
         };
-        setCustomPortfolio(fullPortfolio);
+        portfolioHook.loadPortfolio(fullPortfolio);
+
         if (isTemplateLoad) {
             setOriginalTemplate(templateData);
+            setOriginalSavedPortfolio(null);
+            setHasUnsavedChanges(false);
         } else {
             setOriginalTemplate(null);
+            setOriginalSavedPortfolio(fullPortfolio);
+            setHasUnsavedChanges(false);
         }
     };
 
     const addETFToPortfolio = (ticker: string): void => {
-        const holdings = new Map(customPortfolio.holdings);
-
-        const initialPercentage = holdings.size === 0 ? 100 : 0;
-
-        holdings.set(ticker, {
-            percentage: initialPercentage,
-            locked: false,
-            disabled: false,
-        });
-
-        updateCustomPortfolio(holdings);
+        const initialPercentage = portfolioHook.portfolio.holdings.size === 0 ? ALLOCATION_TOTAL_TARGET : 0;
+        portfolioHook.addHolding(ticker, initialPercentage);
     };
 
     const removeETFFromPortfolio = (ticker: string): void => {
-        if (customPortfolio.holdings.size <= 1) {
+        if (portfolioHook.portfolio.holdings.size <= 1) {
             return;
         }
 
-        const holdings = new Map(customPortfolio.holdings);
-        const updatedHoldings = redistributeAfterRemoval(holdings, ticker);
-
-        if (updatedHoldings) {
-            updateCustomPortfolio(updatedHoldings);
-        }
+        portfolioHook.removeHolding(ticker);
     };
 
     const updateETFAllocation = (ticker: string, newPercentage: number): void => {
-        const holdings = new Map(customPortfolio.holdings);
-        const updatedHoldings = updateAllocation(holdings, ticker, newPercentage);
-
-        if (updatedHoldings) {
-            updateCustomPortfolio(updatedHoldings);
-        }
+        portfolioHook.updateAllocation(ticker, newPercentage);
     };
 
     const bulkUpdateAllocations = (allocationUpdates: AllocationUpdate[], overrideLocks = false): void => {
-        const holdings = new Map(customPortfolio.holdings);
+        const currentHoldings = new Map(portfolioHook.portfolio.holdings);
 
         allocationUpdates.forEach(({ ticker, percentage }) => {
-            const currentHolding = holdings.get(ticker);
-            if (currentHolding) {
-                if (currentHolding.disabled && percentage !== 0) {
-                    return;
-                }
-
-                if (currentHolding.locked && !overrideLocks) {
-                    return;
-                }
-
-                const basisPoints = percentToBasisPoints(percentage);
-                const precisePercentage = basisPointsToPercent(basisPoints);
-
-                holdings.set(ticker, {
-                    ...currentHolding,
-                    percentage: precisePercentage,
-                    basisPoints: basisPoints,
-                    displayPercentage: roundForDisplay(precisePercentage),
-                });
+            const currentHolding = currentHoldings.get(ticker);
+            if (!currentHolding) {
+                return;
             }
-        });
 
-        updateCustomPortfolio(holdings);
+            if (currentHolding.disabled && percentage !== 0) {
+                return;
+            }
+
+            if (currentHolding.locked && !overrideLocks) {
+                return;
+            }
+
+            portfolioHook.updateAllocation(ticker, percentage);
+        });
     };
 
     const toggleLockETF = (ticker: string): void => {
-        const holdings = new Map(customPortfolio.holdings);
-        const currentHolding = holdings.get(ticker);
-
+        const currentHolding = portfolioHook.portfolio.holdings.get(ticker);
         if (!currentHolding || currentHolding.disabled) {
             return;
         }
-
-        holdings.set(ticker, {
-            ...currentHolding,
-            locked: !currentHolding.locked,
-        });
-
-        updateCustomPortfolio(holdings);
+        portfolioHook.lockHolding(ticker, !currentHolding.locked);
     };
 
     const toggleDisableETF = (ticker: string): void => {
-        const holdings = new Map(customPortfolio.holdings);
-        const currentHolding = holdings.get(ticker);
-
+        const currentHolding = portfolioHook.portfolio.holdings.get(ticker);
         if (!currentHolding) {
             return;
         }
 
-        if (currentHolding.disabled) {
-            holdings.set(ticker, {
-                ...currentHolding,
-                disabled: false,
-                locked: false,
-                percentage: currentHolding.percentage,
-            });
-
-            updateCustomPortfolio(holdings);
-
-            setTimeout(() => {
-                updateETFAllocation(ticker, 0);
-            }, 0);
-
-            return;
-        }
-
-        const oldPercentage = currentHolding.percentage;
-
-        holdings.set(ticker, {
-            ...currentHolding,
-            disabled: true,
-            locked: false,
-            percentage: 0,
-        });
-
-        const adjustableETFs = Array.from(holdings.entries())
-            .filter(([etfTicker, holding]) => etfTicker !== ticker && !holding.locked && !holding.disabled)
-            .map(([etfTicker]) => etfTicker);
-
-        if (adjustableETFs.length === 0 && oldPercentage > 0) {
-            return;
-        }
-
-        if (oldPercentage > 0) {
-            // Use redistributeAfterRemoval to handle the allocation properly with basis points
-            const tempTicker = `__temp_disabled_${ticker}__`;
-            holdings.set(tempTicker, {
-                percentage: oldPercentage,
-                locked: false,
-                disabled: false,
-            });
-            const redistributed = redistributeAfterRemoval(holdings, tempTicker);
-            updateCustomPortfolio(redistributed);
-        } else {
-            updateCustomPortfolio(holdings);
-        }
+        portfolioHook.disableHolding(ticker, !currentHolding.disabled);
     };
 
-    const totalAllocation = calculateTotalAllocation(customPortfolio.holdings);
+    const totalAllocation = portfolioHook.totalAllocation;
 
     const resetPortfolio = (): void => {
-        setCustomPortfolio(createPortfolio(DEFAULT_PORTFOLIO_NAME, []));
+        portfolioHook.resetPortfolio(DEFAULT_PORTFOLIO_NAME);
         setOriginalTemplate(null);
+        setOriginalSavedPortfolio(null);
+        setHasUnsavedChanges(false);
     };
 
     const resetToTemplate = (): void => {
         if (originalTemplate) {
-            const restoredPortfolio = convertExampleToCustomPortfolio(originalTemplate);
-            setCustomPortfolio(restoredPortfolio);
+            const restoredPortfolio = convertExampleToCustomPortfolio(originalTemplate, portfolioHook.service);
+            portfolioHook.loadPortfolio(restoredPortfolio);
+            setHasUnsavedChanges(false);
         }
     };
 
-    const isTemplateModified = (): boolean => {
+    const isTemplateModified = useCallback((): boolean => {
         if (!originalTemplate) {
             return false;
         }
+        return isPortfolioModified(portfolioHook.portfolio, originalTemplate);
+    }, [originalTemplate, portfolioHook.portfolio]);
 
-        if (customPortfolio.holdings.size !== originalTemplate.holdings.size) {
+    const isSavedPortfolioModified = useCallback((): boolean => {
+        if (!originalSavedPortfolio) {
+            return false;
+        }
+
+        // Check if name changed
+        if (portfolioHook.portfolio.name !== originalSavedPortfolio.name) {
             return true;
         }
 
-        // Use basis points for exact comparison (10 basis points = 0.1%)
-        for (const [ticker, templateHoldingValue] of originalTemplate.holdings.entries()) {
-            const templatePercentage = typeof templateHoldingValue === 'number' ? templateHoldingValue : templateHoldingValue.percentage;
-            const currentHolding = customPortfolio.holdings.get(ticker);
-            if (!currentHolding) {
-                return true;
-            }
+        return isPortfolioModified(portfolioHook.portfolio, originalSavedPortfolio);
+    }, [originalSavedPortfolio, portfolioHook.portfolio]);
 
-            // Convert to basis points for comparison
-            const templateBasisPoints = percentToBasisPoints(templatePercentage);
-            const currentBasisPoints = currentHolding.basisPoints ?? percentToBasisPoints(currentHolding.percentage);
-
-            if (templateBasisPoints !== currentBasisPoints) {
-                return true;
-            }
+    const hasActualUnsavedChanges = useCallback((): boolean => {
+        // No holdings means nothing to save
+        if (portfolioHook.portfolio.holdings.size === 0) {
+            return false;
         }
 
-        return false;
-    };
+        // If it's an unmodified template, no unsaved changes
+        if (originalTemplate && !isTemplateModified()) {
+            return false;
+        }
+
+        // If it's an unmodified saved portfolio, no unsaved changes
+        if (originalSavedPortfolio && !isSavedPortfolioModified()) {
+            return false;
+        }
+
+        // Otherwise, if hasUnsavedChanges is true, there are actual unsaved changes
+        return hasUnsavedChanges;
+    }, [portfolioHook.portfolio.holdings.size, originalTemplate, isTemplateModified, originalSavedPortfolio, isSavedPortfolioModified, hasUnsavedChanges]);
+
+    // Warn before leaving with unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+            if (hasActualUnsavedChanges()) {
+                e.preventDefault();
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return (): void => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasActualUnsavedChanges]);
 
     const handleInputChange = (ticker: string, value: number): void => {
         setTempInputs((prev) => ({
@@ -322,8 +236,9 @@ const PortfolioManager: React.FC = () => {
     };
 
     const handleInputBlur = (ticker: string): void => {
-        if (tempInputs[ticker] !== undefined) {
-            updateETFAllocation(ticker, tempInputs[ticker]);
+        const value = tempInputs[ticker];
+        if (value !== undefined) {
+            updateETFAllocation(ticker, value);
 
             setTempInputs((prev) => ({
                 ...prev,
@@ -336,16 +251,17 @@ const PortfolioManager: React.FC = () => {
         setShowSaveModal(true);
     };
 
-    const saveCustomPortfolio = (portfolioName: string): void => {
+    const saveCustomPortfolio = async (portfolioName: string): Promise<void> => {
         try {
             const portfolioToSave: Portfolio = {
-                ...customPortfolio,
+                ...portfolioHook.portfolio,
                 name: portfolioName,
             };
 
-            savePortfolio(portfolioToSave);
+            const serialized = serializePortfolio(portfolioToSave);
+            await storageAdapter.savePortfolio(serialized);
 
-            setCustomPortfolio((prev) => ({
+            portfolioHook.setPortfolio((prev) => ({
                 ...prev,
                 name: portfolioName,
             }));
@@ -353,12 +269,9 @@ const PortfolioManager: React.FC = () => {
             setShowSaveModal(false);
             setHasUnsavedChanges(false);
 
-            // Update saved portfolios list
-            setSavedPortfolios(getSavedPortfolios());
-
             showToast(`Portfolio "${portfolioName}" saved successfully!`, 'success');
         } catch (error) {
-            console.error('Error saving portfolio:', error);
+            logger.error('Error saving portfolio', error);
             showToast('There was an error saving your portfolio. Please try again.', 'error');
         }
     };
@@ -369,10 +282,20 @@ const PortfolioManager: React.FC = () => {
 
     const handleExportPortfolio = (): void => {
         try {
-            exportPortfolio(customPortfolio);
+            const serialized = serializePortfolio(portfolioHook.portfolio);
+            const dataStr = JSON.stringify(serialized, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${portfolioHook.portfolio.name || 'portfolio'}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
             showToast('Portfolio exported successfully!', 'success');
         } catch (error) {
-            console.error('Error exporting portfolio:', error);
+            logger.error('Error exporting portfolio', error);
             showToast('Failed to export portfolio. Please try again.', 'error');
         }
     };
@@ -384,14 +307,15 @@ const PortfolioManager: React.FC = () => {
         }
 
         try {
-            const serializedPortfolio = await importPortfolio(file);
+            const text = await file.text();
+            const serializedPortfolio = JSON.parse(text) as SerializedPortfolio;
             const portfolio = deserializePortfolio(serializedPortfolio);
-            setCustomPortfolio(portfolio);
+            portfolioHook.loadPortfolio(portfolio);
             setOriginalTemplate(null);
             setHasUnsavedChanges(true);
             showToast(`Portfolio "${portfolio.name}" imported successfully!`, 'success');
         } catch (error) {
-            console.error('Error importing portfolio:', error);
+            logger.error('Error importing portfolio', error);
             showToast('Failed to import portfolio. Please check the file format.', 'error');
         }
 
@@ -399,19 +323,22 @@ const PortfolioManager: React.FC = () => {
         event.target.value = '';
     };
 
+    // Convert serialized portfolios for display
+    const serializedSavedPortfolios: SerializedPortfolio[] = savedPortfolios.map(serializePortfolio);
+
     return (
         <div className="max-w-full mx-auto p-6 bg-gray-50">
             <div className="flex flex-col md:flex-row gap-6">
                 <div className="md:w-11/20 flex flex-col">
                     <div className="mb-6">
                         <Builder
-                            customPortfolio={customPortfolio}
+                            customPortfolio={portfolioHook.portfolio}
                             etfCatalog={etfCatalog}
                             tempInputs={tempInputs}
                             showDetailColumns={showDetailColumns}
                             totalAllocation={totalAllocation}
                             examplePortfolios={examplePortfolios}
-                            savedPortfolios={savedPortfolios}
+                            savedPortfolios={serializedSavedPortfolios}
                             onAddETF={addETFToPortfolio}
                             onRemoveETF={removeETFFromPortfolio}
                             onUpdateAllocation={updateETFAllocation}
@@ -433,7 +360,7 @@ const PortfolioManager: React.FC = () => {
                 </div>
 
                 <div className="md:w-9/20 flex flex-col">
-                    <Analysis portfolio={customPortfolio} />
+                    <Analysis portfolio={portfolioHook.portfolio} />
                 </div>
             </div>
 
@@ -441,7 +368,7 @@ const PortfolioManager: React.FC = () => {
                 isOpen={showSaveModal}
                 onClose={() => setShowSaveModal(false)}
                 onSave={saveCustomPortfolio}
-                initialName={customPortfolio.name !== DEFAULT_PORTFOLIO_NAME ? customPortfolio.name : ''}
+                initialName={portfolioHook.portfolio.name !== DEFAULT_PORTFOLIO_NAME ? portfolioHook.portfolio.name : ''}
             />
         </div>
     );

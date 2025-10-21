@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import type { Portfolio, ETF } from '@/types/portfolio';
+import type { Portfolio } from '@/core/domain/Portfolio';
+import type { ETF } from '@/core/domain/ETF';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, ChevronDown, ChevronUp, RotateCcw, Save, Scale, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { percentToBasisPoints } from '../../utils/precisionUtils';
+import { percentToBasisPoints } from '@/core/calculators/precision';
 import HoldingsTable from './HoldingsTable';
 
 interface AllocationUpdate {

@@ -1,5 +1,9 @@
-import type { Portfolio } from '@/types/portfolio';
-import { createPortfolio } from './etfData';
+/**
+ * Portfolio templates - Pre-configured example portfolios
+ */
+
+import type { Portfolio } from '../../domain/Portfolio';
+import { createPortfolio } from '../factories/portfolioFactory';
 
 /**
  * Pre-configured example portfolio templates

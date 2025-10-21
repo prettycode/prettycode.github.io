@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { Portfolio, ETF, AssetClass, TemplateDetails, SerializedPortfolio } from '@/types/portfolio';
-import { parseExposureKey, getTemplateDetails } from '../../utils/etfData';
-import { percentToWeight, roundToWholePercent, calculateRelativePercent } from '../../utils/precisionUtils';
-import { deserializePortfolio } from '../../utils/storageUtils';
+import type { Portfolio } from '@/core/domain/Portfolio';
+import type { ETF } from '@/core/domain/ETF';
+import type { AssetClass } from '@/core/domain/AssetClass';
+import type { TemplateDetails } from '@/core/domain/TemplateDetails';
+import type { SerializedPortfolio } from '@/core/domain/SerializedPortfolio';
+import { parseExposureKey } from '@/core/utils/exposureKeys';
+import { AnalysisService } from '@/core/services/AnalysisService';
+import { percentToWeight, roundToWholePercent, calculateRelativePercent } from '@/core/calculators/precision';
+import { deserializePortfolio } from '@/core/utils/serialization';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -124,8 +129,9 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
 
             // Add templates if in templates or combined mode
             if (mode === 'templates' || mode === 'templates-and-saved') {
+                const analysisService = new AnalysisService();
                 templates.forEach((template) => {
-                    const details = getTemplateDetails(template);
+                    const details = analysisService.getTemplateDetails(template);
                     const leverageTypesByAllocation = calculateLeverageTypesByAllocation(template);
 
                     allItems.push({
@@ -145,10 +151,11 @@ const TickerOrTemplateSelectionTable: React.FC<TickerOrTemplateSelectionTablePro
 
             // Add saved portfolios if in saved or combined mode
             if (mode === 'saved' || mode === 'templates-and-saved') {
+                const analysisService = new AnalysisService();
                 savedPortfolios
                     .map((sp) => deserializePortfolio(sp))
                     .forEach((template) => {
-                        const details = getTemplateDetails(template);
+                        const details = analysisService.getTemplateDetails(template);
                         const leverageTypesByAllocation = calculateLeverageTypesByAllocation(template);
 
                         allItems.push({

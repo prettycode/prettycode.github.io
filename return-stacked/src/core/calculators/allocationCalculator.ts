@@ -1,25 +1,10 @@
-import type { Holding } from '@/types/portfolio';
-import { percentToBasisPoints, basisPointsToPercent, roundForDisplay } from './precisionUtils';
-
 /**
- * Maximum basis points for 100% allocation
+ * Allocation calculator - framework-agnostic pure functions for portfolio allocation
+ * Handles rebalancing, redistribution, and allocation updates with exact precision
  */
-const MAX_BASIS_POINTS = 10000;
 
-/**
- * Ensures holding has basis points synchronized with percentage
- * Clamps values to valid range [0, 100%]
- */
-const ensureBasisPoints = (holding: Holding): Holding => {
-    const basisPoints = Math.max(0, Math.min(MAX_BASIS_POINTS, holding.basisPoints ?? percentToBasisPoints(holding.percentage)));
-    const percentage = basisPointsToPercent(basisPoints);
-    return {
-        ...holding,
-        percentage,
-        basisPoints,
-        displayPercentage: roundForDisplay(percentage),
-    };
-};
+import type { Holding } from '../domain/Holding';
+import { percentToBasisPoints, basisPointsToPercent, roundForDisplay, ensureBasisPoints, MAX_BASIS_POINTS } from './precision';
 
 /**
  * Redistributes allocation when an ETF is removed from holdings
@@ -283,15 +268,88 @@ export const roundHoldingPercentages = (holdings: Map<string, Holding>): Map<str
 };
 
 /**
- * Calculates total portfolio allocation as percentage
- * Uses basis points for precision, then converts
+ * Redistributes allocation with precision constraints, guaranteeing exact 100% total
  */
-export const calculateTotalAllocation = (holdings: Map<string, Holding>): number => {
-    const totalBasisPoints = Array.from(holdings.entries())
-        .filter(([, holding]) => !holding.disabled)
-        .reduce((sum, [, holding]) => {
-            const bp = holding.basisPoints ?? percentToBasisPoints(holding.percentage);
-            return sum + bp;
-        }, 0);
-    return basisPointsToPercent(totalBasisPoints);
+export const redistributeWithPrecisionConstraints = (
+    holdings: Map<string, Holding>,
+    changedTicker: string,
+    newPercentage: number
+): Map<string, Holding> | null => {
+    const newBasisPoints = percentToBasisPoints(newPercentage);
+
+    const adjustableEntries = Array.from(holdings.entries()).filter(
+        ([ticker, holding]) => ticker !== changedTicker && !holding.locked && !holding.disabled
+    );
+
+    if (adjustableEntries.length === 0) {
+        return null;
+    }
+
+    const lockedBasisPoints = Array.from(holdings.entries())
+        .filter(([ticker, holding]) => ticker !== changedTicker && (holding.locked || holding.disabled))
+        .reduce((sum, [, holding]) => sum + (holding.disabled ? 0 : (holding.basisPoints ?? 0)), 0);
+
+    const remainingBasisPoints = MAX_BASIS_POINTS - lockedBasisPoints - newBasisPoints;
+
+    if (remainingBasisPoints < 0) {
+        return null;
+    }
+
+    const currentAdjustableBasisPoints = adjustableEntries.reduce((sum, [, holding]) => sum + (holding.basisPoints ?? 0), 0);
+
+    const newHoldings = new Map(holdings);
+
+    const changedHolding = holdings.get(changedTicker);
+    if (changedHolding) {
+        newHoldings.set(changedTicker, {
+            ...changedHolding,
+            basisPoints: newBasisPoints,
+            percentage: basisPointsToPercent(newBasisPoints),
+            displayPercentage: roundForDisplay(basisPointsToPercent(newBasisPoints)),
+        });
+    }
+
+    if (adjustableEntries.length === 1) {
+        const [singleTicker, singleHolding] = adjustableEntries[0];
+        newHoldings.set(singleTicker, {
+            ...singleHolding,
+            basisPoints: remainingBasisPoints,
+            percentage: basisPointsToPercent(remainingBasisPoints),
+            displayPercentage: roundForDisplay(basisPointsToPercent(remainingBasisPoints)),
+        });
+    } else {
+        let distributedBasisPoints = 0;
+
+        const distributions = adjustableEntries.map(([ticker, holding], index) => {
+            const isLast = index === adjustableEntries.length - 1;
+
+            let targetBasisPoints: number;
+            if (isLast) {
+                targetBasisPoints = remainingBasisPoints - distributedBasisPoints;
+            } else {
+                const proportion =
+                    currentAdjustableBasisPoints > 0
+                        ? (holding.basisPoints ?? 0) / currentAdjustableBasisPoints
+                        : 1 / adjustableEntries.length;
+                targetBasisPoints = Math.round(remainingBasisPoints * proportion);
+                distributedBasisPoints += targetBasisPoints;
+            }
+
+            return { ticker, targetBasisPoints };
+        });
+
+        distributions.forEach(({ ticker, targetBasisPoints }) => {
+            const holding = holdings.get(ticker);
+            if (holding) {
+                newHoldings.set(ticker, {
+                    ...holding,
+                    basisPoints: targetBasisPoints,
+                    percentage: basisPointsToPercent(targetBasisPoints),
+                    displayPercentage: roundForDisplay(basisPointsToPercent(targetBasisPoints)),
+                });
+            }
+        });
+    }
+
+    return newHoldings;
 };
