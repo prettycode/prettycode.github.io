@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import type { Portfolio } from '@/core/domain/Portfolio';
 import type { ETF } from '@/core/domain/ETF';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { AlertCircle, ChevronDown, ChevronUp, RotateCcw, Save, Scale, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
-import { percentToBasisPoints } from '@/core/calculators/precision';
+import { Button } from '@/components/ui/Button';
+import { Switch } from '@/components/ui/Switch';
+import { cn } from '@/lib/Utils';
+import { percentToBasisPoints, basisPointsToPercent } from '@/core/calculators/precision';
 import HoldingsTable from './HoldingsTable';
 
 interface AllocationUpdate {
@@ -88,16 +88,17 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
             return;
         }
 
-        // Calculate total percentage used by locked or disabled holdings
-        const totalLockedOrDisabledPercentage = holdings
+        // Calculate total basis points used by locked or disabled holdings
+        const totalLockedOrDisabledBasisPoints = holdings
             .filter(([_ticker, holding]) => holding.locked || holding.disabled)
-            .reduce((sum, [_ticker, holding]) => sum + holding.percentage, 0);
+            .reduce((sum, [_ticker, holding]) => sum + (holding.basisPoints ?? percentToBasisPoints(holding.percentage)), 0);
 
         // Calculate remaining percentage to distribute
-        const remainingPercentage = Math.max(0, 100 - totalLockedOrDisabledPercentage);
+        const remainingPercentage = basisPointsToPercent(Math.max(0, 10000 - totalLockedOrDisabledBasisPoints));
 
         // Calculate target percentage for each unlocked active holding
-        const targetPercentage = parseFloat((remainingPercentage / unlockedActiveHoldings.length).toFixed(1));
+        // Don't round here - let the basis points calculator handle precision
+        const targetPercentage = remainingPercentage / unlockedActiveHoldings.length;
 
         // Create bulk update array for unlocked active holdings
         const allocationUpdates: AllocationUpdate[] = unlockedActiveHoldings.map(([ticker, _holding]) => ({
@@ -126,7 +127,8 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
         }
 
         // Calculate target percentage for each active holding
-        const targetPercentage = parseFloat((100 / activeHoldings.length).toFixed(1));
+        // Don't round here - let the basis points calculator handle precision
+        const targetPercentage = 100 / activeHoldings.length;
 
         // Create bulk update array for all active holdings
         const allocationUpdates: AllocationUpdate[] = activeHoldings.map(([ticker, _holding]) => ({

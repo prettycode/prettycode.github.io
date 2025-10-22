@@ -4,17 +4,17 @@ import type { ETF } from '@/core/domain/ETF';
 import type { AssetClass } from '@/core/domain/AssetClass';
 import type { TemplateDetails } from '@/core/domain/TemplateDetails';
 import type { SerializedPortfolio } from '@/core/domain/SerializedPortfolio';
-import { parseExposureKey } from '@/core/utils/exposureKeys';
+import { parseExposureKey } from '@/core/utils/ExposureKeys';
 import { AnalysisService } from '@/core/services/AnalysisService';
 import { percentToWeight, roundToWholePercent, calculateRelativePercent } from '@/core/calculators/precision';
-import { deserializePortfolio } from '@/core/utils/serialization';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { deserializePortfolio } from '@/core/utils/Serialization';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { SearchIcon, FilterIcon, ChevronDown, ChevronUp, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/Utils';
 
 interface TickerOrTemplateSelectionTableProps {
     etfCatalog: ETF[];

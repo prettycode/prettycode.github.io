@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { AlertTriangle, ChevronDown, ChevronRight, Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { parseExposureKey } from '@/core/utils/exposureKeys';
-import { etfCatalog } from '@/core/data/catalogs/etfCatalog';
+import { cn } from '@/lib/Utils';
+import { parseExposureKey } from '@/core/utils/ExposureKeys';
+import { etfCatalog } from '@/core/data/catalogs/EtfCatalog';
 import { percentToWeight, weightToPercent } from '@/core/calculators/precision';
 import type { Portfolio } from '@/core/domain/Portfolio';
 

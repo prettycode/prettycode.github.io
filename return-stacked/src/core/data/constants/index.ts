@@ -2,6 +2,6 @@
  * Data constants - Barrel export for convenience
  */
 
-export { assetClassColors } from './assetClassColors';
-export { regionColors } from './regionColors';
-export * from './portfolioConstants';
+export { assetClassColors } from './AssetClassColors';
+export { regionColors } from './RegionColors';
+export * from './PortfolioConstants';

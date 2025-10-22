@@ -10,7 +10,7 @@ export {
     isPortfolioPrecise,
     ensureBasisPoints,
     MAX_BASIS_POINTS,
-} from './basisPointsCalculator';
+} from './BasisPointsCalculator';
 
 // Percentage functions
 export {
@@ -21,4 +21,4 @@ export {
     calculateRelativePercent,
     roundToWholePercent,
     calculateTotalAllocation,
-} from './percentageCalculator';
+} from './PercentageCalculator';

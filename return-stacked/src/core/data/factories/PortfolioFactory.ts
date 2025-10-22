@@ -4,6 +4,7 @@
 
 import type { Portfolio } from '../../domain/Portfolio';
 import type { Holding } from '../../domain/Holding';
+import { ensureBasisPoints } from '../../calculators/precision';
 
 /**
  * Creates a portfolio from allocations
@@ -12,7 +13,7 @@ export const createPortfolio = (name: string, allocations: Array<{ ticker: strin
     const holdings = new Map<string, Holding>();
 
     for (const { ticker, percentage } of allocations) {
-        holdings.set(ticker, { percentage });
+        holdings.set(ticker, ensureBasisPoints({ percentage }));
     }
 
     return { name, holdings };

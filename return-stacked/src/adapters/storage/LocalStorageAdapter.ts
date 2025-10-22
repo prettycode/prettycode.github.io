@@ -5,8 +5,8 @@
 
 import type { SerializedPortfolio } from '../../core/domain/SerializedPortfolio';
 import type { IStorageAdapter } from '../../core/services/IStorageAdapter';
-import { defaultSavedPortfolios } from '../../core/data/catalogs/portfolioTemplates';
-import { serializePortfolio } from '../../core/utils/serialization';
+import { defaultSavedPortfolios } from '../../core/data/catalogs/PortfolioTemplates';
+import { serializePortfolio } from '../../core/utils/Serialization';
 
 const STORAGE_KEY = 'saved_portfolios';
 

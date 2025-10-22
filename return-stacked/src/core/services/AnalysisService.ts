@@ -9,9 +9,9 @@ import type { TemplateDetails } from '../domain/TemplateDetails';
 import type { ETFDetails } from '../domain/ETFDetails';
 import type { EquityBreakdown } from '../domain/EquityBreakdown';
 import type { AssetClass } from '../domain/AssetClass';
-import { analyzePortfolio, calculateEquityBreakdown, getDominantAssetClasses } from '../calculators/exposureCalculator';
-import { getETFByTicker } from '../data/catalogs/etfCatalog';
-import { parseExposureKey } from '../utils/exposureKeys';
+import { analyzePortfolio, calculateEquityBreakdown, getDominantAssetClasses } from '../calculators/ExposureCalculator';
+import { getETFByTicker } from '../data/catalogs/EtfCatalog';
+import { parseExposureKey } from '../utils/ExposureKeys';
 
 export class AnalysisService {
     /**

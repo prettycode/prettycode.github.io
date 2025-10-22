@@ -3,7 +3,7 @@
  */
 
 import type { Portfolio } from '../../domain/Portfolio';
-import { createPortfolio } from '../factories/portfolioFactory';
+import { createPortfolio } from '../factories/PortfolioFactory';
 
 /**
  * Pre-configured example portfolio templates

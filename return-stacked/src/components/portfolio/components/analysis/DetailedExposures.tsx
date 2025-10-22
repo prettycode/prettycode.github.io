@@ -1,11 +1,11 @@
 import React from 'react';
-import { parseExposureKey } from '@/core/utils/exposureKeys';
-import { assetClassColors } from '@/core/data/constants/assetClassColors';
+import { parseExposureKey } from '@/core/utils/ExposureKeys';
+import { assetClassColors } from '@/core/data/constants/AssetClassColors';
 import { weightToPercent, calculateRelativePercent } from '@/core/calculators/precision';
 import { AnalysisService } from '@/core/services/AnalysisService';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Progress } from '@/components/ui/Progress';
+import { cn } from '@/lib/Utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import ExposureCard from './ExposureCard';
 import type { Portfolio } from '@/core/domain/Portfolio';

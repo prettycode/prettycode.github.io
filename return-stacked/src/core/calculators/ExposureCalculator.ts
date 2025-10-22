@@ -6,7 +6,7 @@ import type { Portfolio } from '../domain/Portfolio';
 import type { PortfolioAnalysis } from '../domain/PortfolioAnalysis';
 import type { AssetClass } from '../domain/AssetClass';
 import { percentToWeight, weightToPercent, calculateRelativePercent } from './precision';
-import { getETFByTicker } from '../data/catalogs/etfCatalog';
+import { getETFByTicker } from '../data/catalogs/EtfCatalog';
 
 /**
  * Analyzes portfolio exposure and leverage

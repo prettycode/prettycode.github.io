@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { Portfolio } from '../../../core/domain/Portfolio';
-import { usePortfolioService } from './usePortfolioService';
+import { usePortfolioService } from './UsePortfolioService';
 
 export function usePersistence(): {
     savedPortfolios: Portfolio[];

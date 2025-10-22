@@ -10,8 +10,8 @@ import {
     updateAllocation,
     redistributeAmongAvailable,
     roundHoldingPercentages,
-} from '../calculators/allocationCalculator';
-import { calculateTotalAllocation, isPortfolioPrecise, ensureBasisPoints, percentToBasisPoints } from '../calculators/precision';
+} from '../calculators/AllocationCalculator';
+import { calculateTotalAllocation, isPortfolioPrecise, ensureBasisPoints, percentToBasisPoints, basisPointsToPercent } from '../calculators/precision';
 
 export class AllocationService {
     /**
@@ -99,10 +99,10 @@ export class AllocationService {
             return portfolio;
         }
 
-        newHoldings.set(ticker, {
+        newHoldings.set(ticker, ensureBasisPoints({
             ...holding,
             locked,
-        });
+        }));
 
         return {
             ...portfolio,
@@ -125,24 +125,25 @@ export class AllocationService {
         if (disabled) {
             // Disabling: redistribute this holding's allocation
             const holdingBasisPoints = holding.basisPoints ?? percentToBasisPoints(holding.percentage);
-            newHoldings.set(ticker, {
+            newHoldings.set(ticker, ensureBasisPoints({
                 ...holding,
                 disabled: true,
-            });
+            }));
 
             const availableETFs = Array.from(newHoldings.entries())
                 .filter(([t, h]) => t !== ticker && !h.locked && !h.disabled)
                 .map(([t]) => t);
 
             if (availableETFs.length > 0 && holdingBasisPoints > 0) {
-                redistributeAmongAvailable(newHoldings, availableETFs, holding.percentage, false);
+                // Use basis points for precise calculation
+                redistributeAmongAvailable(newHoldings, availableETFs, basisPointsToPercent(holdingBasisPoints), false);
             }
         } else {
             // Re-enabling: give it back its allocation
-            newHoldings.set(ticker, {
+            newHoldings.set(ticker, ensureBasisPoints({
                 ...holding,
                 disabled: false,
-            });
+            }));
 
             // Redistribute from others
             const availableETFs = Array.from(newHoldings.entries())
@@ -160,6 +161,37 @@ export class AllocationService {
                 }
             }
         }
+
+        return {
+            ...portfolio,
+            holdings: newHoldings,
+        };
+    }
+
+    /**
+     * Bulk update multiple holdings at once without triggering individual rebalances
+     * This is used for operations like equal-weight where we want to set all values simultaneously
+     */
+    public bulkUpdateAllocations(portfolio: Portfolio, updates: Array<{ ticker: string; percentage: number }>): Portfolio {
+        const newHoldings = new Map(portfolio.holdings);
+
+        // Apply all updates directly
+        updates.forEach(({ ticker, percentage }) => {
+            const holding = newHoldings.get(ticker);
+            if (!holding) {
+                return;
+            }
+
+            const basisPoints = percentToBasisPoints(percentage);
+            newHoldings.set(
+                ticker,
+                ensureBasisPoints({
+                    ...holding,
+                    basisPoints,
+                    percentage: basisPointsToPercent(basisPoints),
+                })
+            );
+        });
 
         return {
             ...portfolio,

@@ -5,7 +5,7 @@
 import type { ETF } from '../../domain/ETF';
 import type { ExposureAmount } from '../../domain/ExposureAmount';
 import type { LeverageType } from '../../domain/LeverageType';
-import { createExposureKey } from '../../utils/exposureKeys';
+import { createExposureKey } from '../../utils/ExposureKeys';
 
 /**
  * Creates an ETF with mapped exposures

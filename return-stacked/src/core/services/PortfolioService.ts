@@ -14,10 +14,10 @@ import { AllocationService } from './AllocationService';
 import { AnalysisService } from './AnalysisService';
 import { ValidationService } from './ValidationService';
 import type { IStorageAdapter } from './IStorageAdapter';
-import { deserializePortfolio, serializePortfolio } from '../utils/serialization';
-import { examplePortfolios } from '../data/catalogs/portfolioTemplates';
-import { createPortfolio } from '../data/factories/portfolioFactory';
-import { etfCatalog } from '../data/catalogs/etfCatalog';
+import { deserializePortfolio, serializePortfolio } from '../utils/Serialization';
+import { examplePortfolios } from '../data/catalogs/PortfolioTemplates';
+import { createPortfolio } from '../data/factories/PortfolioFactory';
+import { etfCatalog } from '../data/catalogs/EtfCatalog';
 
 export class PortfolioService {
     private allocationService: AllocationService;
@@ -94,6 +94,10 @@ export class PortfolioService {
 
     public updateAllocation(portfolio: Portfolio, ticker: string, newPercentage: number): Portfolio {
         return this.allocationService.updateHoldingAllocation(portfolio, ticker, newPercentage);
+    }
+
+    public bulkUpdateAllocations(portfolio: Portfolio, updates: Array<{ ticker: string; percentage: number }>): Portfolio {
+        return this.allocationService.bulkUpdateAllocations(portfolio, updates);
     }
 
     public lockHolding(portfolio: Portfolio, ticker: string, locked: boolean): Portfolio {

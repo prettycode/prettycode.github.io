@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { roundForDisplay } from '@/core/calculators/precision';
-import { assetClassColors } from '@/core/data/constants/assetClassColors';
+import { assetClassColors } from '@/core/data/constants/AssetClassColors';
 import { AnalysisService } from '@/core/services/AnalysisService';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { cn } from '@/lib/Utils';
 import type { Portfolio } from '@/core/domain/Portfolio';
 import type { ColorMap } from '@/core/domain/ColorMap';
 

@@ -3,10 +3,10 @@ import type { Portfolio } from '@/core/domain/Portfolio';
 import type { ETF } from '@/core/domain/ETF';
 import type { SerializedPortfolio } from '@/core/domain/SerializedPortfolio';
 import type { Holding } from '@/core/domain/Holding';
-import { deserializePortfolio } from '@/core/utils/serialization';
+import { deserializePortfolio } from '@/core/utils/Serialization';
 import TickerOrTemplateSelectionTable from './TickerOrTemplateSelectionTable';
 import CompositionPanel from './CompositionPanel';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Download, Upload } from 'lucide-react';
 
 interface AllocationUpdate {

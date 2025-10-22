@@ -4,18 +4,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Portfolio } from '@/core/domain/Portfolio';
 import type { SerializedPortfolio } from '@/core/domain/SerializedPortfolio';
 import { DEFAULT_PORTFOLIO_NAME, PRECISION_TOLERANCE, ALLOCATION_TOTAL_TARGET } from '@/core/data/constants';
-import { etfCatalog } from '@/core/data/catalogs/etfCatalog';
-import { examplePortfolios } from '@/core/data/catalogs/portfolioTemplates';
-import { isPortfolioModified } from '@/core/utils/portfolioComparison';
-import { logger } from '@/core/utils/logger';
+import { etfCatalog } from '@/core/data/catalogs/EtfCatalog';
+import { examplePortfolios } from '@/core/data/catalogs/PortfolioTemplates';
+import { isPortfolioModified } from '@/core/utils/PortfolioComparison';
+import { logger } from '@/core/utils/Logger';
 import { LocalStorageAdapter } from '@/adapters/storage/LocalStorageAdapter';
-import { usePortfolio } from '@/adapters/react/hooks/usePortfolio';
-import { usePersistence } from '@/adapters/react/hooks/usePersistence';
+import { usePortfolio } from '@/adapters/react/hooks/UsePortfolio';
+import { usePersistence } from '@/adapters/react/hooks/UsePersistence';
 import Builder from './components/builder/Builder';
 import SaveModal from './components/builder/SaveModal';
 import Analysis from './components/analysis/Analysis';
-import { useToast } from '@/components/ui/toast';
-import { serializePortfolio, deserializePortfolio } from '@/core/utils/serialization';
+import { useToast } from '@/components/ui/Toast';
+import { serializePortfolio, deserializePortfolio } from '@/core/utils/Serialization';
 
 /**
  * Allocation update for bulk operations
@@ -70,7 +70,8 @@ const PortfolioManager: React.FC = () => {
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
                 const currentTotal = portfolioHook.totalAllocation;
-                const isPortfolioValid = Math.abs(currentTotal - ALLOCATION_TOTAL_TARGET) < PRECISION_TOLERANCE && portfolioHook.portfolio.holdings.size > 0;
+                const isPortfolioValid =
+                    Math.abs(currentTotal - ALLOCATION_TOTAL_TARGET) < PRECISION_TOLERANCE && portfolioHook.portfolio.holdings.size > 0;
                 if (isPortfolioValid) {
                     openSaveModal();
                 }
@@ -124,22 +125,28 @@ const PortfolioManager: React.FC = () => {
     const bulkUpdateAllocations = (allocationUpdates: AllocationUpdate[], overrideLocks = false): void => {
         const currentHoldings = new Map(portfolioHook.portfolio.holdings);
 
-        allocationUpdates.forEach(({ ticker, percentage }) => {
+        // Filter updates to only include valid ones
+        const validUpdates = allocationUpdates.filter(({ ticker, percentage }) => {
             const currentHolding = currentHoldings.get(ticker);
             if (!currentHolding) {
-                return;
+                return false;
             }
 
             if (currentHolding.disabled && percentage !== 0) {
-                return;
+                return false;
             }
 
             if (currentHolding.locked && !overrideLocks) {
-                return;
+                return false;
             }
 
-            portfolioHook.updateAllocation(ticker, percentage);
+            return true;
         });
+
+        // Apply all updates at once without triggering individual rebalances
+        if (validUpdates.length > 0) {
+            portfolioHook.bulkUpdateAllocations(validUpdates);
+        }
     };
 
     const toggleLockETF = (ticker: string): void => {
@@ -214,7 +221,14 @@ const PortfolioManager: React.FC = () => {
 
         // Otherwise, if hasUnsavedChanges is true, there are actual unsaved changes
         return hasUnsavedChanges;
-    }, [portfolioHook.portfolio.holdings.size, originalTemplate, isTemplateModified, originalSavedPortfolio, isSavedPortfolioModified, hasUnsavedChanges]);
+    }, [
+        portfolioHook.portfolio.holdings.size,
+        originalTemplate,
+        isTemplateModified,
+        originalSavedPortfolio,
+        isSavedPortfolioModified,
+        hasUnsavedChanges,
+    ]);
 
     // Warn before leaving with unsaved changes
     useEffect(() => {

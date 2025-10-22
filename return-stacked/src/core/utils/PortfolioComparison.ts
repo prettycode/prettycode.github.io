@@ -29,12 +29,14 @@ export function arePortfoliosEqual(portfolio1: Portfolio, portfolio2: Portfolio)
         const percentage2 = typeof holding2 === 'number' ? holding2 : holding2.percentage;
 
         // Convert to basis points for exact comparison
-        const basisPoints1 = holding1 && typeof holding1 === 'object' && 'basisPoints' in holding1
-            ? holding1.basisPoints
-            : percentToBasisPoints(percentage1);
-        const basisPoints2 = holding2 && typeof holding2 === 'object' && 'basisPoints' in holding2
-            ? holding2.basisPoints
-            : percentToBasisPoints(percentage2);
+        const basisPoints1 =
+            holding1 && typeof holding1 === 'object' && 'basisPoints' in holding1
+                ? holding1.basisPoints
+                : percentToBasisPoints(percentage1);
+        const basisPoints2 =
+            holding2 && typeof holding2 === 'object' && 'basisPoints' in holding2
+                ? holding2.basisPoints
+                : percentToBasisPoints(percentage2);
 
         if (basisPoints1 !== basisPoints2) {
             return false;
@@ -47,10 +49,7 @@ export function arePortfoliosEqual(portfolio1: Portfolio, portfolio2: Portfolio)
 /**
  * Checks if a portfolio has been modified compared to its original template
  */
-export function isPortfolioModified(
-    currentPortfolio: Portfolio,
-    originalPortfolio: Portfolio | null
-): boolean {
+export function isPortfolioModified(currentPortfolio: Portfolio, originalPortfolio: Portfolio | null): boolean {
     if (!originalPortfolio) {
         return false;
     }

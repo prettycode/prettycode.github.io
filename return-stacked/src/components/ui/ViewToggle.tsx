@@ -3,8 +3,8 @@
  */
 
 import React from 'react';
-import { Switch } from './switch';
-import { Label } from './label';
+import { Switch } from './Switch';
+import { Label } from './Label';
 
 interface ViewToggleProps {
     label: string;

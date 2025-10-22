@@ -7,7 +7,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Portfolio } from '../../../core/domain/Portfolio';
-import { usePortfolioService } from './usePortfolioService';
+import { usePortfolioService } from './UsePortfolioService';
 
 interface UsePortfolioOptions {
     initialPortfolio?: Portfolio;
@@ -20,6 +20,7 @@ export function usePortfolio(options: UsePortfolioOptions = {}): {
     addHolding: (ticker: string, percentage: number) => void;
     removeHolding: (ticker: string) => void;
     updateAllocation: (ticker: string, newPercentage: number) => void;
+    bulkUpdateAllocations: (updates: Array<{ ticker: string; percentage: number }>) => void;
     lockHolding: (ticker: string, locked: boolean) => void;
     disableHolding: (ticker: string, disabled: boolean) => void;
     equalWeight: () => void;
@@ -63,6 +64,13 @@ export function usePortfolio(options: UsePortfolioOptions = {}): {
     const updateAllocation = useCallback(
         (ticker: string, newPercentage: number) => {
             setPortfolio((prev) => service.updateAllocation(prev, ticker, newPercentage));
+        },
+        [service]
+    );
+
+    const bulkUpdateAllocations = useCallback(
+        (updates: Array<{ ticker: string; percentage: number }>) => {
+            setPortfolio((prev) => service.bulkUpdateAllocations(prev, updates));
         },
         [service]
     );
@@ -121,6 +129,7 @@ export function usePortfolio(options: UsePortfolioOptions = {}): {
         addHolding,
         removeHolding,
         updateAllocation,
+        bulkUpdateAllocations,
         lockHolding,
         disableHolding,
         equalWeight,

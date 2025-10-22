@@ -1,15 +1,15 @@
 import React from 'react';
 import type { Portfolio } from '@/core/domain/Portfolio';
 import type { ETF } from '@/core/domain/ETF';
-import { parseExposureKey } from '@/core/utils/exposureKeys';
+import { parseExposureKey } from '@/core/utils/ExposureKeys';
 import { weightToPercent } from '@/core/calculators/precision';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Slider } from '@/components/ui/slider';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { Slider } from '@/components/ui/Slider';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Lock, Unlock, Eye, EyeOff, Trash2, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/Utils';
 
 interface HoldingsTableProps {
     customPortfolio: Portfolio;

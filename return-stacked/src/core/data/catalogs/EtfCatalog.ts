@@ -3,7 +3,7 @@
  */
 
 import type { ETF } from '../../domain/ETF';
-import { createETF } from '../factories/etfFactory';
+import { createETF } from '../factories/EtfFactory';
 
 /**
  * ETF catalog with all available instruments

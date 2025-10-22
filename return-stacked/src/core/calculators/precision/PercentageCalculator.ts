@@ -3,7 +3,7 @@
  */
 
 import type { Holding } from '../../domain/Holding';
-import { percentToBasisPoints, basisPointsToPercent } from './basisPointsCalculator';
+import { percentToBasisPoints, basisPointsToPercent } from './BasisPointsCalculator';
 
 /**
  * Rounds percentage to display precision (1 decimal place)

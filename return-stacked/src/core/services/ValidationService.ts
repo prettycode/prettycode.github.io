@@ -5,9 +5,9 @@
 
 import type { Portfolio } from '../domain/Portfolio';
 import type { Warning } from '../domain/Warning';
-import { getETFByTicker } from '../data/catalogs/etfCatalog';
+import { getETFByTicker } from '../data/catalogs/EtfCatalog';
 import { percentToWeight, weightToPercent } from '../calculators/precision';
-import { parseExposureKey } from '../utils/exposureKeys';
+import { parseExposureKey } from '../utils/ExposureKeys';
 
 interface PortfolioExposures {
     usEquity: number;

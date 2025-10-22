@@ -1,9 +1,9 @@
 import React from 'react';
-import { assetClassColors } from '@/core/data/constants/assetClassColors';
+import { assetClassColors } from '@/core/data/constants/AssetClassColors';
 import { weightToPercent, calculateRelativePercent } from '@/core/calculators/precision';
 import { AnalysisService } from '@/core/services/AnalysisService';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import type { Portfolio } from '@/core/domain/Portfolio';
 
 interface AssetClassExposureBarProps {
