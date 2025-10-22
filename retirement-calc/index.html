@@ -27,12 +27,12 @@
             --color-danger: #dc2626;
             --color-bg-light: #f9fafb;
             --color-border: #e5e7eb;
-            --spacing-xs: 8px;
-            --spacing-sm: 12px;
-            --spacing-md: 16px;
-            --spacing-lg: 20px;
-            --spacing-xl: 24px;
-            --spacing-2xl: 32px;
+            --spacing-xs: 6px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 20px;
+            --spacing-2xl: 24px;
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
@@ -67,7 +67,7 @@
         }
 
         .header h1 {
-            font-size: clamp(24px, 6vw, 42px);
+            font-size: clamp(20px, 5vw, 36px);
             font-weight: 700;
             margin-bottom: var(--spacing-xs);
             letter-spacing: -0.5px;
@@ -75,7 +75,7 @@
         }
 
         .header p {
-            font-size: clamp(14px, 3.5vw, 18px);
+            font-size: clamp(13px, 3vw, 16px);
             opacity: 0.95;
             font-weight: 300;
             padding: 0 var(--spacing-sm);
@@ -119,7 +119,7 @@
         }
 
         .control-group {
-            margin-bottom: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
             touch-action: manipulation;
         }
 
@@ -131,7 +131,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
             font-size: 13px;
             color: var(--color-text-secondary);
             gap: var(--spacing-sm);
@@ -160,6 +160,7 @@
             border-radius: 5px;
             background: #e5e7eb;
             outline: none;
+            appearance: none;
             -webkit-appearance: none;
             cursor: pointer;
             transition: background var(--transition-base);
@@ -203,72 +204,91 @@
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.7);
         }
 
-        /* Touch-optimized switch */
-        .switch-container {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            background: white;
-            padding: var(--spacing-md);
-            border-radius: 10px;
-            box-shadow: var(--shadow-sm);
+        /* Withdrawal frequency selector */
+        .frequency-selector {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid #e0e7ff;
             margin-bottom: var(--spacing-lg);
-            touch-action: manipulation;
         }
 
-        .switch {
+        .frequency-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: var(--spacing-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .frequency-description {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-md);
+            line-height: 1.5;
+        }
+
+        .frequency-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-sm);
+        }
+
+        .frequency-option {
             position: relative;
-            display: inline-block;
-            width: 56px;
-            height: 32px;
-            flex-shrink: 0;
         }
 
-        .switch input {
+        .frequency-option input[type="radio"] {
+            position: absolute;
             opacity: 0;
             width: 0;
             height: 0;
         }
 
-        .switch-slider {
-            position: absolute;
+        .frequency-option label {
+            display: block;
+            padding: var(--spacing-md);
+            background: white;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #d1d5db;
-            transition: 0.3s;
-            border-radius: 32px;
+            transition: all var(--transition-base);
+            text-align: center;
+            touch-action: manipulation;
         }
 
-        .switch-slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: 0.3s;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        .frequency-option input[type="radio"]:checked + label {
+            border-color: var(--color-primary);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        input:checked + .switch-slider {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        .frequency-option label:active {
+            transform: scale(0.98);
         }
 
-        input:checked + .switch-slider:before {
-            transform: translateX(24px);
+        .frequency-label-main {
+            display: block;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 4px;
         }
 
-        .switch-label {
-            font-size: 14px;
+        .frequency-label-sub {
+            display: block;
+            font-size: 13px;
+            color: var(--color-text-secondary);
             font-weight: 500;
-            color: #374151;
-            cursor: pointer;
-            user-select: none;
+        }
+
+        .frequency-option input[type="radio"]:checked + label .frequency-label-main {
+            color: var(--color-primary);
+        }
+
+        .frequency-option input[type="radio"]:checked + label .frequency-label-sub {
+            color: var(--color-accent);
         }
 
         /* Chart section - Mobile optimized */
@@ -289,7 +309,8 @@
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-md);
             border: 1px solid #f3f4f6;
-            overflow: hidden;
+            overflow: visible;
+            position: relative;
         }
 
         #portfolioChart {
@@ -297,6 +318,61 @@
             height: 280px;
             display: block;
             touch-action: pan-x pan-y;
+            cursor: crosshair;
+        }
+
+        .chart-tooltip {
+            position: absolute;
+            background: rgba(17, 24, 39, 0.95);
+            color: white;
+            padding: var(--spacing-md);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            pointer-events: none;
+            font-size: 13px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            min-width: 200px;
+        }
+
+        .chart-tooltip.visible {
+            opacity: 1;
+        }
+
+        .tooltip-year {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: var(--spacing-xs);
+            color: #a5b4fc;
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            gap: var(--spacing-md);
+        }
+
+        .tooltip-label {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .tooltip-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .tooltip-value {
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         .chart-legend {
@@ -489,17 +565,17 @@
             }
 
             .control-label {
-                font-size: 14px;
-                margin-bottom: var(--spacing-md);
+                font-size: 13px;
+                margin-bottom: var(--spacing-sm);
             }
 
             .control-value {
-                font-size: 15px;
+                font-size: 14px;
             }
 
             .switch-container {
-                padding: var(--spacing-lg);
-                margin-bottom: var(--spacing-2xl);
+                padding: var(--spacing-md);
+                margin-bottom: var(--spacing-xl);
             }
 
             .switch-label {
@@ -592,6 +668,15 @@
             .stat-card:hover {
                 transform: translateY(-2px);
                 box-shadow: var(--shadow-md);
+            }
+
+            .frequency-option label:hover {
+                border-color: var(--color-primary);
+                background: rgba(102, 126, 234, 0.05);
+            }
+
+            .frequency-option input[type="radio"]:checked + label:hover {
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
             }
         }
 
@@ -689,17 +774,30 @@
                     </div>
                 </div>
 
-                <div class="switch-container">
-                    <label class="switch">
-                        <input type="checkbox" id="isMonthly">
-                        <span class="switch-slider"></span>
-                    </label>
-                    <label for="isMonthly" class="switch-label">Use monthly withdrawals instead of annual</label>
+                <div class="frequency-selector">
+                    <h3 class="frequency-title">Withdrawal Frequency</h3>
+                    <p class="frequency-description">This amount is withdrawn at the start of every year or month and is updated (increased) each period by the rate of inflation.</p>
+                    <div class="frequency-options">
+                        <div class="frequency-option">
+                            <input type="radio" id="frequencyAnnual" name="frequency" value="annual" checked>
+                            <label for="frequencyAnnual">
+                                <span class="frequency-label-main">Annual</span>
+                                <span class="frequency-label-sub" id="annualAmount"></span>
+                            </label>
+                        </div>
+                        <div class="frequency-option">
+                            <input type="radio" id="frequencyMonthly" name="frequency" value="monthly">
+                            <label for="frequencyMonthly">
+                                <span class="frequency-label-main">Monthly</span>
+                                <span class="frequency-label-sub" id="monthlyAmount">$12,667/month</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="chart-section">
                     <h3 class="chart-title">Portfolio Projection</h3>
-                    <div class="chart-container">
+                    <div class="chart-container" id="chartContainer">
                         <div class="chart-legend">
                             <div class="legend-item">
                                 <div class="legend-color expected"></div>
@@ -715,6 +813,30 @@
                             </div>
                         </div>
                         <canvas id="portfolioChart"></canvas>
+                        <div class="chart-tooltip" id="chartTooltip">
+                            <div class="tooltip-year" id="tooltipYear"></div>
+                            <div class="tooltip-row">
+                                <div class="tooltip-label">
+                                    <div class="tooltip-dot" style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"></div>
+                                    <span>Expected Value</span>
+                                </div>
+                                <div class="tooltip-value" id="tooltipExpected"></div>
+                            </div>
+                            <div class="tooltip-row">
+                                <div class="tooltip-label">
+                                    <div class="tooltip-dot" style="background: #dc2626;"></div>
+                                    <span>95% Lower Bound</span>
+                                </div>
+                                <div class="tooltip-value" id="tooltipLowerBound"></div>
+                            </div>
+                            <div class="tooltip-row">
+                                <div class="tooltip-label">
+                                    <div class="tooltip-dot" style="background: #059669;"></div>
+                                    <span id="tooltipWithdrawalLabel">Withdrawal</span>
+                                </div>
+                                <div class="tooltip-value" id="tooltipWithdrawal"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -738,11 +860,11 @@
                     <div class="stat-card">
                         <h4 class="stat-title" id="terminalTitle">Terminal Values (Year 50)</h4>
                         <div class="stat-row">
-                            <span class="stat-label">Expected Portfolio:</span>
+                            <span class="stat-label">Expected Portfolio Value:</span>
                             <span class="stat-value" id="statExpectedPortfolio">$0</span>
                         </div>
                         <div class="stat-row">
-                            <span class="stat-label">95% Lower Bound:</span>
+                            <span class="stat-label">95% Lower Bound Portfolio Value:</span>
                             <span class="stat-value" id="statLowerBound">$0</span>
                         </div>
                         <div class="stat-row">
@@ -897,6 +1019,9 @@
             const xScale = (year) => padding.left + (year / maxYear) * chartWidth;
             const yScale = (value) => padding.top + chartHeight - (value / maxValue) * chartHeight;
 
+            // Store dimensions for tooltip calculations
+            chartDimensions = { padding, chartWidth, chartHeight, maxYear, maxValue };
+
             // Draw grid
             ctx.strokeStyle = '#f0f0f0';
             ctx.lineWidth = 1;
@@ -1026,23 +1151,104 @@
             drawLine(data, 'withdrawal', '#059669', 2, false);
         }
 
+        // Tooltip functionality
+        let chartData = [];
+        let chartDimensions = null;
+
+        function findClosestDataPoint(mouseX, mouseY, rect) {
+            if (!chartDimensions || chartData.length === 0) return null;
+
+            const { padding, chartWidth, maxYear } = chartDimensions;
+            
+            const relativeX = mouseX - rect.left;
+            const chartX = relativeX - padding.left;
+            
+            if (chartX < 0 || chartX > chartWidth) return null;
+
+            const year = (chartX / chartWidth) * maxYear;
+            
+            let closestPoint = null;
+            let minDistance = Infinity;
+
+            for (let i = 0; i < chartData.length; i++) {
+                const point = chartData[i];
+                if (point.expected === null) continue;
+
+                const distance = Math.abs(point.year - year);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestPoint = point;
+                }
+            }
+
+            return closestPoint;
+        }
+
+        function showTooltip(point, mouseX, mouseY, rect) {
+            const tooltip = document.getElementById('chartTooltip');
+            const tooltipYear = document.getElementById('tooltipYear');
+            const tooltipExpected = document.getElementById('tooltipExpected');
+            const tooltipLowerBound = document.getElementById('tooltipLowerBound');
+            const tooltipWithdrawal = document.getElementById('tooltipWithdrawal');
+
+            const yearLabel = state.isMonthly ? 
+                `Year ${Math.floor(point.year)}, Month ${Math.round((point.year % 1) * 12)}` :
+                `Year ${Math.round(point.year)}`;
+
+            tooltipYear.textContent = yearLabel;
+            tooltipExpected.textContent = point.expected !== null ? formatCurrency(point.expected) : 'N/A';
+            tooltipLowerBound.textContent = point.fifth_percentile !== null ? formatCurrency(point.fifth_percentile) : 'N/A';
+            tooltipWithdrawal.textContent = point.withdrawal !== null ? 
+                formatCurrency(point.withdrawal * (state.isMonthly ? 1 : 1)) : 'N/A';
+
+            const relativeX = mouseX - rect.left;
+            const relativeY = mouseY - rect.top;
+            
+            const tooltipRect = tooltip.getBoundingClientRect();
+            const containerRect = rect;
+            
+            let left = relativeX + 15;
+            let top = relativeY + 15;
+
+            if (left + tooltipRect.width > containerRect.width) {
+                left = relativeX - tooltipRect.width - 15;
+            }
+
+            if (top + tooltipRect.height > containerRect.height) {
+                top = relativeY - tooltipRect.height - 15;
+            }
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('chartTooltip');
+            tooltip.classList.remove('visible');
+        }
+
         // Update display
         function updateDisplay() {
             const data = calculatePortfolioPath();
+            chartData = data;
 
             // Update control labels
             document.getElementById('initialInvestmentValue').textContent = formatCurrency(state.initialInvestment);
 
             const annualWithdrawal = (state.initialInvestment * state.withdrawalRate) / 100;
-            const periodicWithdrawal = state.isMonthly ? annualWithdrawal / 12 : annualWithdrawal;
-            const periodicLabel = state.isMonthly ? '/month' : '/year';
-            document.getElementById('withdrawalRateValue').textContent =
-                `${state.withdrawalRate}% (${formatCurrency(periodicWithdrawal)}${periodicLabel})`;
+            const monthlyWithdrawal = annualWithdrawal / 12;
+
+            document.getElementById('withdrawalRateValue').textContent = `${state.withdrawalRate}%`;
 
             document.getElementById('inflationRateValue').textContent = `${state.inflationRate}%`;
             document.getElementById('cagrValue').textContent = `${state.cagr}%`;
             document.getElementById('volatilityValue').textContent = `${state.volatility}%`;
             document.getElementById('yearsValue').textContent = `${state.years} years`;
+
+            // Update frequency selector amounts
+            document.getElementById('annualAmount').textContent = `${formatCurrency(annualWithdrawal)}/year`;
+            document.getElementById('monthlyAmount').textContent = `${formatCurrency(monthlyWithdrawal)}/month`;
 
             // Update withdrawal legend
             document.getElementById('withdrawalLegend').textContent =
@@ -1050,7 +1256,9 @@
 
             // Update stats
             document.getElementById('statInitialInvestment').textContent = formatCurrency(state.initialInvestment);
-            document.getElementById('statInitialWithdrawal').textContent = formatCurrency(annualWithdrawal) + '/year';
+            const displayWithdrawal = state.isMonthly ? monthlyWithdrawal : annualWithdrawal;
+            const displayFrequency = state.isMonthly ? '/month' : '/year';
+            document.getElementById('statInitialWithdrawal').textContent = formatCurrency(displayWithdrawal) + displayFrequency;
             document.getElementById('statWithdrawalRate').textContent = `${state.withdrawalRate}%`;
 
             // Find last valid data point
@@ -1100,9 +1308,65 @@
             updateDisplay();
         });
 
-        document.getElementById('isMonthly').addEventListener('change', (e) => {
-            state.isMonthly = e.target.checked;
-            updateDisplay();
+        document.getElementById('frequencyAnnual').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                state.isMonthly = false;
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('frequencyMonthly').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                state.isMonthly = true;
+                updateDisplay();
+            }
+        });
+
+        // Chart tooltip event listeners
+        const canvas = document.getElementById('portfolioChart');
+        const chartContainer = document.getElementById('chartContainer');
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = chartContainer.getBoundingClientRect();
+            const closestPoint = findClosestDataPoint(e.clientX, e.clientY, rect);
+            
+            if (closestPoint) {
+                showTooltip(closestPoint, e.clientX, e.clientY, rect);
+            } else {
+                hideTooltip();
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            hideTooltip();
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = chartContainer.getBoundingClientRect();
+            const touch = e.touches[0];
+            const closestPoint = findClosestDataPoint(touch.clientX, touch.clientY, rect);
+            
+            if (closestPoint) {
+                showTooltip(closestPoint, touch.clientX, touch.clientY, rect);
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = chartContainer.getBoundingClientRect();
+            const touch = e.touches[0];
+            const closestPoint = findClosestDataPoint(touch.clientX, touch.clientY, rect);
+            
+            if (closestPoint) {
+                showTooltip(closestPoint, touch.clientX, touch.clientY, rect);
+            } else {
+                hideTooltip();
+            }
+        });
+
+        canvas.addEventListener('touchend', () => {
+            hideTooltip();
         });
 
         // Handle window resize
