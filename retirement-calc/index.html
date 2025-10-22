@@ -12,52 +12,75 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f3f4f6;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 32px 20px;
             line-height: 1.6;
         }
 
-        .card {
-            max-width: 1024px;
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 32px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .card {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .card-header {
-            padding: 24px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .card-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 24px;
-            font-weight: 600;
-        }
-
-        .version {
-            font-size: 14px;
-            font-weight: 400;
-            color: #6b7280;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out;
         }
 
         .card-content {
-            padding: 24px;
+            padding: 40px;
         }
 
-        .controls-section {
-            background-color: #f9fafb;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 24px;
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+            margin-bottom: 40px;
+        }
+
+        .control-section {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e0e7ff;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #4338ca;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .control-group {
-            margin-bottom: 16px;
+            margin-bottom: 24px;
         }
 
         .control-group:last-child {
@@ -66,56 +89,90 @@
 
         .control-label {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             font-size: 14px;
+            color: #4b5563;
         }
 
-        .control-label strong {
-            margin-left: 8px;
+        .control-label-text {
+            font-weight: 500;
+        }
+
+        .control-value {
+            font-weight: 700;
             color: #111827;
+            font-size: 15px;
+            background: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .slider {
             width: 100%;
-            height: 6px;
-            border-radius: 3px;
+            height: 8px;
+            border-radius: 4px;
             background: #e5e7eb;
             outline: none;
             -webkit-appearance: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .slider:hover {
+            background: #d1d5db;
         }
 
         .slider::-webkit-slider-thumb {
             appearance: none;
             -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            background: #4338ca;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             cursor: pointer;
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.6);
         }
 
         .slider::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            background: #4338ca;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             cursor: pointer;
             border: none;
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .slider::-moz-range-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.6);
         }
 
         .switch-container {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-top: 16px;
+            gap: 12px;
+            background: white;
+            padding: 16px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
 
         .switch {
             position: relative;
             display: inline-block;
-            width: 44px;
-            height: 24px;
+            width: 52px;
+            height: 28px;
         }
 
         .switch input {
@@ -133,218 +190,322 @@
             bottom: 0;
             background-color: #d1d5db;
             transition: 0.3s;
-            border-radius: 24px;
+            border-radius: 28px;
         }
 
         .switch-slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
+            height: 22px;
+            width: 22px;
             left: 3px;
             bottom: 3px;
             background-color: white;
             transition: 0.3s;
             border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         input:checked + .switch-slider {
-            background-color: #4338ca;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         input:checked + .switch-slider:before {
-            transform: translateX(20px);
+            transform: translateX(24px);
         }
 
         .switch-label {
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #374151;
         }
 
         .chart-section {
-            margin-top: 32px;
+            margin-top: 40px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
         }
 
         .chart-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #111827;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .chart-container {
-            background: white;
-            padding: 16px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            padding: 32px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            border: 1px solid #f3f4f6;
         }
 
         #portfolioChart {
             width: 100%;
-            height: 400px;
+            height: 450px;
             display: block;
         }
 
         .stats-grid {
-            margin-top: 24px;
+            margin-top: 32px;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 24px;
         }
 
         .stat-card {
-            background-color: #f9fafb;
-            padding: 16px;
-            border-radius: 8px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e0e7ff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         }
 
         .stat-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 12px;
+            font-weight: 700;
+            font-size: 15px;
+            color: #4338ca;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .stat-row {
             display: flex;
             justify-content: space-between;
-            font-size: 14px;
-            margin-bottom: 8px;
+            font-size: 15px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
         }
 
         .stat-row:last-child {
             margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
         }
 
         .stat-label {
             color: #6b7280;
-        }
-
-        .stat-value {
             font-weight: 500;
         }
 
+        .stat-value {
+            font-weight: 700;
+            color: #111827;
+        }
+
         .methodology {
-            margin-top: 24px;
-            background-color: #eff6ff;
-            padding: 16px;
-            border-radius: 8px;
+            margin-top: 32px;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #bfdbfe;
         }
 
         .methodology h4 {
-            font-weight: 600;
-            font-size: 14px;
+            font-weight: 700;
+            font-size: 16px;
             color: #1e3a8a;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .methodology p {
             font-size: 14px;
             color: #1e40af;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            line-height: 1.7;
         }
 
         .methodology ul {
             font-size: 14px;
             color: #1e40af;
-            margin-left: 20px;
+            margin-left: 24px;
+            line-height: 1.7;
         }
 
         .methodology li {
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
         .chart-legend {
             display: flex;
             justify-content: center;
-            gap: 24px;
-            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 28px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-size: 14px;
+            font-weight: 500;
+            color: #374151;
         }
 
         .legend-color {
-            width: 20px;
-            height: 3px;
+            width: 28px;
+            height: 4px;
+            border-radius: 2px;
         }
 
         .legend-color.expected {
-            background-color: #4338ca;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
         }
 
         .legend-color.confidence {
             background-color: #dc2626;
             background-image: linear-gradient(90deg, #dc2626 50%, transparent 50%);
-            background-size: 8px 3px;
+            background-size: 8px 4px;
         }
 
         .legend-color.withdrawal {
             background-color: #059669;
         }
 
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         @media (max-width: 768px) {
+            body {
+                padding: 20px 12px;
+            }
+
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+
+            .card-content {
+                padding: 24px;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
             .stats-grid {
                 grid-template-columns: 1fr;
+            }
+
+            #portfolioChart {
+                height: 350px;
+            }
+
+            .chart-legend {
+                gap: 16px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">
-                <span>Portfolio Growth Simulator</span>
-                <span class="version">v1.0.0</span>
-            </div>
+    <div class="container">
+        <div class="header">
+            <h1>Portfolio Growth Simulator</h1>
+            <p>Plan your retirement with confidence using advanced financial modeling</p>
         </div>
-        <div class="card-content">
-            <div class="controls-section">
-                <div class="control-group">
-                    <label class="control-label">
-                        Starting Value: <strong id="initialInvestmentValue">$4,000,000</strong>
-                    </label>
-                    <input type="range" class="slider" id="initialInvestment" min="0" max="10000000" step="100000" value="4000000">
-                </div>
 
-                <div class="control-group">
-                    <label class="control-label">
-                        Annual Withdrawal Rate: <strong id="withdrawalRateValue">3.8% ($152,000/year)</strong>
-                    </label>
-                    <input type="range" class="slider" id="withdrawalRate" min="0" max="10" step="0.1" value="3.8">
-                </div>
+        <div class="card">
+            <div class="card-content">
+                <div class="controls-grid">
+                    <div class="control-section">
+                        <h3 class="section-title">Portfolio Settings</h3>
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Starting Value</span>
+                                <span class="control-value" id="initialInvestmentValue">$4,000,000</span>
+                            </label>
+                            <input type="range" class="slider" id="initialInvestment" min="0" max="10000000" step="100000" value="4000000">
+                        </div>
 
-                <div class="control-group">
-                    <label class="control-label">
-                        Inflation Rate: <strong id="inflationRateValue">3%</strong>
-                    </label>
-                    <input type="range" class="slider" id="inflationRate" min="-5" max="20" step="0.1" value="3">
-                </div>
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Withdrawal Rate</span>
+                                <span class="control-value" id="withdrawalRateValue">3.8%</span>
+                            </label>
+                            <input type="range" class="slider" id="withdrawalRate" min="0" max="10" step="0.1" value="3.8">
+                        </div>
 
-                <div class="control-group">
-                    <label class="control-label">
-                        CAGR: <strong id="cagrValue">9.5%</strong>
-                    </label>
-                    <input type="range" class="slider" id="cagr" min="0" max="20" step="0.1" value="9.5">
-                </div>
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Time Horizon</span>
+                                <span class="control-value" id="yearsValue">50 years</span>
+                            </label>
+                            <input type="range" class="slider" id="years" min="1" max="100" step="1" value="50">
+                        </div>
+                    </div>
 
-                <div class="control-group">
-                    <label class="control-label">
-                        Annualized Volatility: <strong id="volatilityValue">26%</strong>
-                    </label>
-                    <input type="range" class="slider" id="volatility" min="0" max="100" step="0.1" value="26">
-                </div>
+                    <div class="control-section">
+                        <h3 class="section-title">Market Assumptions</h3>
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Expected CAGR</span>
+                                <span class="control-value" id="cagrValue">9.5%</span>
+                            </label>
+                            <input type="range" class="slider" id="cagr" min="0" max="20" step="0.1" value="9.5">
+                        </div>
 
-                <div class="control-group">
-                    <label class="control-label">
-                        Time Horizon: <strong id="yearsValue">50 years</strong>
-                    </label>
-                    <input type="range" class="slider" id="years" min="1" max="100" step="1" value="50">
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Annualized Volatility</span>
+                                <span class="control-value" id="volatilityValue">26%</span>
+                            </label>
+                            <input type="range" class="slider" id="volatility" min="0" max="100" step="0.1" value="26">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Inflation Rate</span>
+                                <span class="control-value" id="inflationRateValue">3%</span>
+                            </label>
+                            <input type="range" class="slider" id="inflationRate" min="-5" max="20" step="0.1" value="3">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="switch-container">
@@ -352,18 +513,11 @@
                         <input type="checkbox" id="isMonthly">
                         <span class="switch-slider"></span>
                     </label>
-                    <label for="isMonthly" class="switch-label">Use monthly withdrawals</label>
+                    <label for="isMonthly" class="switch-label">Use monthly withdrawals instead of annual</label>
                 </div>
 
                 <div class="chart-section">
-                    <h3 class="chart-title">
-                        Portfolio Projection
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                    </h3>
+                    <h3 class="chart-title">Portfolio Projection</h3>
                     <div class="chart-container">
                         <div class="chart-legend">
                             <div class="legend-item">
@@ -660,7 +814,34 @@
 
             // Draw lines
             drawLine(data, 'fifth_percentile', '#dc2626', 2, true);
-            drawLine(data, 'expected', '#4338ca', 2.5, false);
+
+            // Draw expected value line with gradient
+            const gradient = ctx.createLinearGradient(padding.left, 0, padding.left + chartWidth, 0);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            let started = false;
+            for (let i = 0; i < data.length; i++) {
+                const point = data[i];
+                if (point.expected !== null) {
+                    const x = xScale(point.year);
+                    const y = yScale(point.expected);
+                    if (!started) {
+                        ctx.moveTo(x, y);
+                        started = true;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                } else if (started) {
+                    break;
+                }
+            }
+            ctx.stroke();
+
             drawLine(data, 'withdrawal', '#059669', 2, false);
         }
 
