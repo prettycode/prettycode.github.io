@@ -11,7 +11,13 @@ import {
     redistributeAmongAvailable,
     roundHoldingPercentages,
 } from '../calculators/AllocationCalculator';
-import { calculateTotalAllocation, isPortfolioPrecise, ensureBasisPoints, percentToBasisPoints, basisPointsToPercent } from '../calculators/precision';
+import {
+    calculateTotalAllocation,
+    isPortfolioPrecise,
+    ensureBasisPoints,
+    percentToBasisPoints,
+    basisPointsToPercent,
+} from '../calculators/precision';
 
 export class AllocationService {
     /**
@@ -99,10 +105,13 @@ export class AllocationService {
             return portfolio;
         }
 
-        newHoldings.set(ticker, ensureBasisPoints({
-            ...holding,
-            locked,
-        }));
+        newHoldings.set(
+            ticker,
+            ensureBasisPoints({
+                ...holding,
+                locked,
+            })
+        );
 
         return {
             ...portfolio,
@@ -125,10 +134,13 @@ export class AllocationService {
         if (disabled) {
             // Disabling: redistribute this holding's allocation
             const holdingBasisPoints = holding.basisPoints ?? percentToBasisPoints(holding.percentage);
-            newHoldings.set(ticker, ensureBasisPoints({
-                ...holding,
-                disabled: true,
-            }));
+            newHoldings.set(
+                ticker,
+                ensureBasisPoints({
+                    ...holding,
+                    disabled: true,
+                })
+            );
 
             const availableETFs = Array.from(newHoldings.entries())
                 .filter(([t, h]) => t !== ticker && !h.locked && !h.disabled)
@@ -140,10 +152,13 @@ export class AllocationService {
             }
         } else {
             // Re-enabling: give it back its allocation
-            newHoldings.set(ticker, ensureBasisPoints({
-                ...holding,
-                disabled: false,
-            }));
+            newHoldings.set(
+                ticker,
+                ensureBasisPoints({
+                    ...holding,
+                    disabled: false,
+                })
+            );
 
             // Redistribute from others
             const availableETFs = Array.from(newHoldings.entries())
