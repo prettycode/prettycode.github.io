@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Growth Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f3f4f6;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .card {
+            max-width: 1024px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            padding: 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .version {
+            font-size: 14px;
+            font-weight: 400;
+            color: #6b7280;
+        }
+
+        .card-content {
+            padding: 24px;
+        }
+
+        .controls-section {
+            background-color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .control-label strong {
+            margin-left: 8px;
+            color: #111827;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4338ca;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4338ca;
+            cursor: pointer;
+            border: none;
+        }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #d1d5db;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .switch-slider {
+            background-color: #4338ca;
+        }
+
+        input:checked + .switch-slider:before {
+            transform: translateX(20px);
+        }
+
+        .switch-label {
+            font-size: 14px;
+        }
+
+        .chart-section {
+            margin-top: 32px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        #portfolioChart {
+            width: 100%;
+            height: 400px;
+            display: block;
+        }
+
+        .stats-grid {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .stat-card {
+            background-color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .stat-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: #6b7280;
+        }
+
+        .stat-value {
+            font-weight: 500;
+        }
+
+        .methodology {
+            margin-top: 24px;
+            background-color: #eff6ff;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .methodology h4 {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1e3a8a;
+            margin-bottom: 8px;
+        }
+
+        .methodology p {
+            font-size: 14px;
+            color: #1e40af;
+            margin-bottom: 8px;
+        }
+
+        .methodology ul {
+            font-size: 14px;
+            color: #1e40af;
+            margin-left: 20px;
+        }
+
+        .methodology li {
+            margin-bottom: 4px;
+        }
+
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+        }
+
+        .legend-color.expected {
+            background-color: #4338ca;
+        }
+
+        .legend-color.confidence {
+            background-color: #dc2626;
+            background-image: linear-gradient(90deg, #dc2626 50%, transparent 50%);
+            background-size: 8px 3px;
+        }
+
+        .legend-color.withdrawal {
+            background-color: #059669;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <span>Portfolio Growth Simulator</span>
+                <span class="version">v1.0.0</span>
+            </div>
+        </div>
+        <div class="card-content">
+            <div class="controls-section">
+                <div class="control-group">
+                    <label class="control-label">
+                        Starting Value: <strong id="initialInvestmentValue">$4,000,000</strong>
+                    </label>
+                    <input type="range" class="slider" id="initialInvestment" min="0" max="10000000" step="100000" value="4000000">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        Annual Withdrawal Rate: <strong id="withdrawalRateValue">3.8% ($152,000/year)</strong>
+                    </label>
+                    <input type="range" class="slider" id="withdrawalRate" min="0" max="10" step="0.1" value="3.8">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        Inflation Rate: <strong id="inflationRateValue">3%</strong>
+                    </label>
+                    <input type="range" class="slider" id="inflationRate" min="-5" max="20" step="0.1" value="3">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        CAGR: <strong id="cagrValue">9.5%</strong>
+                    </label>
+                    <input type="range" class="slider" id="cagr" min="0" max="20" step="0.1" value="9.5">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        Annualized Volatility: <strong id="volatilityValue">26%</strong>
+                    </label>
+                    <input type="range" class="slider" id="volatility" min="0" max="100" step="0.1" value="26">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        Time Horizon: <strong id="yearsValue">50 years</strong>
+                    </label>
+                    <input type="range" class="slider" id="years" min="1" max="100" step="1" value="50">
+                </div>
+
+                <div class="switch-container">
+                    <label class="switch">
+                        <input type="checkbox" id="isMonthly">
+                        <span class="switch-slider"></span>
+                    </label>
+                    <label for="isMonthly" class="switch-label">Use monthly withdrawals</label>
+                </div>
+
+                <div class="chart-section">
+                    <h3 class="chart-title">
+                        Portfolio Projection
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </h3>
+                    <div class="chart-container">
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-color expected"></div>
+                                <span>Expected Value</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color confidence"></div>
+                                <span>95% Confidence Lower Bound</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color withdrawal"></div>
+                                <span id="withdrawalLegend">Annual Withdrawal</span>
+                            </div>
+                        </div>
+                        <canvas id="portfolioChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4 class="stat-title">Initial Conditions</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Investment:</span>
+                            <span class="stat-value" id="statInitialInvestment">$4,000,000</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Initial Withdrawal:</span>
+                            <span class="stat-value" id="statInitialWithdrawal">$152,000/year</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Withdrawal Rate:</span>
+                            <span class="stat-value" id="statWithdrawalRate">3.8%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <h4 class="stat-title" id="terminalTitle">Terminal Values (Year 50)</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Expected Portfolio:</span>
+                            <span class="stat-value" id="statExpectedPortfolio">$0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">95% Lower Bound:</span>
+                            <span class="stat-value" id="statLowerBound">$0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Final Withdrawal:</span>
+                            <span class="stat-value" id="statFinalWithdrawal">$0/year</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="methodology">
+                    <h4>Methodology</h4>
+                    <p>This simulation uses a geometric Brownian motion model with:</p>
+                    <ul>
+                        <li>Log-normal return distribution</li>
+                        <li>Constant average growth rate (CAGR)</li>
+                        <li>Fixed volatility assumption</li>
+                        <li>Inflation-adjusted periodic withdrawals</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let state = {
+            initialInvestment: 4000000,
+            inflationRate: 3,
+            withdrawalRate: 3.8,
+            cagr: 9.5,
+            volatility: 26,
+            years: 50,
+            isMonthly: false
+        };
+
+        // Utility function to format currency
+        function formatCurrency(value) {
+            if (value === null || value === undefined || isNaN(value)) return '$0';
+            return '$' + Math.round(value).toLocaleString();
+        }
+
+        // Calculate portfolio path
+        function calculatePortfolioPath() {
+            const data = [];
+            const stdDev = state.volatility / 100;
+            const periodsPerYear = state.isMonthly ? 12 : 1;
+
+            const periodGrowthRate = Math.log(1 + state.cagr / 100) / periodsPerYear;
+            const periodStdDev = stdDev / Math.sqrt(periodsPerYear);
+            const periodMu = periodGrowthRate - (periodStdDev * periodStdDev) / 2;
+            const z_score_5th = -1.645;
+
+            const periodicInflationRate = state.isMonthly ?
+                Math.pow(1 + state.inflationRate / 100, 1/12) - 1 :
+                state.inflationRate / 100;
+
+            data.push({
+                period: 0,
+                year: 0,
+                expected: state.initialInvestment,
+                fifth_percentile: null,
+                withdrawal: null
+            });
+
+            let currentValue = state.initialInvestment;
+            let annualWithdrawal = (state.initialInvestment * state.withdrawalRate) / 100;
+            let periodWithdrawal = annualWithdrawal / periodsPerYear;
+
+            const totalPeriods = state.years * periodsPerYear;
+            for (let period = 1; period <= totalPeriods; period++) {
+                currentValue = Math.max(0, currentValue - periodWithdrawal);
+
+                const sigma_5th = Math.exp(periodMu + z_score_5th * periodStdDev);
+                const expectedValue = currentValue * Math.exp(periodMu);
+                const fifthPercentileValue = currentValue * sigma_5th;
+
+                const year = period / periodsPerYear;
+
+                data.push({
+                    period,
+                    year,
+                    expected: Math.max(0, expectedValue),
+                    fifth_percentile: Math.max(0, fifthPercentileValue),
+                    withdrawal: periodWithdrawal
+                });
+
+                periodWithdrawal *= (1 + periodicInflationRate);
+                currentValue = expectedValue;
+            }
+
+            const processedData = data.map(point => ({
+                ...point,
+                withdrawal: point.expected === 0 ? null :
+                           point.expected < point.withdrawal ? point.expected :
+                           point.withdrawal
+            }));
+
+            const truncateIndex = processedData.findIndex((point, index) =>
+                index > 0 && point.withdrawal === null
+            );
+
+            if (truncateIndex !== -1) {
+                return processedData.map((point, index) => {
+                    if (index >= truncateIndex + 1) {
+                        return {
+                            ...point,
+                            expected: null,
+                            fifth_percentile: null,
+                            withdrawal: null
+                        };
+                    }
+                    return point;
+                });
+            }
+
+            return processedData;
+        }
+
+        // Draw chart
+        function drawChart(data) {
+            const canvas = document.getElementById('portfolioChart');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+
+            // Set canvas size with device pixel ratio for crisp rendering
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = 400 * dpr;
+            ctx.scale(dpr, dpr);
+
+            const width = rect.width;
+            const height = 400;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Chart dimensions
+            const padding = { top: 20, right: 40, bottom: 50, left: 70 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+
+            // Find max values for scaling
+            let maxValue = 0;
+            let maxYear = 0;
+            data.forEach(point => {
+                if (point.expected !== null && point.expected > maxValue) maxValue = point.expected;
+                if (point.fifth_percentile !== null && point.fifth_percentile > maxValue) maxValue = point.fifth_percentile;
+                if (point.year > maxYear) maxYear = point.year;
+            });
+
+            // Scale functions
+            const xScale = (year) => padding.left + (year / maxYear) * chartWidth;
+            const yScale = (value) => padding.top + chartHeight - (value / maxValue) * chartHeight;
+
+            // Draw grid
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+
+            // Vertical grid lines
+            for (let i = 0; i <= 10; i++) {
+                const x = padding.left + (i / 10) * chartWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, padding.top);
+                ctx.lineTo(x, padding.top + chartHeight);
+                ctx.stroke();
+            }
+
+            // Horizontal grid lines
+            for (let i = 0; i <= 10; i++) {
+                const y = padding.top + (i / 10) * chartHeight;
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(padding.left + chartWidth, y);
+                ctx.stroke();
+            }
+
+            // Draw axes
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding.left, padding.top);
+            ctx.lineTo(padding.left, padding.top + chartHeight);
+            ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+            ctx.stroke();
+
+            // X-axis labels
+            ctx.fillStyle = '#000';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 10; i++) {
+                const year = Math.floor((i / 10) * maxYear);
+                const x = padding.left + (i / 10) * chartWidth;
+                ctx.fillText(year.toString(), x, padding.top + chartHeight + 20);
+            }
+            ctx.fillText('Years', width / 2, height - 10);
+
+            // Y-axis labels
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i <= 10; i++) {
+                const value = (1 - i / 10) * maxValue;
+                const y = padding.top + (i / 10) * chartHeight;
+                const label = '$' + (value / 1000000).toFixed(1) + 'M';
+                ctx.fillText(label, padding.left - 10, y);
+            }
+
+            // Y-axis title
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillText('Portfolio Value', 0, 0);
+            ctx.restore();
+
+            // Helper function to draw a line
+            function drawLine(data, key, color, lineWidth, dashed = false) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+
+                if (dashed) {
+                    ctx.setLineDash([4, 4]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+
+                ctx.beginPath();
+                let started = false;
+
+                for (let i = 0; i < data.length; i++) {
+                    const point = data[i];
+                    if (point[key] !== null) {
+                        const x = xScale(point.year);
+                        const y = yScale(point[key]);
+
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    } else if (started) {
+                        // Stop drawing when we hit null
+                        break;
+                    }
+                }
+
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Draw lines
+            drawLine(data, 'fifth_percentile', '#dc2626', 2, true);
+            drawLine(data, 'expected', '#4338ca', 2.5, false);
+            drawLine(data, 'withdrawal', '#059669', 2, false);
+        }
+
+        // Update display
+        function updateDisplay() {
+            const data = calculatePortfolioPath();
+
+            // Update control labels
+            document.getElementById('initialInvestmentValue').textContent = formatCurrency(state.initialInvestment);
+
+            const annualWithdrawal = (state.initialInvestment * state.withdrawalRate) / 100;
+            const periodicWithdrawal = state.isMonthly ? annualWithdrawal / 12 : annualWithdrawal;
+            const periodicLabel = state.isMonthly ? '/month' : '/year';
+            document.getElementById('withdrawalRateValue').textContent =
+                `${state.withdrawalRate}% (${formatCurrency(periodicWithdrawal)}${periodicLabel})`;
+
+            document.getElementById('inflationRateValue').textContent = `${state.inflationRate}%`;
+            document.getElementById('cagrValue').textContent = `${state.cagr}%`;
+            document.getElementById('volatilityValue').textContent = `${state.volatility}%`;
+            document.getElementById('yearsValue').textContent = `${state.years} years`;
+
+            // Update withdrawal legend
+            document.getElementById('withdrawalLegend').textContent =
+                state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal';
+
+            // Update stats
+            document.getElementById('statInitialInvestment').textContent = formatCurrency(state.initialInvestment);
+            document.getElementById('statInitialWithdrawal').textContent = formatCurrency(annualWithdrawal) + '/year';
+            document.getElementById('statWithdrawalRate').textContent = `${state.withdrawalRate}%`;
+
+            // Find last valid data point
+            const lastValidDataPoint = [...data].reverse().find(point => point.withdrawal !== null);
+            const terminalYear = lastValidDataPoint ? Math.floor(lastValidDataPoint.year) : state.years;
+
+            document.getElementById('terminalTitle').textContent = `Terminal Values (Year ${terminalYear})`;
+            document.getElementById('statExpectedPortfolio').textContent =
+                formatCurrency(lastValidDataPoint?.expected);
+            document.getElementById('statLowerBound').textContent =
+                formatCurrency(lastValidDataPoint?.fifth_percentile);
+            document.getElementById('statFinalWithdrawal').textContent =
+                formatCurrency((lastValidDataPoint?.withdrawal || 0) * (state.isMonthly ? 12 : 1)) + '/year';
+
+            // Draw chart
+            drawChart(data);
+        }
+
+        // Event listeners
+        document.getElementById('initialInvestment').addEventListener('input', (e) => {
+            state.initialInvestment = parseInt(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('withdrawalRate').addEventListener('input', (e) => {
+            state.withdrawalRate = parseFloat(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('inflationRate').addEventListener('input', (e) => {
+            state.inflationRate = parseFloat(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('cagr').addEventListener('input', (e) => {
+            state.cagr = parseFloat(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('volatility').addEventListener('input', (e) => {
+            state.volatility = parseFloat(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('years').addEventListener('input', (e) => {
+            state.years = parseInt(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('isMonthly').addEventListener('change', (e) => {
+            state.isMonthly = e.target.checked;
+            updateDisplay();
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            updateDisplay();
+        });
+
+        // Initial render
+        updateDisplay();
+    </script>
+</body>
+</html>
