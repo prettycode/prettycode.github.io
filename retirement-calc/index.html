@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#667eea">
     <meta name="description" content="Plan your retirement with confidence using advanced financial modeling">
     <title>Portfolio Growth Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         /* Mobile-first base styles */
         * {
@@ -151,6 +152,34 @@
             border-radius: 6px;
             box-shadow: var(--shadow-sm);
             white-space: nowrap;
+        }
+
+        .portfolio-preset-select {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            background: white;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .portfolio-preset-select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .portfolio-preset-select:hover {
+            border-color: var(--color-primary);
         }
 
         /* Touch-optimized sliders */
@@ -313,66 +342,10 @@
             position: relative;
         }
 
-        #portfolioChart {
+        .chart-wrapper {
             width: 100%;
-            height: 280px;
-            display: block;
-            touch-action: pan-x pan-y;
-            cursor: crosshair;
-        }
-
-        .chart-tooltip {
-            position: absolute;
-            background: rgba(17, 24, 39, 0.95);
-            color: white;
-            padding: var(--spacing-md);
-            border-radius: var(--radius-sm);
-            box-shadow: var(--shadow-lg);
-            pointer-events: none;
-            font-size: 13px;
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.15s ease;
-            min-width: 200px;
-        }
-
-        .chart-tooltip.visible {
-            opacity: 1;
-        }
-
-        .tooltip-year {
-            font-weight: 700;
-            font-size: 14px;
-            margin-bottom: var(--spacing-xs);
-            color: #a5b4fc;
-        }
-
-        .tooltip-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 0;
-            gap: var(--spacing-md);
-        }
-
-        .tooltip-label {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-xs);
-            font-size: 12px;
-            opacity: 0.9;
-        }
-
-        .tooltip-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .tooltip-value {
-            font-weight: 700;
-            white-space: nowrap;
+            height: 350px;
+            position: relative;
         }
 
         .chart-legend {
@@ -401,7 +374,7 @@
             flex-shrink: 0;
         }
 
-        .legend-color.expected {
+        .legend-color.median {
             background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
         }
 
@@ -594,7 +567,7 @@
                 padding: var(--spacing-xl);
             }
 
-            #portfolioChart {
+            .chart-wrapper {
                 height: 400px;
             }
 
@@ -682,7 +655,7 @@
 
         /* Large desktop breakpoint (1024px+) */
         @media (min-width: 1024px) {
-            #portfolioChart {
+            .chart-wrapper {
                 height: 450px;
             }
         }
@@ -748,6 +721,22 @@
 
                     <div class="control-section">
                         <h3 class="section-title">Market Assumptions</h3>
+                        
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Portfolio Preset</span>
+                            </label>
+                            <select class="portfolio-preset-select" id="portfolioPreset">
+                                <option value="aggressive">Aggressive (100% U.S. Stocks)</option>
+                                <option value="mod-aggressive">Moderately Aggressive (80/20)</option>
+                                <option value="moderate">Moderate (60/40)</option>
+                                <option value="mod-conservative">Moderately Conservative (40/60)</option>
+                                <option value="conservative">Conservative (20/80)</option>
+                                <option value="very-conservative">Very Conservative (100% U.S. Bonds)</option>
+                                <option value="custom" selected>Custom</option>
+                            </select>
+                        </div>
+
                         <div class="control-group">
                             <label class="control-label">
                                 <span class="control-label-text">Expected CAGR</span>
@@ -800,8 +789,8 @@
                     <div class="chart-container" id="chartContainer">
                         <div class="chart-legend">
                             <div class="legend-item">
-                                <div class="legend-color expected"></div>
-                                <span>Expected Value</span>
+                                <div class="legend-color median"></div>
+                                <span>Average Outcome</span>
                             </div>
                             <div class="legend-item">
                                 <div class="legend-color confidence"></div>
@@ -812,30 +801,8 @@
                                 <span id="withdrawalLegend">Annual Withdrawal</span>
                             </div>
                         </div>
-                        <canvas id="portfolioChart"></canvas>
-                        <div class="chart-tooltip" id="chartTooltip">
-                            <div class="tooltip-year" id="tooltipYear"></div>
-                            <div class="tooltip-row">
-                                <div class="tooltip-label">
-                                    <div class="tooltip-dot" style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"></div>
-                                    <span>Expected Value</span>
-                                </div>
-                                <div class="tooltip-value" id="tooltipExpected"></div>
-                            </div>
-                            <div class="tooltip-row">
-                                <div class="tooltip-label">
-                                    <div class="tooltip-dot" style="background: #dc2626;"></div>
-                                    <span>95% Lower Bound</span>
-                                </div>
-                                <div class="tooltip-value" id="tooltipLowerBound"></div>
-                            </div>
-                            <div class="tooltip-row">
-                                <div class="tooltip-label">
-                                    <div class="tooltip-dot" style="background: #059669;"></div>
-                                    <span id="tooltipWithdrawalLabel">Withdrawal</span>
-                                </div>
-                                <div class="tooltip-value" id="tooltipWithdrawal"></div>
-                            </div>
+                        <div class="chart-wrapper">
+                            <canvas id="portfolioChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -860,8 +827,8 @@
                     <div class="stat-card">
                         <h4 class="stat-title" id="terminalTitle">Terminal Values (Year 50)</h4>
                         <div class="stat-row">
-                            <span class="stat-label">Expected Portfolio Value:</span>
-                            <span class="stat-value" id="statExpectedPortfolio">$0</span>
+                            <span class="stat-label">Average Portfolio Value:</span>
+                            <span class="stat-value" id="statMedianPortfolio">$0</span>
                         </div>
                         <div class="stat-row">
                             <span class="stat-label">95% Lower Bound Portfolio Value:</span>
@@ -875,11 +842,27 @@
                 </div>
 
                 <div class="methodology">
+                    <h4>Portfolio Presets</h4>
+                    <p>The portfolio preset selector provides market assumptions based on <strong>U.S. historical performance</strong> from 1926-2019. Stock allocations represent the S&P 500 Index (large-cap U.S. equities), while bond allocations represent the Bloomberg Barclays U.S. Aggregate Bond Index (investment-grade U.S. bonds).</p>
+                    <p><strong>Historical Performance (1926-2019):</strong></p>
+                    <ul>
+                        <li><strong>100% U.S. Stocks:</strong> 10.3% average annual return (S&P 500)</li>
+                        <li><strong>80/20 Portfolio:</strong> 9.5% average annual return with reduced volatility</li>
+                        <li><strong>60/40 Portfolio:</strong> 8.8% average annual return (traditional balanced approach)</li>
+                        <li><strong>40/60 Portfolio:</strong> 7.3% average annual return (conservative balanced)</li>
+                        <li><strong>20/80 Portfolio:</strong> 6.1% average annual return with low volatility</li>
+                        <li><strong>100% U.S. Bonds:</strong> 5.3% average annual return (U.S. Aggregate Bonds)</li>
+                    </ul>
+                    <p><strong>Note:</strong> These are U.S.-only allocations and do not include international equities or bonds. Past performance does not guarantee future results.</p>
+                    <p><strong>Sources:</strong> Visual Capitalist (visualcapitalist.com), Four Pillar Freedom analysis of historical U.S. market data (1926-2019).</p>
+                    <h4>Understanding the Chart</h4>
+                    <p><strong>Average Outcome</strong> represents the typical expected outcome based on the geometric mean of returns. This is calculated using the geometric mean, which accounts for the compounding nature of investment returns over time. Half of all simulations would result in values above this line, and half below, making it a realistic middle-ground projection.</p>
+                    <p><strong>95% Confidence Lower Bound (5th Percentile)</strong> is a more conservative view. It tells you: "There's only a 5% chance your portfolio will be below this value." This is often most useful for retirement planning when you want to understand downside risk rather than typical outcomes.</p>
                     <h4>Methodology</h4>
                     <p>This simulation uses a geometric Brownian motion model with:</p>
                     <ul>
                         <li>Log-normal return distribution</li>
-                        <li>Constant average growth rate (CAGR)</li>
+                        <li>Geometric mean (CAGR) as the basis for average outcomes</li>
                         <li>Fixed volatility assumption</li>
                         <li>Inflation-adjusted periodic withdrawals</li>
                     </ul>
@@ -897,7 +880,47 @@
             cagr: 9.5,
             volatility: 26,
             years: 50,
-            isMonthly: false
+            isMonthly: false,
+            currentPreset: 'custom'
+        };
+
+        const portfolioPresets = {
+            'aggressive': {
+                name: 'Aggressive (100% U.S. Stocks)',
+                cagr: 10.3,
+                volatility: 18.0,
+                description: 'S&P 500'
+            },
+            'mod-aggressive': {
+                name: 'Moderately Aggressive (80/20)',
+                cagr: 9.5,
+                volatility: 14.0,
+                description: '80% Stocks / 20% Bonds'
+            },
+            'moderate': {
+                name: 'Moderate (60/40)',
+                cagr: 8.8,
+                volatility: 11.0,
+                description: '60% Stocks / 40% Bonds'
+            },
+            'mod-conservative': {
+                name: 'Moderately Conservative (40/60)',
+                cagr: 7.3,
+                volatility: 8.5,
+                description: '40% Stocks / 60% Bonds'
+            },
+            'conservative': {
+                name: 'Conservative (20/80)',
+                cagr: 6.1,
+                volatility: 6.5,
+                description: '20% Stocks / 80% Bonds'
+            },
+            'very-conservative': {
+                name: 'Very Conservative (100% U.S. Bonds)',
+                cagr: 5.3,
+                volatility: 5.5,
+                description: 'U.S. Aggregate Bonds'
+            }
         };
 
         // Utility function to format currency
@@ -921,44 +944,63 @@
                 Math.pow(1 + state.inflationRate / 100, 1/12) - 1 :
                 state.inflationRate / 100;
 
+            let annualWithdrawal = (state.initialInvestment * state.withdrawalRate) / 100;
+            let periodWithdrawal = annualWithdrawal / periodsPerYear;
+
             data.push({
                 period: 0,
                 year: 0,
-                expected: state.initialInvestment,
+                median: state.initialInvestment,
+                mean: state.initialInvestment,
                 fifth_percentile: null,
                 withdrawal: null
             });
 
-            let currentValue = state.initialInvestment;
-            let annualWithdrawal = (state.initialInvestment * state.withdrawalRate) / 100;
-            let periodWithdrawal = annualWithdrawal / periodsPerYear;
+            let currentMedian = state.initialInvestment;
+            let currentMean = state.initialInvestment;
 
             const totalPeriods = state.years * periodsPerYear;
             for (let period = 1; period <= totalPeriods; period++) {
-                currentValue = Math.max(0, currentValue - periodWithdrawal);
+                const year = period / periodsPerYear;
+
+                if (period === 1) {
+                    currentMedian = Math.max(0, currentMedian - periodWithdrawal);
+                    currentMean = Math.max(0, currentMean - periodWithdrawal);
+                    
+                    data.push({
+                        period,
+                        year,
+                        median: Math.max(0, currentMedian),
+                        mean: Math.max(0, currentMean),
+                        fifth_percentile: null,
+                        withdrawal: periodWithdrawal
+                    });
+                } else {
+                    periodWithdrawal *= (1 + periodicInflationRate);
 
                 const sigma_5th = Math.exp(periodMu + z_score_5th * periodStdDev);
-                const expectedValue = currentValue * Math.exp(periodMu);
-                const fifthPercentileValue = currentValue * sigma_5th;
+                    const medianValue = currentMedian * Math.exp(periodMu);
+                    const meanValue = currentMean * Math.exp(periodGrowthRate);
+                    const fifthPercentileValue = currentMedian * sigma_5th;
 
-                const year = period / periodsPerYear;
+                    currentMedian = Math.max(0, medianValue - periodWithdrawal);
+                    currentMean = Math.max(0, meanValue - periodWithdrawal);
 
                 data.push({
                     period,
                     year,
-                    expected: Math.max(0, expectedValue),
-                    fifth_percentile: Math.max(0, fifthPercentileValue),
+                        median: Math.max(0, currentMedian),
+                        mean: Math.max(0, currentMean),
+                        fifth_percentile: Math.max(0, fifthPercentileValue - periodWithdrawal),
                     withdrawal: periodWithdrawal
                 });
-
-                periodWithdrawal *= (1 + periodicInflationRate);
-                currentValue = expectedValue;
+                }
             }
 
             const processedData = data.map(point => ({
                 ...point,
-                withdrawal: point.expected === 0 ? null :
-                           point.expected < point.withdrawal ? point.expected :
+                withdrawal: point.median === 0 ? null :
+                           point.median < point.withdrawal ? point.median :
                            point.withdrawal
             }));
 
@@ -971,7 +1013,8 @@
                     if (index >= truncateIndex + 1) {
                         return {
                             ...point,
-                            expected: null,
+                            median: null,
+                            mean: null,
                             fifth_percentile: null,
                             withdrawal: null
                         };
@@ -983,255 +1026,157 @@
             return processedData;
         }
 
-        // Draw chart
+        // Chart.js instance
+        let chartInstance = null;
+
+        // Draw chart using Chart.js
         function drawChart(data) {
             const canvas = document.getElementById('portfolioChart');
             const ctx = canvas.getContext('2d');
-            const rect = canvas.getBoundingClientRect();
 
-            // Set canvas size with device pixel ratio for crisp rendering
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = rect.width * dpr;
-            canvas.height = 400 * dpr;
-            ctx.scale(dpr, dpr);
-
-            const width = rect.width;
-            const height = 400;
-
-            // Clear canvas
-            ctx.clearRect(0, 0, width, height);
-
-            // Chart dimensions
-            const padding = { top: 20, right: 40, bottom: 50, left: 70 };
-            const chartWidth = width - padding.left - padding.right;
-            const chartHeight = height - padding.top - padding.bottom;
-
-            // Find max values for scaling
-            let maxValue = 0;
-            let maxYear = 0;
-            data.forEach(point => {
-                if (point.expected !== null && point.expected > maxValue) maxValue = point.expected;
-                if (point.fifth_percentile !== null && point.fifth_percentile > maxValue) maxValue = point.fifth_percentile;
-                if (point.year > maxYear) maxYear = point.year;
-            });
-
-            // Scale functions
-            const xScale = (year) => padding.left + (year / maxYear) * chartWidth;
-            const yScale = (value) => padding.top + chartHeight - (value / maxValue) * chartHeight;
-
-            // Store dimensions for tooltip calculations
-            chartDimensions = { padding, chartWidth, chartHeight, maxYear, maxValue };
-
-            // Draw grid
-            ctx.strokeStyle = '#f0f0f0';
-            ctx.lineWidth = 1;
-
-            // Vertical grid lines
-            for (let i = 0; i <= 10; i++) {
-                const x = padding.left + (i / 10) * chartWidth;
-                ctx.beginPath();
-                ctx.moveTo(x, padding.top);
-                ctx.lineTo(x, padding.top + chartHeight);
-                ctx.stroke();
+            // Destroy existing chart if it exists
+            if (chartInstance) {
+                chartInstance.destroy();
             }
 
-            // Horizontal grid lines
-            for (let i = 0; i <= 10; i++) {
-                const y = padding.top + (i / 10) * chartHeight;
-                ctx.beginPath();
-                ctx.moveTo(padding.left, y);
-                ctx.lineTo(padding.left + chartWidth, y);
-                ctx.stroke();
-            }
+            // Prepare data for Chart.js
+            const labels = data.map(point => point.year);
+            const medianData = data.map(point => point.median);
+            const fifthPercentileData = data.map(point => point.fifth_percentile);
+            const withdrawalData = data.map(point => point.withdrawal);
 
-            // Draw axes
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(padding.left, padding.top);
-            ctx.lineTo(padding.left, padding.top + chartHeight);
-            ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
-            ctx.stroke();
-
-            // X-axis labels
-            ctx.fillStyle = '#000';
-            ctx.font = '12px sans-serif';
-            ctx.textAlign = 'center';
-            for (let i = 0; i <= 10; i++) {
-                const year = Math.floor((i / 10) * maxYear);
-                const x = padding.left + (i / 10) * chartWidth;
-                ctx.fillText(year.toString(), x, padding.top + chartHeight + 20);
-            }
-            ctx.fillText('Years', width / 2, height - 10);
-
-            // Y-axis labels
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-            for (let i = 0; i <= 10; i++) {
-                const value = (1 - i / 10) * maxValue;
-                const y = padding.top + (i / 10) * chartHeight;
-                const label = '$' + (value / 1000000).toFixed(1) + 'M';
-                ctx.fillText(label, padding.left - 10, y);
-            }
-
-            // Y-axis title
-            ctx.save();
-            ctx.translate(15, height / 2);
-            ctx.rotate(-Math.PI / 2);
-            ctx.textAlign = 'center';
-            ctx.fillText('Portfolio Value', 0, 0);
-            ctx.restore();
-
-            // Helper function to draw a line
-            function drawLine(data, key, color, lineWidth, dashed = false) {
-                ctx.strokeStyle = color;
-                ctx.lineWidth = lineWidth;
-
-                if (dashed) {
-                    ctx.setLineDash([4, 4]);
-                } else {
-                    ctx.setLineDash([]);
-                }
-
-                ctx.beginPath();
-                let started = false;
-
-                for (let i = 0; i < data.length; i++) {
-                    const point = data[i];
-                    if (point[key] !== null) {
-                        const x = xScale(point.year);
-                        const y = yScale(point[key]);
-
-                        if (!started) {
-                            ctx.moveTo(x, y);
-                            started = true;
-                        } else {
-                            ctx.lineTo(x, y);
+            // Create Chart.js configuration
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Average Outcome',
+                            data: medianData,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 2.5,
+                            tension: 0,
+                            pointRadius: 0,
+                            pointHoverRadius: 5,
+                            spanGaps: false
+                        },
+                        {
+                            label: '95% Confidence Lower Bound',
+                            data: fifthPercentileData,
+                            borderColor: '#dc2626',
+                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                            borderWidth: 2,
+                            borderDash: [4, 4],
+                            tension: 0,
+                            pointRadius: 0,
+                            pointHoverRadius: 5,
+                            spanGaps: false
+                        },
+                        {
+                            label: state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal',
+                            data: withdrawalData,
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                            borderWidth: 2,
+                            tension: 0,
+                            pointRadius: 0,
+                            pointHoverRadius: 5,
+                            spanGaps: false
                         }
-                    } else if (started) {
-                        // Stop drawing when we hit null
-                        break;
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                            titleColor: '#a5b4fc',
+                            bodyColor: '#fff',
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    const dataIndex = context[0].dataIndex;
+                                    const point = data[dataIndex];
+                                    return state.isMonthly ? 
+                                        `Year ${Math.floor(point.year)}, Month ${Math.round((point.year % 1) * 12)}` :
+                                        `Year ${Math.floor(point.year)}`;
+                                },
+                                label: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const point = data[dataIndex];
+                                    const datasetLabel = context.dataset.label;
+                                    
+                                    if (datasetLabel.includes('Withdrawal')) {
+                                        if (point.period === 0) {
+                                            return `${datasetLabel}: N/A`;
+                                        }
+                                    }
+                                    
+                                    const value = context.parsed.y;
+                                    if (value === null) {
+                                        return `${datasetLabel}: N/A`;
+                                    }
+                                    return `${datasetLabel}: ${formatCurrency(value)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Years',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    return Math.floor(value);
+                                }
+                            },
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Portfolio Value',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            },
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        }
                     }
                 }
-
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
-            // Draw lines
-            drawLine(data, 'fifth_percentile', '#dc2626', 2, true);
-
-            // Draw expected value line with gradient
-            const gradient = ctx.createLinearGradient(padding.left, 0, padding.left + chartWidth, 0);
-            gradient.addColorStop(0, '#667eea');
-            gradient.addColorStop(1, '#764ba2');
-
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = 2.5;
-            ctx.setLineDash([]);
-            ctx.beginPath();
-            let started = false;
-            for (let i = 0; i < data.length; i++) {
-                const point = data[i];
-                if (point.expected !== null) {
-                    const x = xScale(point.year);
-                    const y = yScale(point.expected);
-                    if (!started) {
-                        ctx.moveTo(x, y);
-                        started = true;
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                } else if (started) {
-                    break;
-                }
-            }
-            ctx.stroke();
-
-            drawLine(data, 'withdrawal', '#059669', 2, false);
-        }
-
-        // Tooltip functionality
-        let chartData = [];
-        let chartDimensions = null;
-
-        function findClosestDataPoint(mouseX, mouseY, rect) {
-            if (!chartDimensions || chartData.length === 0) return null;
-
-            const { padding, chartWidth, maxYear } = chartDimensions;
-            
-            const relativeX = mouseX - rect.left;
-            const chartX = relativeX - padding.left;
-            
-            if (chartX < 0 || chartX > chartWidth) return null;
-
-            const year = (chartX / chartWidth) * maxYear;
-            
-            let closestPoint = null;
-            let minDistance = Infinity;
-
-            for (let i = 0; i < chartData.length; i++) {
-                const point = chartData[i];
-                if (point.expected === null) continue;
-
-                const distance = Math.abs(point.year - year);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestPoint = point;
-                }
-            }
-
-            return closestPoint;
-        }
-
-        function showTooltip(point, mouseX, mouseY, rect) {
-            const tooltip = document.getElementById('chartTooltip');
-            const tooltipYear = document.getElementById('tooltipYear');
-            const tooltipExpected = document.getElementById('tooltipExpected');
-            const tooltipLowerBound = document.getElementById('tooltipLowerBound');
-            const tooltipWithdrawal = document.getElementById('tooltipWithdrawal');
-
-            const yearLabel = state.isMonthly ? 
-                `Year ${Math.floor(point.year)}, Month ${Math.round((point.year % 1) * 12)}` :
-                `Year ${Math.round(point.year)}`;
-
-            tooltipYear.textContent = yearLabel;
-            tooltipExpected.textContent = point.expected !== null ? formatCurrency(point.expected) : 'N/A';
-            tooltipLowerBound.textContent = point.fifth_percentile !== null ? formatCurrency(point.fifth_percentile) : 'N/A';
-            tooltipWithdrawal.textContent = point.withdrawal !== null ? 
-                formatCurrency(point.withdrawal * (state.isMonthly ? 1 : 1)) : 'N/A';
-
-            const relativeX = mouseX - rect.left;
-            const relativeY = mouseY - rect.top;
-            
-            const tooltipRect = tooltip.getBoundingClientRect();
-            const containerRect = rect;
-            
-            let left = relativeX + 15;
-            let top = relativeY + 15;
-
-            if (left + tooltipRect.width > containerRect.width) {
-                left = relativeX - tooltipRect.width - 15;
-            }
-
-            if (top + tooltipRect.height > containerRect.height) {
-                top = relativeY - tooltipRect.height - 15;
-            }
-
-            tooltip.style.left = `${left}px`;
-            tooltip.style.top = `${top}px`;
-            tooltip.classList.add('visible');
-        }
-
-        function hideTooltip() {
-            const tooltip = document.getElementById('chartTooltip');
-            tooltip.classList.remove('visible');
+            });
         }
 
         // Update display
         function updateDisplay() {
             const data = calculatePortfolioPath();
-            chartData = data;
 
             // Update control labels
             document.getElementById('initialInvestmentValue').textContent = formatCurrency(state.initialInvestment);
@@ -1266,8 +1211,8 @@
             const terminalYear = lastValidDataPoint ? Math.floor(lastValidDataPoint.year) : state.years;
 
             document.getElementById('terminalTitle').textContent = `Terminal Values (Year ${terminalYear})`;
-            document.getElementById('statExpectedPortfolio').textContent =
-                formatCurrency(lastValidDataPoint?.expected);
+            document.getElementById('statMedianPortfolio').textContent =
+                formatCurrency(lastValidDataPoint?.median);
             document.getElementById('statLowerBound').textContent =
                 formatCurrency(lastValidDataPoint?.fifth_percentile);
             document.getElementById('statFinalWithdrawal').textContent =
@@ -1277,7 +1222,39 @@
             drawChart(data);
         }
 
+        function applyPreset(presetKey) {
+            if (presetKey === 'custom') {
+                state.currentPreset = 'custom';
+                return;
+            }
+
+            const preset = portfolioPresets[presetKey];
+            if (!preset) {
+                return;
+            }
+
+            state.currentPreset = presetKey;
+            state.cagr = preset.cagr;
+            state.volatility = preset.volatility;
+
+            document.getElementById('cagr').value = preset.cagr;
+            document.getElementById('volatility').value = preset.volatility;
+
+            updateDisplay();
+        }
+
+        function switchToCustom() {
+            if (state.currentPreset !== 'custom') {
+                state.currentPreset = 'custom';
+                document.getElementById('portfolioPreset').value = 'custom';
+            }
+        }
+
         // Event listeners
+        document.getElementById('portfolioPreset').addEventListener('change', (e) => {
+            applyPreset(e.target.value);
+        });
+
         document.getElementById('initialInvestment').addEventListener('input', (e) => {
             state.initialInvestment = parseInt(e.target.value);
             updateDisplay();
@@ -1295,11 +1272,13 @@
 
         document.getElementById('cagr').addEventListener('input', (e) => {
             state.cagr = parseFloat(e.target.value);
+            switchToCustom();
             updateDisplay();
         });
 
         document.getElementById('volatility').addEventListener('input', (e) => {
             state.volatility = parseFloat(e.target.value);
+            switchToCustom();
             updateDisplay();
         });
 
@@ -1320,53 +1299,6 @@
                 state.isMonthly = true;
                 updateDisplay();
             }
-        });
-
-        // Chart tooltip event listeners
-        const canvas = document.getElementById('portfolioChart');
-        const chartContainer = document.getElementById('chartContainer');
-
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = chartContainer.getBoundingClientRect();
-            const closestPoint = findClosestDataPoint(e.clientX, e.clientY, rect);
-            
-            if (closestPoint) {
-                showTooltip(closestPoint, e.clientX, e.clientY, rect);
-            } else {
-                hideTooltip();
-            }
-        });
-
-        canvas.addEventListener('mouseleave', () => {
-            hideTooltip();
-        });
-
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const rect = chartContainer.getBoundingClientRect();
-            const touch = e.touches[0];
-            const closestPoint = findClosestDataPoint(touch.clientX, touch.clientY, rect);
-            
-            if (closestPoint) {
-                showTooltip(closestPoint, touch.clientX, touch.clientY, rect);
-            }
-        });
-
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const rect = chartContainer.getBoundingClientRect();
-            const touch = e.touches[0];
-            const closestPoint = findClosestDataPoint(touch.clientX, touch.clientY, rect);
-            
-            if (closestPoint) {
-                showTooltip(closestPoint, touch.clientX, touch.clientY, rect);
-            } else {
-                hideTooltip();
-            }
-        });
-
-        canvas.addEventListener('touchend', () => {
-            hideTooltip();
         });
 
         // Handle window resize
