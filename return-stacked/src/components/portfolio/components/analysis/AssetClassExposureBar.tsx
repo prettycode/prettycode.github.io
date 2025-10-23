@@ -1,0 +1,137 @@
+import React from 'react';
+import { assetClassColors } from '@/core/data/constants/AssetClassColors';
+import { weightToPercent, calculateRelativePercent } from '@/core/calculators/precision';
+import { AnalysisService } from '@/core/services/AnalysisService';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import type { Portfolio } from '@/core/domain/Portfolio';
+
+interface AssetClassExposureBarProps {
+    portfolio: Portfolio;
+    sortByValue?: boolean;
+    showRelative?: boolean;
+    hideZeroValues?: boolean;
+}
+
+/**
+ * Component to display asset class exposures as a stacked bar with compact modern visuals
+ */
+const AssetClassExposureBar: React.FC<AssetClassExposureBarProps> = ({
+    portfolio,
+    sortByValue = false,
+    showRelative = true,
+    hideZeroValues = false,
+}) => {
+    const analysisService = new AnalysisService();
+    const { assetClasses, totalLeverage } = analysisService.analyze(portfolio);
+
+    /**
+     * Get display name for asset classes
+     */
+    const getDisplayName = (assetClass: string): string => {
+        switch (assetClass) {
+            case 'Managed Futures':
+                return 'Trend';
+            case 'Futures Yield':
+                return 'Carry';
+            case 'U.S. Treasuries':
+                return 'T-Bonds';
+            default:
+                return assetClass;
+        }
+    };
+
+    // Convert to array and prepare for display
+    let assetClassItems = Array.from(assetClasses.entries());
+
+    // Apply sorting if enabled, otherwise maintain original order defined in code
+    if (sortByValue) {
+        assetClassItems = assetClassItems.sort((a, b) => b[1] - a[1]);
+    }
+
+    // Filter out zero values if hideZeroValues is enabled
+    if (hideZeroValues) {
+        assetClassItems = assetClassItems.filter(([_, value]) => value > 0);
+    }
+
+    return (
+        <Card className="overflow-hidden border shadow-sm mb-2 py-0">
+            <CardContent className="px-4 py-3">
+                <div className="flex flex-col space-y-2">
+                    <div className="flex items-center">
+                        <h3 className="font-medium text-sm mr-2">Asset Allocation</h3>
+                        <Badge
+                            className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0 cursor-help"
+                            title={`Total Leverage: ${totalLeverage.toFixed(4)}x`}
+                        >
+                            <span>{totalLeverage.toFixed(2)}x</span> levered
+                        </Badge>
+                    </div>
+
+                    <div>
+                        {/* Main stacked bar */}
+                        <div className="h-10 w-full flex rounded-md overflow-hidden shadow-sm">
+                            {assetClassItems.map(([assetClass, amount], index) => {
+                                // Calculate percentage based on display mode (relative or absolute)
+                                const percentage = showRelative ? calculateRelativePercent(amount, totalLeverage) : weightToPercent(amount);
+
+                                const displayName = getDisplayName(assetClass);
+
+                                return (
+                                    <div
+                                        key={index}
+                                        style={{
+                                            width: `${percentage}%`,
+                                            backgroundColor: assetClassColors[assetClass],
+                                        }}
+                                        className="flex items-center justify-center h-full"
+                                        title={`${assetClass}: ${weightToPercent(amount).toFixed(4)}% (${showRelative ? 'relative' : 'absolute'})`}
+                                    >
+                                        {percentage >= 15 ? (
+                                            <span
+                                                className="text-[10px] text-white drop-shadow-md font-medium z-10 cursor-help"
+                                                title={`${(showRelative ? calculateRelativePercent(amount, totalLeverage) : weightToPercent(amount)).toFixed(4)}%`}
+                                            >
+                                                {displayName} {percentage.toFixed(0)}%
+                                            </span>
+                                        ) : (
+                                            percentage >= 5 && (
+                                                <span
+                                                    className="text-[10px] text-white drop-shadow-md font-medium z-10 cursor-help"
+                                                    title={`${(showRelative ? calculateRelativePercent(amount, totalLeverage) : weightToPercent(amount)).toFixed(4)}%`}
+                                                >
+                                                    {percentage.toFixed(0)}%
+                                                </span>
+                                            )
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Legend */}
+                    <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1 justify-center">
+                        {assetClassItems.map(([assetClass, amount], index) => {
+                            return (
+                                <div
+                                    key={index}
+                                    className="flex items-center text-[11px]"
+                                    title={`${getDisplayName(assetClass)}: ${weightToPercent(amount).toFixed(4)}% (${showRelative ? 'relative' : 'absolute'})`}
+                                >
+                                    <div
+                                        className="w-2 h-2 rounded-sm mr-0.5 mt-0.25 border border-white/10"
+                                        style={{ backgroundColor: assetClassColors[assetClass] }}
+                                    ></div>
+                                    <span>{getDisplayName(assetClass)}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+export default AssetClassExposureBar;

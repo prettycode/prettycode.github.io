@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Plan your retirement with confidence using advanced financial modeling">
+    <title>Portfolio Growth Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* Mobile-first base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-primary: #667eea;
+            --color-primary-dark: #764ba2;
+            --color-bg-gradient-start: #667eea;
+            --color-bg-gradient-end: #764ba2;
+            --color-text-primary: #111827;
+            --color-text-secondary: #6b7280;
+            --color-text-light: #9ca3af;
+            --color-accent: #4338ca;
+            --color-success: #059669;
+            --color-danger: #dc2626;
+            --color-bg-light: #f9fafb;
+            --color-border: #e5e7eb;
+            --spacing-xs: 6px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 20px;
+            --spacing-2xl: 24px;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+            --transition-base: 0.2s ease;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--color-bg-gradient-start) 0%, var(--color-bg-gradient-end) 100%);
+            min-height: 100vh;
+            padding: var(--spacing-md);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Header - Mobile first */
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: var(--spacing-lg);
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(20px, 5vw, 36px);
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        .header p {
+            font-size: clamp(13px, 3vw, 16px);
+            opacity: 0.95;
+            font-weight: 300;
+            padding: 0 var(--spacing-sm);
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .card-content {
+            padding: var(--spacing-lg);
+        }
+
+        /* Controls - Mobile first (single column) */
+        .controls-grid {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .control-section {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid #e0e7ff;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: var(--spacing-md);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-group {
+            margin-bottom: var(--spacing-md);
+            touch-action: manipulation;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xs);
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            gap: var(--spacing-sm);
+        }
+
+        .control-label-text {
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .control-value {
+            font-weight: 700;
+            color: var(--color-text-primary);
+            font-size: 14px;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            box-shadow: var(--shadow-sm);
+            white-space: nowrap;
+        }
+
+        .portfolio-preset-select {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            background: white;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .portfolio-preset-select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .portfolio-preset-select:hover {
+            border-color: var(--color-primary);
+        }
+
+        /* Touch-optimized sliders */
+        .slider {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: #e5e7eb;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            transition: background var(--transition-base);
+            touch-action: none;
+        }
+
+        .slider:active {
+            background: #d1d5db;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
+            transition: transform var(--transition-base), box-shadow var(--transition-base);
+        }
+
+        .slider:active::-webkit-slider-thumb {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.7);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.5);
+            transition: transform var(--transition-base), box-shadow var(--transition-base);
+        }
+
+        .slider:active::-moz-range-thumb {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.7);
+        }
+
+        /* Withdrawal frequency selector */
+        .frequency-selector {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid #e0e7ff;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .frequency-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: var(--spacing-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .frequency-description {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-md);
+            line-height: 1.5;
+        }
+
+        .frequency-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-sm);
+        }
+
+        .frequency-option {
+            position: relative;
+        }
+
+        .frequency-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .frequency-option label {
+            display: block;
+            padding: var(--spacing-md);
+            background: white;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            text-align: center;
+            touch-action: manipulation;
+        }
+
+        .frequency-option input[type="radio"]:checked + label {
+            border-color: var(--color-primary);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .frequency-option label:active {
+            transform: scale(0.98);
+        }
+
+        .frequency-label-main {
+            display: block;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 4px;
+        }
+
+        .frequency-label-sub {
+            display: block;
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+        }
+
+        .frequency-option input[type="radio"]:checked + label .frequency-label-main {
+            color: var(--color-primary);
+        }
+
+        .frequency-option input[type="radio"]:checked + label .frequency-label-sub {
+            color: var(--color-accent);
+        }
+
+        /* Chart section - Mobile optimized */
+        .chart-section {
+            margin-top: var(--spacing-lg);
+        }
+
+        .chart-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .chart-container {
+            background: #ffffff;
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            border: 1px solid #f3f4f6;
+            overflow: visible;
+            position: relative;
+        }
+
+        .chart-wrapper {
+            width: 100%;
+            height: 350px;
+            position: relative;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--color-bg-light);
+            border-radius: var(--radius-sm);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 4px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .legend-color.median {
+            background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        }
+
+        .legend-color.confidence {
+            background-color: var(--color-danger);
+            background-image: linear-gradient(90deg, var(--color-danger) 50%, transparent 50%);
+            background-size: 8px 4px;
+        }
+
+        .legend-color.withdrawal {
+            background-color: var(--color-success);
+        }
+
+        /* Stats - Mobile first (single column) */
+        .stats-grid {
+            margin-top: var(--spacing-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid #e0e7ff;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--color-accent);
+            margin-bottom: var(--spacing-md);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 14px;
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--color-border);
+            gap: var(--spacing-sm);
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: var(--color-text-primary);
+            text-align: right;
+        }
+
+        /* Methodology */
+        .methodology {
+            margin-top: var(--spacing-lg);
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid #bfdbfe;
+        }
+
+        .methodology h4 {
+            font-weight: 700;
+            font-size: 15px;
+            color: #1e3a8a;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .methodology p {
+            font-size: 13px;
+            color: #1e40af;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.6;
+        }
+
+        .methodology ul {
+            font-size: 13px;
+            color: #1e40af;
+            margin-left: var(--spacing-lg);
+            line-height: 1.6;
+        }
+
+        .methodology li {
+            margin-bottom: 4px;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Tablet breakpoint (768px+) */
+        @media (min-width: 768px) {
+            body {
+                padding: var(--spacing-2xl) var(--spacing-lg);
+            }
+
+            .container {
+                max-width: 1200px;
+            }
+
+            .header {
+                margin-bottom: var(--spacing-2xl);
+            }
+
+            .card-content {
+                padding: var(--spacing-2xl);
+            }
+
+            .controls-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-xl);
+                margin-bottom: var(--spacing-2xl);
+            }
+
+            .control-section {
+                padding: var(--spacing-xl);
+            }
+
+            .section-title {
+                font-size: 16px;
+                margin-bottom: var(--spacing-lg);
+            }
+
+            .control-group {
+                margin-bottom: var(--spacing-xl);
+            }
+
+            .control-label {
+                font-size: 13px;
+                margin-bottom: var(--spacing-sm);
+            }
+
+            .control-value {
+                font-size: 14px;
+            }
+
+            .switch-container {
+                padding: var(--spacing-md);
+                margin-bottom: var(--spacing-xl);
+            }
+
+            .switch-label {
+                font-size: 15px;
+            }
+
+            .chart-section {
+                margin-top: var(--spacing-2xl);
+            }
+
+            .chart-title {
+                font-size: 24px;
+            }
+
+            .chart-container {
+                padding: var(--spacing-xl);
+            }
+
+            .chart-wrapper {
+                height: 400px;
+            }
+
+            .chart-legend {
+                flex-direction: row;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: var(--spacing-xl);
+                padding: var(--spacing-lg);
+            }
+
+            .legend-item {
+                font-size: 14px;
+            }
+
+            .legend-color {
+                width: 28px;
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-xl);
+                margin-top: var(--spacing-2xl);
+            }
+
+            .stat-card {
+                padding: var(--spacing-xl);
+            }
+
+            .stat-title {
+                font-size: 15px;
+            }
+
+            .stat-row {
+                font-size: 15px;
+            }
+
+            .methodology {
+                margin-top: var(--spacing-2xl);
+                padding: var(--spacing-xl);
+            }
+
+            .methodology h4 {
+                font-size: 16px;
+            }
+
+            .methodology p {
+                font-size: 14px;
+            }
+
+            .methodology ul {
+                font-size: 14px;
+            }
+
+            /* Hover states for desktop */
+            .slider:hover {
+                background: #d1d5db;
+            }
+
+            .slider:hover::-webkit-slider-thumb {
+                transform: scale(1.1);
+                box-shadow: 0 3px 10px rgba(102, 126, 234, 0.6);
+            }
+
+            .slider:hover::-moz-range-thumb {
+                transform: scale(1.1);
+                box-shadow: 0 3px 10px rgba(102, 126, 234, 0.6);
+            }
+
+            .stat-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-md);
+            }
+
+            .frequency-option label:hover {
+                border-color: var(--color-primary);
+                background: rgba(102, 126, 234, 0.05);
+            }
+
+            .frequency-option input[type="radio"]:checked + label:hover {
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            }
+        }
+
+        /* Large desktop breakpoint (1024px+) */
+        @media (min-width: 1024px) {
+            .chart-wrapper {
+                height: 450px;
+            }
+        }
+
+        /* Improve touch target sizes on all devices */
+        @media (pointer: coarse) {
+            .control-group {
+                margin-bottom: var(--spacing-xl);
+            }
+
+            .slider {
+                height: 12px;
+            }
+
+            .slider::-webkit-slider-thumb {
+                width: 32px;
+                height: 32px;
+            }
+
+            .slider::-moz-range-thumb {
+                width: 32px;
+                height: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Portfolio Growth Simulator</h1>
+            <p>Plan your retirement with confidence using advanced financial modeling</p>
+        </div>
+
+        <div class="card">
+            <div class="card-content">
+                <div class="controls-grid">
+                    <div class="control-section">
+                        <h3 class="section-title">Portfolio Settings</h3>
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Starting Value</span>
+                                <span class="control-value" id="initialInvestmentValue">$4,000,000</span>
+                            </label>
+                            <input type="range" class="slider" id="initialInvestment" min="0" max="10000000" step="100000" value="4000000">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Withdrawal Rate</span>
+                                <span class="control-value" id="withdrawalRateValue">3.8%</span>
+                            </label>
+                            <input type="range" class="slider" id="withdrawalRate" min="0" max="10" step="0.1" value="3.8">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Time Horizon</span>
+                                <span class="control-value" id="yearsValue">50 years</span>
+                            </label>
+                            <input type="range" class="slider" id="years" min="1" max="100" step="1" value="50">
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <h3 class="section-title">Market Assumptions</h3>
+                        
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Portfolio Preset</span>
+                            </label>
+                            <select class="portfolio-preset-select" id="portfolioPreset">
+                                <option value="aggressive">Aggressive (100% U.S. Stocks)</option>
+                                <option value="mod-aggressive">Moderately Aggressive (80/20)</option>
+                                <option value="moderate">Moderate (60/40)</option>
+                                <option value="mod-conservative">Moderately Conservative (40/60)</option>
+                                <option value="conservative">Conservative (20/80)</option>
+                                <option value="very-conservative">Very Conservative (100% U.S. Bonds)</option>
+                                <option value="custom" selected>Custom</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Expected CAGR</span>
+                                <span class="control-value" id="cagrValue">9.5%</span>
+                            </label>
+                            <input type="range" class="slider" id="cagr" min="0" max="20" step="0.1" value="9.5">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Annualized Volatility</span>
+                                <span class="control-value" id="volatilityValue">26%</span>
+                            </label>
+                            <input type="range" class="slider" id="volatility" min="0" max="100" step="0.1" value="26">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Inflation Rate</span>
+                                <span class="control-value" id="inflationRateValue">3%</span>
+                            </label>
+                            <input type="range" class="slider" id="inflationRate" min="-5" max="20" step="0.1" value="3">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="frequency-selector">
+                    <h3 class="frequency-title">Withdrawal Frequency</h3>
+                    <p class="frequency-description">This amount is withdrawn at the start of every year or month and is updated (increased) each period by the rate of inflation.</p>
+                    <div class="frequency-options">
+                        <div class="frequency-option">
+                            <input type="radio" id="frequencyAnnual" name="frequency" value="annual" checked>
+                            <label for="frequencyAnnual">
+                                <span class="frequency-label-main">Annual</span>
+                                <span class="frequency-label-sub" id="annualAmount"></span>
+                            </label>
+                        </div>
+                        <div class="frequency-option">
+                            <input type="radio" id="frequencyMonthly" name="frequency" value="monthly">
+                            <label for="frequencyMonthly">
+                                <span class="frequency-label-main">Monthly</span>
+                                <span class="frequency-label-sub" id="monthlyAmount">$12,667/month</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-section">
+                    <h3 class="chart-title">Portfolio Projection</h3>
+                    <div class="chart-container" id="chartContainer">
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-color median"></div>
+                                <span>Average Outcome</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color confidence"></div>
+                                <span>95% Confidence Lower Bound</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color withdrawal"></div>
+                                <span id="withdrawalLegend">Annual Withdrawal</span>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="portfolioChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4 class="stat-title">Initial Conditions</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Investment:</span>
+                            <span class="stat-value" id="statInitialInvestment">$4,000,000</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Initial Withdrawal:</span>
+                            <span class="stat-value" id="statInitialWithdrawal">$152,000/year</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Withdrawal Rate:</span>
+                            <span class="stat-value" id="statWithdrawalRate">3.8%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <h4 class="stat-title" id="terminalTitle">Terminal Values (Year 50)</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Average Portfolio Value:</span>
+                            <span class="stat-value" id="statMedianPortfolio">$0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">95% Lower Bound Portfolio Value:</span>
+                            <span class="stat-value" id="statLowerBound">$0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Final Withdrawal:</span>
+                            <span class="stat-value" id="statFinalWithdrawal">$0/year</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="methodology">
+                    <h4>Portfolio Presets</h4>
+                    <p>The portfolio preset selector provides market assumptions based on <strong>U.S. historical performance</strong> from 1926-2019. Stock allocations represent the S&P 500 Index (large-cap U.S. equities), while bond allocations represent the Bloomberg Barclays U.S. Aggregate Bond Index (investment-grade U.S. bonds).</p>
+                    <p><strong>Historical Performance (1926-2019):</strong></p>
+                    <ul>
+                        <li><strong>100% U.S. Stocks:</strong> 10.3% average annual return (S&P 500)</li>
+                        <li><strong>80/20 Portfolio:</strong> 9.5% average annual return with reduced volatility</li>
+                        <li><strong>60/40 Portfolio:</strong> 8.8% average annual return (traditional balanced approach)</li>
+                        <li><strong>40/60 Portfolio:</strong> 7.3% average annual return (conservative balanced)</li>
+                        <li><strong>20/80 Portfolio:</strong> 6.1% average annual return with low volatility</li>
+                        <li><strong>100% U.S. Bonds:</strong> 5.3% average annual return (U.S. Aggregate Bonds)</li>
+                    </ul>
+                    <p><strong>Note:</strong> These are U.S.-only allocations and do not include international equities or bonds. Past performance does not guarantee future results.</p>
+                    <p><strong>Sources:</strong> Visual Capitalist (visualcapitalist.com), Four Pillar Freedom analysis of historical U.S. market data (1926-2019).</p>
+                    <h4>Understanding the Chart</h4>
+                    <p><strong>Average Outcome</strong> represents the typical expected outcome based on the geometric mean of returns. This is calculated using the geometric mean, which accounts for the compounding nature of investment returns over time. Half of all simulations would result in values above this line, and half below, making it a realistic middle-ground projection.</p>
+                    <p><strong>95% Confidence Lower Bound (5th Percentile)</strong> is a more conservative view. It tells you: "There's only a 5% chance your portfolio will be below this value." This is often most useful for retirement planning when you want to understand downside risk rather than typical outcomes.</p>
+                    <h4>Methodology</h4>
+                    <p>This simulation uses a geometric Brownian motion model with:</p>
+                    <ul>
+                        <li>Log-normal return distribution</li>
+                        <li>Geometric mean (CAGR) as the basis for average outcomes</li>
+                        <li>Fixed volatility assumption</li>
+                        <li>Inflation-adjusted periodic withdrawals</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let state = {
+            initialInvestment: 4000000,
+            inflationRate: 3,
+            withdrawalRate: 3.8,
+            cagr: 9.5,
+            volatility: 26,
+            years: 50,
+            isMonthly: false,
+            currentPreset: 'custom'
+        };
+
+        const portfolioPresets = {
+            'aggressive': {
+                name: 'Aggressive (100% U.S. Stocks)',
+                cagr: 10.3,
+                volatility: 18.0,
+                description: 'S&P 500'
+            },
+            'mod-aggressive': {
+                name: 'Moderately Aggressive (80/20)',
+                cagr: 9.5,
+                volatility: 14.0,
+                description: '80% Stocks / 20% Bonds'
+            },
+            'moderate': {
+                name: 'Moderate (60/40)',
+                cagr: 8.8,
+                volatility: 11.0,
+                description: '60% Stocks / 40% Bonds'
+            },
+            'mod-conservative': {
+                name: 'Moderately Conservative (40/60)',
+                cagr: 7.3,
+                volatility: 8.5,
+                description: '40% Stocks / 60% Bonds'
+            },
+            'conservative': {
+                name: 'Conservative (20/80)',
+                cagr: 6.1,
+                volatility: 6.5,
+                description: '20% Stocks / 80% Bonds'
+            },
+            'very-conservative': {
+                name: 'Very Conservative (100% U.S. Bonds)',
+                cagr: 5.3,
+                volatility: 5.5,
+                description: 'U.S. Aggregate Bonds'
+            }
+        };
+
+        // Utility function to format currency
+        function formatCurrency(value) {
+            if (value === null || value === undefined || isNaN(value)) return '$0';
+            return '$' + Math.round(value).toLocaleString();
+        }
+
+        // Calculate portfolio path
+        function calculatePortfolioPath() {
+            const data = [];
+            const stdDev = state.volatility / 100;
+            const periodsPerYear = state.isMonthly ? 12 : 1;
+
+            const periodGrowthRate = Math.log(1 + state.cagr / 100) / periodsPerYear;
+            const periodStdDev = stdDev / Math.sqrt(periodsPerYear);
+            const periodMu = periodGrowthRate - (periodStdDev * periodStdDev) / 2;
+            const z_score_5th = -1.645;
+
+            const periodicInflationRate = state.isMonthly ?
+                Math.pow(1 + state.inflationRate / 100, 1/12) - 1 :
+                state.inflationRate / 100;
+
+            let annualWithdrawal = (state.initialInvestment * state.withdrawalRate) / 100;
+            let periodWithdrawal = annualWithdrawal / periodsPerYear;
+
+            data.push({
+                period: 0,
+                year: 0,
+                median: state.initialInvestment,
+                mean: state.initialInvestment,
+                fifth_percentile: null,
+                withdrawal: null
+            });
+
+            let currentMedian = state.initialInvestment;
+            let currentMean = state.initialInvestment;
+
+            const totalPeriods = state.years * periodsPerYear;
+            for (let period = 1; period <= totalPeriods; period++) {
+                const year = period / periodsPerYear;
+
+                if (period === 1) {
+                    currentMedian = Math.max(0, currentMedian - periodWithdrawal);
+                    currentMean = Math.max(0, currentMean - periodWithdrawal);
+                    
+                    data.push({
+                        period,
+                        year,
+                        median: Math.max(0, currentMedian),
+                        mean: Math.max(0, currentMean),
+                        fifth_percentile: null,
+                        withdrawal: periodWithdrawal
+                    });
+                } else {
+                    periodWithdrawal *= (1 + periodicInflationRate);
+
+                const sigma_5th = Math.exp(periodMu + z_score_5th * periodStdDev);
+                    const medianValue = currentMedian * Math.exp(periodMu);
+                    const meanValue = currentMean * Math.exp(periodGrowthRate);
+                    const fifthPercentileValue = currentMedian * sigma_5th;
+
+                    currentMedian = Math.max(0, medianValue - periodWithdrawal);
+                    currentMean = Math.max(0, meanValue - periodWithdrawal);
+
+                data.push({
+                    period,
+                    year,
+                        median: Math.max(0, currentMedian),
+                        mean: Math.max(0, currentMean),
+                        fifth_percentile: Math.max(0, fifthPercentileValue - periodWithdrawal),
+                    withdrawal: periodWithdrawal
+                });
+                }
+            }
+
+            const processedData = data.map(point => ({
+                ...point,
+                withdrawal: point.median === 0 ? null :
+                           point.median < point.withdrawal ? point.median :
+                           point.withdrawal
+            }));
+
+            const truncateIndex = processedData.findIndex((point, index) =>
+                index > 0 && point.withdrawal === null
+            );
+
+            if (truncateIndex !== -1) {
+                return processedData.map((point, index) => {
+                    if (index >= truncateIndex + 1) {
+                        return {
+                            ...point,
+                            median: null,
+                            mean: null,
+                            fifth_percentile: null,
+                            withdrawal: null
+                        };
+                    }
+                    return point;
+                });
+            }
+
+            return processedData;
+        }
+
+        // Chart.js instance
+        let chartInstance = null;
+
+        // Draw chart using Chart.js
+        function drawChart(data) {
+            const canvas = document.getElementById('portfolioChart');
+            const ctx = canvas.getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            // Prepare data for Chart.js
+            const labels = data.map(point => point.year);
+            const medianData = data.map(point => point.median);
+            const fifthPercentileData = data.map(point => point.fifth_percentile);
+            const withdrawalData = data.map(point => point.withdrawal);
+
+            // Create Chart.js configuration
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Average Outcome',
+                            data: medianData,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 2.5,
+                            tension: 0,
+                            pointRadius: 0,
+                            pointHoverRadius: 5,
+                            spanGaps: false
+                        },
+                        {
+                            label: '95% Confidence Lower Bound',
+                            data: fifthPercentileData,
+                            borderColor: '#dc2626',
+                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                            borderWidth: 2,
+                            borderDash: [4, 4],
+                            tension: 0,
+                            pointRadius: 0,
+                            pointHoverRadius: 5,
+                            spanGaps: false
+                        },
+                        {
+                            label: state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal',
+                            data: withdrawalData,
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                            borderWidth: 2,
+                            tension: 0,
+                            pointRadius: 0,
+                            pointHoverRadius: 5,
+                            spanGaps: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                            titleColor: '#a5b4fc',
+                            bodyColor: '#fff',
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    const dataIndex = context[0].dataIndex;
+                                    const point = data[dataIndex];
+                                    return state.isMonthly ? 
+                                        `Year ${Math.floor(point.year)}, Month ${Math.round((point.year % 1) * 12)}` :
+                                        `Year ${Math.floor(point.year)}`;
+                                },
+                                label: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const point = data[dataIndex];
+                                    const datasetLabel = context.dataset.label;
+                                    
+                                    if (datasetLabel.includes('Withdrawal')) {
+                                        if (point.period === 0) {
+                                            return `${datasetLabel}: N/A`;
+                                        }
+                                    }
+                                    
+                                    const value = context.parsed.y;
+                                    if (value === null) {
+                                        return `${datasetLabel}: N/A`;
+                                    }
+                                    return `${datasetLabel}: ${formatCurrency(value)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Years',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    return Math.floor(value);
+                                }
+                            },
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Portfolio Value',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            },
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update display
+        function updateDisplay() {
+            const data = calculatePortfolioPath();
+
+            // Update control labels
+            document.getElementById('initialInvestmentValue').textContent = formatCurrency(state.initialInvestment);
+
+            const annualWithdrawal = (state.initialInvestment * state.withdrawalRate) / 100;
+            const monthlyWithdrawal = annualWithdrawal / 12;
+
+            document.getElementById('withdrawalRateValue').textContent = `${state.withdrawalRate}%`;
+
+            document.getElementById('inflationRateValue').textContent = `${state.inflationRate}%`;
+            document.getElementById('cagrValue').textContent = `${state.cagr}%`;
+            document.getElementById('volatilityValue').textContent = `${state.volatility}%`;
+            document.getElementById('yearsValue').textContent = `${state.years} years`;
+
+            // Update frequency selector amounts
+            document.getElementById('annualAmount').textContent = `${formatCurrency(annualWithdrawal)}/year`;
+            document.getElementById('monthlyAmount').textContent = `${formatCurrency(monthlyWithdrawal)}/month`;
+
+            // Update withdrawal legend
+            document.getElementById('withdrawalLegend').textContent =
+                state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal';
+
+            // Update stats
+            document.getElementById('statInitialInvestment').textContent = formatCurrency(state.initialInvestment);
+            const displayWithdrawal = state.isMonthly ? monthlyWithdrawal : annualWithdrawal;
+            const displayFrequency = state.isMonthly ? '/month' : '/year';
+            document.getElementById('statInitialWithdrawal').textContent = formatCurrency(displayWithdrawal) + displayFrequency;
+            document.getElementById('statWithdrawalRate').textContent = `${state.withdrawalRate}%`;
+
+            // Find last valid data point
+            const lastValidDataPoint = [...data].reverse().find(point => point.withdrawal !== null);
+            const terminalYear = lastValidDataPoint ? Math.floor(lastValidDataPoint.year) : state.years;
+
+            document.getElementById('terminalTitle').textContent = `Terminal Values (Year ${terminalYear})`;
+            document.getElementById('statMedianPortfolio').textContent =
+                formatCurrency(lastValidDataPoint?.median);
+            document.getElementById('statLowerBound').textContent =
+                formatCurrency(lastValidDataPoint?.fifth_percentile);
+            document.getElementById('statFinalWithdrawal').textContent =
+                formatCurrency((lastValidDataPoint?.withdrawal || 0) * (state.isMonthly ? 12 : 1)) + '/year';
+
+            // Draw chart
+            drawChart(data);
+        }
+
+        function applyPreset(presetKey) {
+            if (presetKey === 'custom') {
+                state.currentPreset = 'custom';
+                return;
+            }
+
+            const preset = portfolioPresets[presetKey];
+            if (!preset) {
+                return;
+            }
+
+            state.currentPreset = presetKey;
+            state.cagr = preset.cagr;
+            state.volatility = preset.volatility;
+
+            document.getElementById('cagr').value = preset.cagr;
+            document.getElementById('volatility').value = preset.volatility;
+
+            updateDisplay();
+        }
+
+        function switchToCustom() {
+            if (state.currentPreset !== 'custom') {
+                state.currentPreset = 'custom';
+                document.getElementById('portfolioPreset').value = 'custom';
+            }
+        }
+
+        // Event listeners
+        document.getElementById('portfolioPreset').addEventListener('change', (e) => {
+            applyPreset(e.target.value);
+        });
+
+        document.getElementById('initialInvestment').addEventListener('input', (e) => {
+            state.initialInvestment = parseInt(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('withdrawalRate').addEventListener('input', (e) => {
+            state.withdrawalRate = parseFloat(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('inflationRate').addEventListener('input', (e) => {
+            state.inflationRate = parseFloat(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('cagr').addEventListener('input', (e) => {
+            state.cagr = parseFloat(e.target.value);
+            switchToCustom();
+            updateDisplay();
+        });
+
+        document.getElementById('volatility').addEventListener('input', (e) => {
+            state.volatility = parseFloat(e.target.value);
+            switchToCustom();
+            updateDisplay();
+        });
+
+        document.getElementById('years').addEventListener('input', (e) => {
+            state.years = parseInt(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('frequencyAnnual').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                state.isMonthly = false;
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('frequencyMonthly').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                state.isMonthly = true;
+                updateDisplay();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            updateDisplay();
+        });
+
+        // Initial render
+        updateDisplay();
+    </script>
+</body>
+</html>
