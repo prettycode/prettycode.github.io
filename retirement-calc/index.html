@@ -234,30 +234,6 @@
         }
 
         /* Withdrawal frequency selector */
-        .frequency-selector {
-            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
-            padding: var(--spacing-lg);
-            border-radius: var(--radius-md);
-            border: 1px solid #e0e7ff;
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .frequency-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--color-accent);
-            margin-bottom: var(--spacing-xs);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .frequency-description {
-            font-size: 13px;
-            color: var(--color-text-secondary);
-            margin-bottom: var(--spacing-md);
-            line-height: 1.5;
-        }
-
         .frequency-options {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -680,6 +656,142 @@
                 height: 32px;
             }
         }
+
+        /* Data table styles */
+        .data-table-section {
+            margin-top: var(--spacing-lg);
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            border-radius: var(--radius-md);
+            border: 1px solid #e0e7ff;
+            overflow: hidden;
+        }
+
+        .data-table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-lg);
+            cursor: pointer;
+            user-select: none;
+            transition: background var(--transition-base);
+        }
+
+        .data-table-header:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .data-table-header:active {
+            transform: scale(0.99);
+        }
+
+        .data-table-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--color-accent);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .toggle-icon {
+            display: inline-block;
+            transition: transform var(--transition-base);
+            font-size: 14px;
+            color: var(--color-primary);
+        }
+
+        .toggle-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .data-table-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .data-table-content.expanded {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .data-table-wrapper {
+            padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: white;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+
+        .data-table thead {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table th {
+            padding: var(--spacing-md);
+            text-align: right;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table th:first-child {
+            text-align: left;
+        }
+
+        .data-table tbody tr {
+            border-bottom: 1px solid var(--color-border);
+            transition: background var(--transition-base);
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--color-bg-light);
+        }
+
+        .data-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .data-table td {
+            padding: var(--spacing-sm) var(--spacing-md);
+            text-align: right;
+            color: var(--color-text-primary);
+        }
+
+        .data-table td:first-child {
+            text-align: left;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+        }
+
+        @media (min-width: 768px) {
+            .data-table {
+                font-size: 14px;
+            }
+
+            .data-table th {
+                font-size: 13px;
+                padding: var(--spacing-lg);
+            }
+
+            .data-table td {
+                padding: var(--spacing-md) var(--spacing-lg);
+            }
+
+            .data-table-content.expanded {
+                max-height: 600px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -716,6 +828,28 @@
                                 <span class="control-value" id="yearsValue">50 years</span>
                             </label>
                             <input type="range" class="slider" id="years" min="1" max="100" step="1" value="50">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Withdrawal Frequency</span>
+                            </label>
+                            <div class="frequency-options">
+                                <div class="frequency-option">
+                                    <input type="radio" id="frequencyAnnual" name="frequency" value="annual" checked>
+                                    <label for="frequencyAnnual">
+                                        <span class="frequency-label-main">Annual</span>
+                                        <span class="frequency-label-sub" id="annualAmount"></span>
+                                    </label>
+                                </div>
+                                <div class="frequency-option">
+                                    <input type="radio" id="frequencyMonthly" name="frequency" value="monthly">
+                                    <label for="frequencyMonthly">
+                                        <span class="frequency-label-main">Monthly</span>
+                                        <span class="frequency-label-sub" id="monthlyAmount">$12,667/month</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -763,27 +897,6 @@
                     </div>
                 </div>
 
-                <div class="frequency-selector">
-                    <h3 class="frequency-title">Withdrawal Frequency</h3>
-                    <p class="frequency-description">This amount is withdrawn at the start of every year or month and is updated (increased) each period by the rate of inflation.</p>
-                    <div class="frequency-options">
-                        <div class="frequency-option">
-                            <input type="radio" id="frequencyAnnual" name="frequency" value="annual" checked>
-                            <label for="frequencyAnnual">
-                                <span class="frequency-label-main">Annual</span>
-                                <span class="frequency-label-sub" id="annualAmount"></span>
-                            </label>
-                        </div>
-                        <div class="frequency-option">
-                            <input type="radio" id="frequencyMonthly" name="frequency" value="monthly">
-                            <label for="frequencyMonthly">
-                                <span class="frequency-label-main">Monthly</span>
-                                <span class="frequency-label-sub" id="monthlyAmount">$12,667/month</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="chart-section">
                     <h3 class="chart-title">Portfolio Projection</h3>
                     <div class="chart-container" id="chartContainer">
@@ -809,22 +922,6 @@
 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <h4 class="stat-title">Initial Conditions</h4>
-                        <div class="stat-row">
-                            <span class="stat-label">Investment:</span>
-                            <span class="stat-value" id="statInitialInvestment">$4,000,000</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Initial Withdrawal:</span>
-                            <span class="stat-value" id="statInitialWithdrawal">$152,000/year</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Withdrawal Rate:</span>
-                            <span class="stat-value" id="statWithdrawalRate">3.8%</span>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
                         <h4 class="stat-title" id="terminalTitle">Terminal Values (Year 50)</h4>
                         <div class="stat-row">
                             <span class="stat-label">Average Portfolio Value:</span>
@@ -837,6 +934,33 @@
                         <div class="stat-row">
                             <span class="stat-label">Final Withdrawal:</span>
                             <span class="stat-value" id="statFinalWithdrawal">$0/year</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table Section -->
+                <div class="data-table-section">
+                    <div class="data-table-header" id="dataTableToggle">
+                        <div class="data-table-title">
+                            <span class="toggle-icon" id="toggleIcon">▶</span>
+                            <span>View Data Table</span>
+                        </div>
+                    </div>
+                    <div class="data-table-content" id="dataTableContent">
+                        <div class="data-table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Year</th>
+                                        <th>Average Outcome</th>
+                                        <th>95% Lower Bound</th>
+                                        <th id="withdrawalHeader">Annual Withdrawal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dataTableBody">
+                                    <!-- Data will be populated by JavaScript -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -1039,11 +1163,14 @@
                 chartInstance.destroy();
             }
 
+            // Filter out period 0 from the dataset
+            const filteredData = data.filter(point => point.period !== 0);
+
             // Prepare data for Chart.js
-            const labels = data.map(point => point.year);
-            const medianData = data.map(point => point.median);
-            const fifthPercentileData = data.map(point => point.fifth_percentile);
-            const withdrawalData = data.map(point => point.withdrawal);
+            const labels = filteredData.map(point => point.year);
+            const medianData = filteredData.map(point => point.median);
+            const fifthPercentileData = filteredData.map(point => point.fifth_percentile);
+            const withdrawalData = filteredData.map(point => point.withdrawal);
 
             // Create Chart.js configuration
             chartInstance = new Chart(ctx, {
@@ -1083,7 +1210,8 @@
                             tension: 0,
                             pointRadius: 0,
                             pointHoverRadius: 5,
-                            spanGaps: false
+                            spanGaps: false,
+                            yAxisID: 'y1'
                         }
                     ]
                 },
@@ -1107,22 +1235,21 @@
                             callbacks: {
                                 title: function(context) {
                                     const dataIndex = context[0].dataIndex;
-                                    const point = data[dataIndex];
-                                    return state.isMonthly ? 
-                                        `Year ${Math.floor(point.year)}, Month ${Math.round((point.year % 1) * 12)}` :
-                                        `Year ${Math.floor(point.year)}`;
+                                    const point = filteredData[dataIndex];
+
+                                    if (state.isMonthly) {
+                                        const yearNum = Math.floor(point.year);
+                                        const monthNum = Math.round((point.year % 1) * 12);
+                                        return `Year ${yearNum}, Start of Month ${monthNum}`;
+                                    } else {
+                                        return `Start of Year ${Math.floor(point.year)}`;
+                                    }
                                 },
                                 label: function(context) {
                                     const dataIndex = context.dataIndex;
-                                    const point = data[dataIndex];
+                                    const point = filteredData[dataIndex];
                                     const datasetLabel = context.dataset.label;
-                                    
-                                    if (datasetLabel.includes('Withdrawal')) {
-                                        if (point.period === 0) {
-                                            return `${datasetLabel}: N/A`;
-                                        }
-                                    }
-                                    
+
                                     const value = context.parsed.y;
                                     if (value === null) {
                                         return `${datasetLabel}: N/A`;
@@ -1153,6 +1280,8 @@
                             }
                         },
                         y: {
+                            type: 'linear',
+                            position: 'left',
                             title: {
                                 display: true,
                                 text: 'Portfolio Value',
@@ -1168,9 +1297,81 @@
                             grid: {
                                 color: '#f0f0f0'
                             }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal',
+                                font: {
+                                    size: 12
+                                },
+                                color: '#059669'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return '$' + (value / 1000000).toFixed(1) + 'M';
+                                    } else if (value >= 1000) {
+                                        return '$' + (value / 1000).toFixed(0) + 'K';
+                                    } else {
+                                        return '$' + value.toFixed(0);
+                                    }
+                                },
+                                color: '#059669'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
                         }
                     }
                 }
+            });
+        }
+
+        // Populate data table
+        function populateDataTable(data) {
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+
+            // Update withdrawal header based on frequency
+            const withdrawalHeader = document.getElementById('withdrawalHeader');
+            withdrawalHeader.textContent = state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal';
+
+            // Filter to show only year boundaries (or appropriate intervals for monthly)
+            let displayData;
+            if (state.isMonthly) {
+                // For monthly, show every 12th period (yearly intervals)
+                displayData = data.filter((point, index) => index % 12 === 0);
+            } else {
+                // For annual, show all data points
+                displayData = data;
+            }
+
+            displayData.forEach(point => {
+                if (point.period === 0) return; // Skip initial point
+
+                const row = document.createElement('tr');
+
+                const yearCell = document.createElement('td');
+                yearCell.textContent = Math.floor(point.year);
+
+                const medianCell = document.createElement('td');
+                medianCell.textContent = point.median !== null ? formatCurrency(point.median) : 'N/A';
+
+                const fifthCell = document.createElement('td');
+                fifthCell.textContent = point.fifth_percentile !== null ? formatCurrency(point.fifth_percentile) : 'N/A';
+
+                const withdrawalCell = document.createElement('td');
+                withdrawalCell.textContent = point.withdrawal !== null ? formatCurrency(point.withdrawal) : 'N/A';
+
+                row.appendChild(yearCell);
+                row.appendChild(medianCell);
+                row.appendChild(fifthCell);
+                row.appendChild(withdrawalCell);
+
+                tbody.appendChild(row);
             });
         }
 
@@ -1199,13 +1400,6 @@
             document.getElementById('withdrawalLegend').textContent =
                 state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal';
 
-            // Update stats
-            document.getElementById('statInitialInvestment').textContent = formatCurrency(state.initialInvestment);
-            const displayWithdrawal = state.isMonthly ? monthlyWithdrawal : annualWithdrawal;
-            const displayFrequency = state.isMonthly ? '/month' : '/year';
-            document.getElementById('statInitialWithdrawal').textContent = formatCurrency(displayWithdrawal) + displayFrequency;
-            document.getElementById('statWithdrawalRate').textContent = `${state.withdrawalRate}%`;
-
             // Find last valid data point
             const lastValidDataPoint = [...data].reverse().find(point => point.withdrawal !== null);
             const terminalYear = lastValidDataPoint ? Math.floor(lastValidDataPoint.year) : state.years;
@@ -1220,6 +1414,9 @@
 
             // Draw chart
             drawChart(data);
+
+            // Populate data table
+            populateDataTable(data);
         }
 
         function applyPreset(presetKey) {
@@ -1304,6 +1501,20 @@
         // Handle window resize
         window.addEventListener('resize', () => {
             updateDisplay();
+        });
+
+        // Data table toggle functionality
+        document.getElementById('dataTableToggle').addEventListener('click', () => {
+            const content = document.getElementById('dataTableContent');
+            const icon = document.getElementById('toggleIcon');
+
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                content.classList.add('expanded');
+                icon.classList.add('expanded');
+            }
         });
 
         // Initial render
