@@ -5,6 +5,7 @@ import { cn } from '@/lib/Utils';
 import { parseExposureKey } from '@/core/utils/ExposureKeys';
 import { etfCatalog } from '@/core/data/catalogs/EtfCatalog';
 import { percentToWeight, weightToPercent } from '@/core/calculators/precision';
+import { analyzePortfolio } from '@/core/calculators/ExposureCalculator';
 import type { Portfolio } from '@/core/domain/Portfolio';
 
 interface PortfolioExposures {
@@ -181,6 +182,21 @@ const warningRules: WarningRule[] = [
         },
     },
     {
+        id: 'excessive-leverage',
+        check: (portfolio: Portfolio): WarningResult | null => {
+            const analysis = analyzePortfolio(portfolio);
+            const totalLeverage = analysis.totalLeverage;
+
+            if (totalLeverage >= 1.6) {
+                return {
+                    message: `Portfolio leverage is ${totalLeverage.toFixed(2)}x`,
+                    description: 'Consider reducing leverage to below 1.6x to manage risk',
+                };
+            }
+            return null;
+        },
+    },
+    {
         id: 'no-intl-developed-exposure',
         check: (portfolio: Portfolio): WarningResult | null => {
             const { intlDeveloped } = getPortfolioExposures(portfolio);
@@ -242,6 +258,7 @@ const WarningsCard: React.FC<WarningsCardProps> = ({ portfolio }) => {
     const ruleDescriptions: Record<string, string> = {
         'single-etf-concentration': 'Avoid single ETF concentration risk',
         'high-daily-reset-leverage': 'Avoid daily reset ETFs',
+        'excessive-leverage': 'Avoid excessive leverage',
         'no-intl-developed-exposure': 'International Developed Markets exposure',
         'no-em-exposure': 'Emerging Markets exposure',
         'no-small-cap': 'Small Cap exposure',

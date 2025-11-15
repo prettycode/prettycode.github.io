@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "Retirement calculator application",
   "scripts": {
-    "start": "npx serve .",
-    "dev": "npx serve . -l 3000"
+    "start": "node start.js"
   },
   "keywords": [
     "retirement",
