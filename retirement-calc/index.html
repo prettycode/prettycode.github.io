@@ -790,24 +790,21 @@
         }
 
         .data-table-wrapper {
-            padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+            padding: 0 0 var(--spacing-lg) var(--spacing-lg);
         }
 
         .data-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             font-size: 13px;
             background: white;
             border-radius: var(--radius-sm);
-            overflow: hidden;
         }
 
         .data-table thead {
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
             color: white;
-            position: sticky;
-            top: 0;
-            z-index: 10;
         }
 
         .data-table th {
@@ -817,6 +814,27 @@
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            background-size: 400% 100%;
+        }
+
+        .data-table th:nth-child(1) {
+            background-position: 0% 0%;
+        }
+
+        .data-table th:nth-child(2) {
+            background-position: 33.333% 0%;
+        }
+
+        .data-table th:nth-child(3) {
+            background-position: 66.666% 0%;
+        }
+
+        .data-table th:nth-child(4) {
+            background-position: 100% 0%;
         }
 
         .data-table th:first-child {
@@ -1018,6 +1036,22 @@
                             <span class="stat-value" id="statFinalWithdrawal">$0</span>
                         </div>
                     </div>
+
+                    <div class="stat-card">
+                        <h4 class="stat-title">Maximum Withdrawal Rate</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Max Rate (Portfolio depletes Year <span id="maxRateYear">51</span>)</span>
+                            <span class="stat-value" id="statMaxWithdrawalRate">0%</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Annual Withdrawal at Max Rate</span>
+                            <span class="stat-value" id="statMaxAnnualAmount">$0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Monthly Withdrawal at Max Rate</span>
+                            <span class="stat-value" id="statMaxMonthlyAmount">$0</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Data Table Section -->
@@ -1134,6 +1168,83 @@
         function formatCurrency(value) {
             if (value === null || value === undefined || isNaN(value)) return '$0';
             return '$' + Math.round(value).toLocaleString();
+        }
+
+        // Calculate when portfolio depletes (returns the year when portfolio reaches 0)
+        function calculateDepletionYear(withdrawalRate) {
+            const stdDev = state.volatility / 100;
+            const periodsPerYear = state.isMonthly ? 12 : 1;
+
+            const periodGrowthRate = Math.log(1 + state.cagr / 100) / periodsPerYear;
+            const periodStdDev = stdDev / Math.sqrt(periodsPerYear);
+            const periodMu = periodGrowthRate - (periodStdDev * periodStdDev) / 2;
+
+            const periodicInflationRate = state.isMonthly ?
+                Math.pow(1 + state.inflationRate / 100, 1/12) - 1 :
+                state.inflationRate / 100;
+
+            let annualWithdrawal = (state.initialInvestment * withdrawalRate) / 100;
+            let periodWithdrawal = annualWithdrawal / periodsPerYear;
+
+            let currentMedian = state.initialInvestment;
+
+            const maxPeriods = (state.years + 10) * periodsPerYear; // Check up to 10 years past time horizon
+            for (let period = 1; period <= maxPeriods; period++) {
+                const year = period / periodsPerYear;
+
+                if (period === 1) {
+                    currentMedian = Math.max(0, currentMedian - periodWithdrawal);
+                } else {
+                    periodWithdrawal *= (1 + periodicInflationRate);
+                    const medianValue = currentMedian * Math.exp(periodMu);
+                    currentMedian = Math.max(0, medianValue - periodWithdrawal);
+                }
+
+                // Portfolio depleted
+                if (currentMedian <= 0) {
+                    return year;
+                }
+            }
+
+            // Portfolio didn't deplete within the checked period
+            return maxPeriods / periodsPerYear;
+        }
+
+        // Find maximum withdrawal rate that depletes portfolio in target year using binary search
+        function findMaxWithdrawalRate(targetYear) {
+            let low = 0;
+            let high = 20; // Start with max of 20%
+            let bestRate = 0;
+            const tolerance = 0.01; // 0.01% precision
+            const maxIterations = 100;
+
+            for (let i = 0; i < maxIterations; i++) {
+                const mid = (low + high) / 2;
+                const depletionYear = calculateDepletionYear(mid);
+
+                // Check if we're close enough to target year
+                if (Math.abs(depletionYear - targetYear) < 0.1) {
+                    bestRate = mid;
+                    break;
+                }
+
+                if (depletionYear > targetYear) {
+                    // Portfolio lasts too long, increase withdrawal rate
+                    low = mid;
+                    bestRate = mid;
+                } else {
+                    // Portfolio depletes too early, decrease withdrawal rate
+                    high = mid;
+                }
+
+                // Check if we've converged
+                if (high - low < tolerance) {
+                    bestRate = mid;
+                    break;
+                }
+            }
+
+            return bestRate;
         }
 
         // Calculate portfolio path
@@ -1523,6 +1634,26 @@
                 formatCurrency(lastValidDataPoint?.fifth_percentile);
             document.getElementById('statFinalWithdrawal').textContent =
                 formatCurrency((lastValidDataPoint?.withdrawal || 0) * (state.isMonthly ? 12 : 1));
+
+            // Calculate maximum withdrawal rate
+            // For annual: deplete at year N+1 (first withdrawal after N years)
+            // For monthly: deplete at first month after N years = (N*12 + 1)/12 years
+            const periodsPerYear = state.isMonthly ? 12 : 1;
+            const totalPeriods = state.years * periodsPerYear;
+            const targetYear = (totalPeriods + 1) / periodsPerYear;
+
+            const maxWithdrawalRate = findMaxWithdrawalRate(targetYear);
+            const maxAnnualWithdrawal = (state.initialInvestment * maxWithdrawalRate) / 100;
+            const maxMonthlyWithdrawal = maxAnnualWithdrawal / 12;
+
+            // Update max withdrawal rate display
+            const displayYear = state.isMonthly ?
+                `${Math.floor(targetYear)}, Month ${Math.round((targetYear % 1) * 12) + 1}` :
+                targetYear;
+            document.getElementById('maxRateYear').textContent = displayYear;
+            document.getElementById('statMaxWithdrawalRate').textContent = `${maxWithdrawalRate.toFixed(2)}%`;
+            document.getElementById('statMaxAnnualAmount').textContent = formatCurrency(maxAnnualWithdrawal);
+            document.getElementById('statMaxMonthlyAmount').textContent = formatCurrency(maxMonthlyWithdrawal);
 
             // Draw chart
             drawChart(data);
