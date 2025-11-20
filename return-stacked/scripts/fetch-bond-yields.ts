@@ -3,8 +3,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { config } from 'dotenv';
-import { ALL_BOND_ETFS, type BondETF } from '../src/constants/etf-data.js';
-import type { ETFYieldData } from '../src/types/etf-calculator.js';
+import { ALL_BOND_ETFS, type BondETF } from '../src/features/etf-tax-calculator/constants/etf-data.js';
+import type { ETFYieldData } from '../src/features/etf-tax-calculator/types/etf-calculator.js';
 
 // Load environment variables from .env.local
 config({ path: path.join(process.cwd(), '.env.local') });
@@ -14,10 +14,91 @@ interface BondYieldsData {
     etfs: ETFYieldData[];
 }
 
+interface ETFNameMap {
+    [ticker: string]: string;
+}
+
 // Use the shared ETF list from the constants file
 const ETFS_TO_FETCH = ALL_BOND_ETFS;
 
-async function fetchETFFundamentals(etf: BondETF): Promise<ETFYieldData> {
+/**
+ * Fetches all ETF names in a single batch request from Alpha Vantage
+ * Uses the LISTING_STATUS endpoint which returns all active tickers with their names
+ */
+async function fetchAllETFNames(): Promise<ETFNameMap> {
+    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+
+    if (!apiKey) {
+        throw new Error('ALPHA_VANTAGE_API_KEY environment variable is not set.');
+    }
+
+    console.log('📋 Fetching ETF names from Alpha Vantage LISTING_STATUS...\n');
+
+    try {
+        // Use LISTING_STATUS endpoint to get all active listings with names
+        // This returns a CSV with ticker, name, exchange, assetType, etc.
+        const url = `https://www.alphavantage.co/query?function=LISTING_STATUS&apikey=${apiKey}`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+        const response = await fetch(url, {
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const csvText = await response.text();
+
+        // Save the raw response for debugging
+        const debugDir = path.join(process.cwd(), 'public', 'api', 'debug');
+        if (!fs.existsSync(debugDir)) {
+            fs.mkdirSync(debugDir, { recursive: true });
+        }
+        fs.writeFileSync(path.join(debugDir, 'listing-status.csv'), csvText, 'utf-8');
+        console.log('  💾 Saved raw listing status to debug/listing-status.csv');
+
+        // Parse CSV to extract ticker -> name mappings
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',');
+        const tickerIndex = headers.indexOf('symbol');
+        const nameIndex = headers.indexOf('name');
+
+        if (tickerIndex === -1 || nameIndex === -1) {
+            throw new Error('Could not find symbol or name columns in CSV response');
+        }
+
+        const nameMap: ETFNameMap = {};
+        const ourTickers = new Set(ETFS_TO_FETCH.map((etf) => etf.ticker));
+
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            const ticker = cols[tickerIndex];
+            const name = cols[nameIndex];
+
+            // Only store names for the ETFs we care about
+            if (ourTickers.has(ticker) && name) {
+                nameMap[ticker] = name;
+                console.log(`  ✓ ${ticker}: ${name}`);
+            }
+        }
+
+        console.log(`\n📊 Found ${Object.keys(nameMap).length} of ${ETFS_TO_FETCH.length} ETF names\n`);
+
+        return nameMap;
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`⚠️  Failed to fetch ETF names: ${errorMessage}`);
+        console.log('⚠️  Will use ticker symbols as fallback names\n');
+        return {};
+    }
+}
+
+async function fetchETFFundamentals(etf: BondETF, name: string): Promise<ETFYieldData> {
     const ticker = etf.ticker;
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
@@ -53,6 +134,14 @@ async function fetchETFFundamentals(etf: BondETF): Promise<ETFYieldData> {
 
         const data = await response.json();
 
+        // Save raw API response for debugging
+        const debugDir = path.join(process.cwd(), 'public', 'api', 'debug');
+        if (!fs.existsSync(debugDir)) {
+            fs.mkdirSync(debugDir, { recursive: true });
+        }
+        const debugFilePath = path.join(debugDir, `${ticker}-response.json`);
+        fs.writeFileSync(debugFilePath, JSON.stringify(data, null, 2), 'utf-8');
+
         if (!data || typeof data !== 'object') {
             throw new Error(`No data returned from API for ${ticker}`);
         }
@@ -61,25 +150,6 @@ async function fetchETFFundamentals(etf: BondETF): Promise<ETFYieldData> {
         if (data.Information || data.Error || data['Error Message']) {
             const errorMsg = data.Information || data.Error || data['Error Message'];
             throw new Error(`API Error: ${errorMsg}`);
-        }
-
-        // Extract ETF name from API response - try multiple possible field names
-        // Alpha Vantage's ETF_PROFILE can return the name in different fields
-        let name = ticker; // Default to ticker if no name found
-
-        if (data.name && data.name !== 'None' && data.name !== ticker) {
-            name = data.name;
-        } else if (data.fund_name && data.fund_name !== 'None' && data.fund_name !== ticker) {
-            name = data.fund_name;
-        } else if (data.etf_name && data.etf_name !== 'None' && data.etf_name !== ticker) {
-            name = data.etf_name;
-        } else if (data.long_name && data.long_name !== 'None' && data.long_name !== ticker) {
-            name = data.long_name;
-        } else if (data.fund_family) {
-            // If we only have fund_family, we might be able to construct a better name
-            console.warn(`⚠️  No full name found for ${ticker}, only have fund_family: ${data.fund_family}`);
-        } else {
-            console.warn(`⚠️  No name found in API response for ${ticker}, using ticker as fallback`);
         }
 
         // Alpha Vantage ETF_PROFILE returns dividend_yield as a decimal string (e.g., "0.0325" for 3.25%)
@@ -152,6 +222,9 @@ async function fetchAllYields(): Promise<void> {
         fs.mkdirSync(publicDir, { recursive: true });
     }
 
+    // First, fetch all ETF names in a single batch request
+    const nameMap = await fetchAllETFNames();
+
     // Load existing data if available
     let existingData: BondYieldsData = { lastUpdated: '', etfs: [] };
     if (fs.existsSync(filePath)) {
@@ -172,7 +245,8 @@ async function fetchAllYields(): Promise<void> {
         console.log(`Fetching ${etf.ticker}...`);
 
         try {
-            const fundamentalData = await fetchETFFundamentals(etf);
+            const name = nameMap[etf.ticker] || etf.ticker;
+            const fundamentalData = await fetchETFFundamentals(etf, name);
             console.log(`✓ ${etf.ticker}: ${fundamentalData.yield}%`);
 
             // Update or add the ETF data

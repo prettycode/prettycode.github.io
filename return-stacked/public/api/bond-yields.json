@@ -1,37 +1,37 @@
 {
-  "lastUpdated": "2025-11-20T04:11:35.172Z",
+  "lastUpdated": "2025-11-20T04:19:53.093Z",
   "etfs": [
     {
       "ticker": "VTEB",
-      "name": "VTEB",
+      "name": "VANGUARD TAX-EXEMPT BOND INDEX FUND ETF SHARES",
       "yield": 3.47,
       "expenseRatio": 0,
       "netAssets": "$43.9B",
       "managementStyle": "passive",
       "duration": "total-market",
-      "fetchedAt": "2025-11-20T04:08:31.348Z",
+      "fetchedAt": "2025-11-20T04:19:53.093Z",
       "success": true
     },
     {
       "ticker": "VTEI",
-      "name": "VTEI",
+      "name": "VANGUARD INTERMEDIATE-TERM TAX-EXEMPT BOND ETF ETF SHARES",
       "yield": 3.04,
       "expenseRatio": 0,
       "netAssets": "$1.0B",
       "managementStyle": "passive",
       "duration": "intermediate",
-      "fetchedAt": "2025-11-20T04:07:51.955Z",
+      "fetchedAt": "2025-11-20T04:19:13.737Z",
       "success": true
     },
     {
       "ticker": "VTEL",
-      "name": "VTEL",
+      "name": "Vanguard LongTerm TaxExempt Bond ETF",
       "yield": 3.92,
       "expenseRatio": 0,
       "netAssets": "$0.1B",
       "managementStyle": "passive",
       "duration": "long",
-      "fetchedAt": "2025-11-20T04:08:18.221Z",
+      "fetchedAt": "2025-11-20T04:19:39.973Z",
       "success": true
     },
     {
@@ -160,13 +160,13 @@
     },
     {
       "ticker": "VTES",
-      "name": "VTES",
+      "name": "VANGUARD SHORT-TERM TAX-EXEMPT BOND ETF ETF SHARES",
       "yield": 2.54,
       "expenseRatio": 0,
       "netAssets": "$1.4B",
       "managementStyle": "passive",
       "duration": "short",
-      "fetchedAt": "2025-11-20T04:07:38.706Z",
+      "fetchedAt": "2025-11-20T04:19:00.585Z",
       "success": true
     },
     {
