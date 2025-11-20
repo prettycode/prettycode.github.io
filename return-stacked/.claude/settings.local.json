@@ -1,20 +1,26 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(npx tsc:*)",
-      "Bash(dir:*)",
-      "Bash(del:*)",
-      "Bash(grep:*)",
-      "Bash(npm run:*)",
-      "Bash(git config:*)",
-      "Bash(tree:*)",
-      "Bash(copy:*)",
-      "Bash(test:*)",
-      "Bash(git mv:*)",
-      "Bash(findstr:*)",
-      "Read(//c/GitHub/prettycode.github.io/retirement-calc/**)"
-    ],
-    "deny": [],
-    "ask": []
-  }
+    "permissions": {
+        "allow": [
+            "Bash(npx tsc:*)",
+            "Bash(dir:*)",
+            "Bash(del:*)",
+            "Bash(grep:*)",
+            "Bash(npm run:*)",
+            "Bash(git config:*)",
+            "Bash(tree:*)",
+            "Bash(copy:*)",
+            "Bash(test:*)",
+            "Bash(git mv:*)",
+            "Bash(findstr:*)",
+            "Read(//c/GitHub/prettycode.github.io/retirement-calc/**)",
+            "Bash(npm install)",
+            "Bash(tee:*)",
+            "Bash(npm install:*)",
+            "Bash(npm uninstall:*)",
+            "Bash(timeout 90 npm run fetch-yields:*)",
+            "Bash(curl:*)"
+        ],
+        "deny": [],
+        "ask": []
+    }
 }

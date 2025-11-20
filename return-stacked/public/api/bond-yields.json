@@ -1,0 +1,195 @@
+{
+  "lastUpdated": "2025-11-20T04:11:35.172Z",
+  "etfs": [
+    {
+      "ticker": "VTEB",
+      "name": "VTEB",
+      "yield": 3.47,
+      "expenseRatio": 0,
+      "netAssets": "$43.9B",
+      "managementStyle": "passive",
+      "duration": "total-market",
+      "fetchedAt": "2025-11-20T04:08:31.348Z",
+      "success": true
+    },
+    {
+      "ticker": "VTEI",
+      "name": "VTEI",
+      "yield": 3.04,
+      "expenseRatio": 0,
+      "netAssets": "$1.0B",
+      "managementStyle": "passive",
+      "duration": "intermediate",
+      "fetchedAt": "2025-11-20T04:07:51.955Z",
+      "success": true
+    },
+    {
+      "ticker": "VTEL",
+      "name": "VTEL",
+      "yield": 3.92,
+      "expenseRatio": 0,
+      "netAssets": "$0.1B",
+      "managementStyle": "passive",
+      "duration": "long",
+      "fetchedAt": "2025-11-20T04:08:18.221Z",
+      "success": true
+    },
+    {
+      "ticker": "VTEB",
+      "name": "Vanguard Tax-Exempt Bond ETF",
+      "yield": 3.47,
+      "fetchedAt": "2025-11-17T14:33:10.000Z",
+      "success": true
+    },
+    {
+      "ticker": "VCRM",
+      "name": "Vanguard Core Tax-Exempt Bond ETF",
+      "yield": 3.61,
+      "fetchedAt": "2025-11-17T15:00:00.000Z",
+      "success": true
+    },
+    {
+      "ticker": "MUB",
+      "name": "MUB",
+      "yield": 3.32,
+      "expenseRatio": 0,
+      "netAssets": "$41.1B",
+      "managementStyle": "passive",
+      "duration": "total-market",
+      "fetchedAt": "2025-11-20T04:08:57.600Z",
+      "success": true
+    },
+    {
+      "ticker": "AVMU",
+      "name": "AVMU",
+      "yield": 3.55,
+      "expenseRatio": 0,
+      "netAssets": "$0.2B",
+      "managementStyle": "active",
+      "duration": "total-market",
+      "fetchedAt": "2025-11-20T04:09:10.725Z",
+      "success": true
+    },
+    {
+      "ticker": "DFNM",
+      "name": "DFNM",
+      "yield": 3,
+      "expenseRatio": 0,
+      "netAssets": "$1.8B",
+      "managementStyle": "passive",
+      "duration": "total-market",
+      "fetchedAt": "2025-11-20T04:09:23.847Z",
+      "success": true
+    },
+    {
+      "ticker": "SGOV",
+      "name": "SGOV",
+      "yield": 3.96,
+      "expenseRatio": 0,
+      "netAssets": "$59.2B",
+      "managementStyle": "passive",
+      "duration": "cash",
+      "fetchedAt": "2025-11-20T04:09:37.045Z",
+      "success": true
+    },
+    {
+      "ticker": "GOVT",
+      "name": "GOVT",
+      "yield": 3.83,
+      "expenseRatio": 0,
+      "netAssets": "$33.0B",
+      "managementStyle": "passive",
+      "duration": "total-market",
+      "fetchedAt": "2025-11-20T04:10:16.432Z",
+      "success": true
+    },
+    {
+      "ticker": "ZROZ",
+      "name": "ZROZ",
+      "yield": 4.52,
+      "expenseRatio": 0,
+      "netAssets": "$1.7B",
+      "managementStyle": "passive",
+      "duration": "extended",
+      "fetchedAt": "2025-11-20T04:10:42.689Z",
+      "success": true
+    },
+    {
+      "ticker": "VGSH",
+      "name": "VGSH",
+      "yield": 3.56,
+      "expenseRatio": 0,
+      "netAssets": "$29.3B",
+      "managementStyle": "passive",
+      "duration": "short",
+      "fetchedAt": "2025-11-20T04:10:55.809Z",
+      "success": true
+    },
+    {
+      "ticker": "VGIT",
+      "name": "VGIT",
+      "yield": 3.72,
+      "expenseRatio": 0,
+      "netAssets": "$42.9B",
+      "managementStyle": "passive",
+      "duration": "intermediate",
+      "fetchedAt": "2025-11-20T04:11:08.934Z",
+      "success": true
+    },
+    {
+      "ticker": "VGLT",
+      "name": "VGLT",
+      "yield": 4.63,
+      "expenseRatio": 0,
+      "netAssets": "$14.3B",
+      "managementStyle": "passive",
+      "duration": "long",
+      "fetchedAt": "2025-11-20T04:11:22.048Z",
+      "success": true
+    },
+    {
+      "ticker": "EDV",
+      "name": "EDV",
+      "yield": 4.89,
+      "expenseRatio": 0,
+      "netAssets": "$4.8B",
+      "managementStyle": "passive",
+      "duration": "extended",
+      "fetchedAt": "2025-11-20T04:11:35.172Z",
+      "success": true
+    },
+    {
+      "ticker": "VTES",
+      "name": "VTES",
+      "yield": 2.54,
+      "expenseRatio": 0,
+      "netAssets": "$1.4B",
+      "managementStyle": "passive",
+      "duration": "short",
+      "fetchedAt": "2025-11-20T04:07:38.706Z",
+      "success": true
+    },
+    {
+      "ticker": "VBIL",
+      "name": "VBIL",
+      "yield": 3.96,
+      "expenseRatio": 0,
+      "netAssets": "$3.7B",
+      "managementStyle": "passive",
+      "duration": "cash",
+      "fetchedAt": "2025-11-20T04:09:50.179Z",
+      "success": true
+    },
+    {
+      "ticker": "VGUS",
+      "name": "VGUS",
+      "yield": 3.89,
+      "expenseRatio": 0,
+      "netAssets": "$0.5B",
+      "managementStyle": "passive",
+      "duration": "ultra-short",
+      "fetchedAt": "2025-11-20T04:10:03.300Z",
+      "success": true
+    }
+  ]
+}
