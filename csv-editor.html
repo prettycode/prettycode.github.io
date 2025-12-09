@@ -249,6 +249,47 @@
             display: none;
         }
 
+        /* Table controls panel - integrated into table */
+        .table-controls-panel {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 16px;
+            max-height: 500px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        .table-controls-panel.hidden {
+            max-height: 0;
+            padding: 0 16px;
+            overflow: hidden;
+            border-bottom: none;
+        }
+
+        .controls-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .controls-panel-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .controls-row-inline {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
         .control-section {
             display: flex;
             align-items: center;
@@ -261,11 +302,61 @@
             flex-wrap: wrap;
         }
 
+        /* Compact styling for controls inside table */
+        .table-controls-panel .control-section {
+            padding: 8px 12px;
+            gap: 8px;
+            border-radius: 6px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+        }
+
         .control-section label {
             font-size: 13px;
             color: var(--text-secondary);
             font-weight: 500;
             white-space: nowrap;
+        }
+
+        .table-controls-panel .control-section label {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Compact select styling for inline controls */
+        .table-controls-panel select,
+        .table-controls-panel input[type="text"] {
+            font-size: 13px;
+            padding: 6px 10px;
+        }
+
+        .table-controls-panel .btn-small {
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        .table-controls-panel .group-toggle-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        /* Scrollbar styling for controls panel */
+        .table-controls-panel::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-controls-panel::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .table-controls-panel::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .table-controls-panel::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
         }
 
         select, input[type="text"] {
@@ -1605,60 +1696,6 @@
 
         <div id="editorSection" class="hidden">
             <div class="controls-row">
-                <div class="control-section" id="filterControls">
-                    <label>Filter:</label>
-                    <div class="filter-selects">
-                        <div class="filter-select-wrapper">
-                            <select class="filter-column-select" data-level="0">
-                                <option value="">No filter</option>
-                            </select>
-                            <select class="filter-value-select" data-level="0" disabled>
-                                <option value="__placeholder__">Select value...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="btn btn-small" id="addFilterBtn" title="Add filter condition">+</button>
-                </div>
-                <div class="control-section" id="sortControls">
-                    <label>Sort:</label>
-                    <div class="sort-selects">
-                        <div class="sort-select-wrapper">
-                            <select class="sort-column-select" data-level="0">
-                                <option value="">No sorting</option>
-                            </select>
-                            <select class="sort-direction-select" data-level="0">
-                                <option value="asc">Asc</option>
-                                <option value="desc">Desc</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="btn btn-small" id="addSortBtn" title="Add sub-sort">+</button>
-                </div>
-                <div class="control-section" id="groupControls">
-                    <label>Group:</label>
-                    <div class="group-selects">
-                        <select class="group-column-select" data-level="0">
-                            <option value="">No grouping</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-small" id="addGroupBtn" title="Add subgroup">+</button>
-                    <div class="group-toggle-buttons">
-                        <button class="btn btn-small" id="expandAllBtn" title="Expand all groups">⊞</button>
-                        <button class="btn btn-small" id="collapseAllBtn" title="Collapse all groups">⊟</button>
-                    </div>
-                </div>
-                <div class="control-section" id="searchControls">
-                    <label>Search:</label>
-                    <div class="search-selects">
-                        <div class="search-select-wrapper">
-                            <input type="text" class="search-value-input" data-level="0" placeholder="Two character minimum">
-                        </div>
-                    </div>
-                    <button class="btn btn-small" id="addSearchBtn" title="Add search term">+</button>
-                </div>
-            </div>
-
-            <div class="controls-row">
                 <div class="actions-bar">
                     <div id="modificationIndicator" class="modification-panel hidden">
                         <span class="mod-title">● Modifications</span>
@@ -1720,6 +1757,64 @@
                             <button class="aggregate-toggle" id="emptyDashToggle" title="Show empty cells as dashes">
                                 <span class="aggregate-toggle-icon">—</span>
                             </button>
+                            <button class="aggregate-toggle active" id="controlsToggle" title="Toggle filters, sort, group, and search controls">
+                                <span class="aggregate-toggle-icon">⚙</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-controls-panel" id="controlsPanel">
+                    <div class="controls-row-inline">
+                        <div class="control-section" id="filterControls">
+                            <label>Filter:</label>
+                            <div class="filter-selects">
+                                <div class="filter-select-wrapper">
+                                    <select class="filter-column-select" data-level="0">
+                                        <option value="">No filter</option>
+                                    </select>
+                                    <select class="filter-value-select" data-level="0" disabled>
+                                        <option value="__placeholder__">Select value...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn btn-small" id="addFilterBtn" title="Add filter condition">+</button>
+                        </div>
+                        <div class="control-section" id="sortControls">
+                            <label>Sort:</label>
+                            <div class="sort-selects">
+                                <div class="sort-select-wrapper">
+                                    <select class="sort-column-select" data-level="0">
+                                        <option value="">No sorting</option>
+                                    </select>
+                                    <select class="sort-direction-select" data-level="0">
+                                        <option value="asc">Asc</option>
+                                        <option value="desc">Desc</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn btn-small" id="addSortBtn" title="Add sub-sort">+</button>
+                        </div>
+                        <div class="control-section" id="groupControls">
+                            <label>Group:</label>
+                            <div class="group-selects">
+                                <select class="group-column-select" data-level="0">
+                                    <option value="">No grouping</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-small" id="addGroupBtn" title="Add subgroup">+</button>
+                            <div class="group-toggle-buttons">
+                                <button class="btn btn-small" id="expandAllBtn" title="Expand all groups">⊞</button>
+                                <button class="btn btn-small" id="collapseAllBtn" title="Collapse all groups">⊟</button>
+                            </div>
+                        </div>
+                        <div class="control-section" id="searchControls">
+                            <label>Search:</label>
+                            <div class="search-selects">
+                                <div class="search-select-wrapper">
+                                    <input type="text" class="search-value-input" data-level="0" placeholder="Two character minimum">
+                                </div>
+                            </div>
+                            <button class="btn btn-small" id="addSearchBtn" title="Add search term">+</button>
                         </div>
                     </div>
                 </div>
@@ -1857,7 +1952,9 @@
                 // Aggregate toggle
                 this.aggregateToggle = document.getElementById('aggregateToggle');
                 this.emptyDashToggle = document.getElementById('emptyDashToggle');
-                
+                this.controlsToggle = document.getElementById('controlsToggle');
+                this.controlsPanel = document.getElementById('controlsPanel');
+
                 // Navigation arrows
                 this.tableScroll = document.getElementById('tableScroll');
                 this.rowNavUp = document.getElementById('rowNavUp');
@@ -2008,6 +2105,7 @@
                 // Aggregate toggle
                 this.aggregateToggle.addEventListener('click', () => this.toggleAggregates());
                 this.emptyDashToggle.addEventListener('click', () => this.toggleEmptyAsDash());
+                this.controlsToggle.addEventListener('click', () => this.toggleControlsPanel());
                 window.addEventListener('resize', () => this.updateNavArrows());
 
                 // Selection buttons
@@ -3574,6 +3672,12 @@
                 this.showEmptyAsDash = !this.showEmptyAsDash;
                 this.emptyDashToggle.classList.toggle('active', this.showEmptyAsDash);
                 this.renderTable();
+            }
+
+            toggleControlsPanel() {
+                const isHidden = this.controlsPanel.classList.contains('hidden');
+                this.controlsPanel.classList.toggle('hidden');
+                this.controlsToggle.classList.toggle('active', isHidden);
             }
 
             isColumnNumeric(colIdx) {
