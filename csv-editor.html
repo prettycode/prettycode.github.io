@@ -705,6 +705,13 @@
             background: var(--selection-bg);
         }
 
+        .btn-compact {
+            height: 28px;
+            padding: 0 12px;
+            font-size: 13px;
+            border-radius: 6px;
+        }
+
         .aggregate-toggle {
             width: 28px;
             height: 28px;
@@ -1671,19 +1678,6 @@
                 <button class="theme-toggle" id="fullWidthToggle" title="Toggle full-width mode">
                     <span class="fullwidth-icon">⇔</span>
                 </button>
-                <button class="btn" id="importBtn">
-                    <span>📁</span> Import CSV
-                </button>
-                <div class="export-dropdown">
-                    <button class="btn btn-success" id="exportBtn" disabled>
-                        <span>↓</span> Export CSV <span class="dropdown-arrow">▾</span>
-                    </button>
-                    <div class="export-menu hidden" id="exportMenu">
-                        <button class="export-option" data-export="all">Export All Rows</button>
-                        <button class="export-option" data-export="selected" id="exportSelectedOption" disabled>Export Selected Rows</button>
-                        <button class="export-option" data-export="deselected" id="exportDeselectedOption" disabled>Export Deselected Rows</button>
-                    </div>
-                </div>
             </div>
         </header>
 
@@ -1728,6 +1722,19 @@
                             <button class="btn-inline btn-inline-danger" id="deleteSelectedBtn" disabled>🗑 Delete</button>
                         </div>
                         <div class="table-info-left">
+                            <button class="btn btn-compact" id="importBtn">
+                                <span>↑</span> Import CSV
+                            </button>
+                            <div class="export-dropdown">
+                                <button class="btn btn-compact btn-success" id="exportBtn" disabled>
+                                    <span>↓</span> Export CSV <span class="dropdown-arrow">▾</span>
+                                </button>
+                                <div class="export-menu hidden" id="exportMenu">
+                                    <button class="export-option" data-export="all">Export All Rows</button>
+                                    <button class="export-option" data-export="selected" id="exportSelectedOption" disabled>Export Selected Rows</button>
+                                    <button class="export-option" data-export="deselected" id="exportDeselectedOption" disabled>Export Deselected Rows</button>
+                                </div>
+                            </div>
                             <div class="density-selector">
                                 <button class="density-btn active" data-density="compact" title="Compact">
                                     <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
