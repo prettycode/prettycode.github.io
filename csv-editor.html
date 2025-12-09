@@ -1013,10 +1013,6 @@
             padding: 14px 4px;
         }
 
-        .table-spaced th.checkbox-col .th-content {
-            padding: 18px 4px;
-        }
-
         th.line-num-col,
         td.line-num-col {
             width: 50px;
@@ -1077,6 +1073,39 @@
             color: var(--text-muted);
         }
 
+        /* Empty state message */
+        .empty-table-message {
+            text-align: center;
+            padding: 80px 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-table-message td {
+            border: none;
+            background: var(--bg-secondary) !important;
+        }
+
+        /* Background for table when empty */
+        tbody:has(.empty-table-message) {
+            background: var(--bg-secondary);
+        }
+
+        table:has(tbody .empty-table-message) {
+            background: var(--bg-secondary);
+        }
+
+        .table-scroll:has(.empty-table-message) {
+            background: var(--bg-secondary);
+        }
+
+        .empty-table-message-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-muted);
+            padding-top: 10px !important;
+        }
+
         /* Table density styles */
         .table-normal th .th-content {
             padding: 14px 16px;
@@ -1086,16 +1115,6 @@
             padding: 10px 16px;
             font-size: 13px;
             line-height: 1.4;
-        }
-
-        .table-spaced th .th-content {
-            padding: 18px 20px;
-        }
-
-        .table-spaced td {
-            padding: 16px 20px;
-            font-size: 14px;
-            line-height: 1.5;
         }
 
         td.checkbox-col {
@@ -1113,10 +1132,6 @@
 
         .table-normal td.checkbox-col {
             padding: 10px 4px !important;
-        }
-
-        .table-spaced td.checkbox-col {
-            padding: 16px 4px !important;
         }
 
         tr:nth-child(odd) td {
@@ -1682,14 +1697,14 @@
             </div>
         </header>
 
-        <div class="upload-zone" id="uploadZone">
+        <div class="upload-zone hidden" id="uploadZone">
             <h2>Import CSV File</h2>
             <p>Drag and drop your CSV file here, or click to browse</p>
             <button class="btn btn-primary" id="browseBtn">Browse Files</button>
             <input type="file" id="fileInput" accept=".csv">
         </div>
 
-        <div id="editorSection" class="hidden">
+        <div id="editorSection" class="">
             <div class="controls-row">
                 <div class="actions-bar">
                     <div id="modificationIndicator" class="modification-panel hidden">
@@ -1749,13 +1764,6 @@
                                         <rect x="1" y="1" width="12" height="2.5" rx="0.5"/>
                                         <rect x="1" y="5.75" width="12" height="2.5" rx="0.5"/>
                                         <rect x="1" y="10.5" width="12" height="2.5" rx="0.5"/>
-                                    </svg>
-                                </button>
-                                <button class="density-btn" data-density="spaced" title="Spaced">
-                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                                        <rect x="1" y="0" width="12" height="3" rx="0.5"/>
-                                        <rect x="1" y="5.5" width="12" height="3" rx="0.5"/>
-                                        <rect x="1" y="11" width="12" height="3" rx="0.5"/>
                                     </svg>
                                 </button>
                             </div>
@@ -1902,7 +1910,7 @@
                 this.collapsedGroups = new Set();
                 this.isModified = false;
                 this.editingCell = null;
-                this.tableDensity = 'compact'; // compact, normal, spaced
+                this.tableDensity = 'compact'; // compact, normal
                 this.showAggregates = false;
                 this.showEmptyAsDash = false;
                 this.fileName = '';
@@ -1932,6 +1940,7 @@
 
                 this.initializeElements();
                 this.attachEventListeners();
+                this.renderTable(); // Render empty table on initialization
             }
 
             initializeElements() {
@@ -3006,8 +3015,13 @@
                         this.timestampColumnsCache.add(colIdx);
                     }
                 });
-                
-                this.renderHeader();
+
+                // Only render header if we have data
+                if (this.currentData.length > 0) {
+                    this.renderHeader();
+                } else {
+                    this.tableHead.innerHTML = '';
+                }
                 this.renderBody();
                 this.updateStats();
                 // Update navigation arrows after render
@@ -3444,6 +3458,20 @@
                 this.tableFoot.innerHTML = '';
                 this.currentLineNum = 0; // Reset line number counter
                 let data = this.getFilteredData();
+
+                // Show empty state message if no data
+                if (data.length === 0 && this.currentData.length === 0) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.className = 'empty-table-message';
+                    const emptyCell = document.createElement('td');
+                    emptyCell.colSpan = Math.max(this.headers.length + 2, 3); // +2 for checkbox and line number columns
+                    emptyCell.innerHTML = `
+                        <div class="empty-table-message-text">No data loaded. Import a CSV file to get started.</div>
+                    `;
+                    emptyRow.appendChild(emptyCell);
+                    this.tableBody.appendChild(emptyRow);
+                    return;
+                }
 
                 if (this.groupColumns.length > 0) {
                     this.renderGroupedData(data, 0, '');
@@ -4464,7 +4492,7 @@
                 });
                 
                 // Update table class
-                this.tableElement.classList.remove('table-compact', 'table-normal', 'table-spaced');
+                this.tableElement.classList.remove('table-compact', 'table-normal');
                 if (density !== 'compact') {
                     this.tableElement.classList.add(`table-${density}`);
                 }
