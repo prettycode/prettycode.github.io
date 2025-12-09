@@ -68,14 +68,28 @@
             font-family: 'Outfit', sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            min-height: 100vh;
+            height: 100vh;
             line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .app-container {
             max-width: 1600px;
+            width: 100%;
             margin: 0 auto;
             padding: 24px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .app-container.full-width {
+            max-width: none;
+            margin: 0;
         }
 
         header {
@@ -83,6 +97,7 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 24px;
+            flex-shrink: 0;
         }
 
         .logo {
@@ -194,6 +209,7 @@
             background: var(--bg-secondary);
             margin-bottom: 24px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            flex-shrink: 0;
         }
 
         .upload-zone:hover,
@@ -226,6 +242,7 @@
             gap: 16px;
             margin-bottom: 16px;
             flex-wrap: wrap;
+            flex-shrink: 0;
         }
 
         .controls-row:has(.actions-bar):not(:has(.modification-panel:not(.hidden))) {
@@ -452,6 +469,32 @@
             border-bottom: 1px solid var(--border-color);
             font-size: 13px;
             color: var(--text-secondary);
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .table-title-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .table-title-text {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .table-info-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-shrink: 0;
         }
 
         .table-info-left {
@@ -576,7 +619,7 @@
             height: 28px;
             border: 1px solid var(--border-color);
             background: var(--bg-secondary);
-            color: var(--text-muted);
+            color: var(--text-secondary);
             cursor: pointer;
             border-radius: 6px;
             display: flex;
@@ -588,7 +631,7 @@
         }
 
         .aggregate-toggle:hover {
-            color: var(--text-secondary);
+            color: var(--text-primary);
             background: var(--bg-hover);
         }
 
@@ -596,6 +639,11 @@
             color: var(--accent-blue);
             background: var(--selection-bg);
             border-color: var(--accent-blue);
+        }
+
+        .aggregate-toggle:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         tr.aggregate-row td {
@@ -633,12 +681,17 @@
             overflow: hidden;
             border: 1px solid var(--border-color);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
         }
 
         .table-scroll {
             overflow-x: auto;
-            max-height: 70vh;
             overflow-y: auto;
+            flex: 1;
+            min-height: 0;
         }
 
         table {
@@ -1310,6 +1363,13 @@
             display: none !important;
         }
 
+        #editorSection {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -1517,11 +1577,11 @@
                 <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
                     <span class="theme-icon">🌙</span>
                 </button>
+                <button class="theme-toggle" id="fullWidthToggle" title="Toggle full-width mode">
+                    <span class="fullwidth-icon">⇔</span>
+                </button>
                 <button class="btn" id="importBtn">
                     <span>📁</span> Import CSV
-                </button>
-                <button class="btn" id="undoChangesBtn" disabled>
-                    <span>↺</span> Undo Changes
                 </button>
                 <div class="export-dropdown">
                     <button class="btn btn-success" id="exportBtn" disabled>
@@ -1591,7 +1651,7 @@
                     <label>Search:</label>
                     <div class="search-selects">
                         <div class="search-select-wrapper">
-                            <input type="text" class="search-value-input" data-level="0" placeholder="Min 2 chars...">
+                            <input type="text" class="search-value-input" data-level="0" placeholder="Two character minimum">
                         </div>
                     </div>
                     <button class="btn btn-small" id="addSearchBtn" title="Add search term">+</button>
@@ -1615,47 +1675,52 @@
 
             <div class="table-container">
                 <div class="table-info-bar">
-                    <div class="table-info-left">
-                        <div class="density-selector">
-                            <button class="density-btn active" data-density="compact" title="Compact">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                                    <rect x="1" y="2" width="12" height="2" rx="0.5"/>
-                                    <rect x="1" y="6" width="12" height="2" rx="0.5"/>
-                                    <rect x="1" y="10" width="12" height="2" rx="0.5"/>
-                                </svg>
+                    <div class="table-title-area">
+                        <div class="table-title-text" id="tableTitleText"></div>
+                        <button class="aggregate-toggle hidden" id="undoChangesBtn" title="Undo all changes">
+                            <span class="aggregate-toggle-icon">↺</span>
+                        </button>
+                    </div>
+                    <div class="table-info-row">
+                        <div class="selection-actions" id="selectionActions">
+                            <span class="selected-count-display" id="selectedDisplay">
+                                <span class="selected-dot"></span>
+                                <strong id="selectedRows">0</strong> selected
+                            </span>
+                            <button class="btn-inline" id="clearSelectionBtn" disabled>✕ Clear</button>
+                            <button class="btn-inline btn-inline-danger" id="deleteSelectedBtn" disabled>🗑 Delete</button>
+                        </div>
+                        <div class="table-info-left">
+                            <div class="density-selector">
+                                <button class="density-btn active" data-density="compact" title="Compact">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                                        <rect x="1" y="2" width="12" height="2" rx="0.5"/>
+                                        <rect x="1" y="6" width="12" height="2" rx="0.5"/>
+                                        <rect x="1" y="10" width="12" height="2" rx="0.5"/>
+                                    </svg>
+                                </button>
+                                <button class="density-btn" data-density="normal" title="Normal">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                                        <rect x="1" y="1" width="12" height="2.5" rx="0.5"/>
+                                        <rect x="1" y="5.75" width="12" height="2.5" rx="0.5"/>
+                                        <rect x="1" y="10.5" width="12" height="2.5" rx="0.5"/>
+                                    </svg>
+                                </button>
+                                <button class="density-btn" data-density="spaced" title="Spaced">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                                        <rect x="1" y="0" width="12" height="3" rx="0.5"/>
+                                        <rect x="1" y="5.5" width="12" height="3" rx="0.5"/>
+                                        <rect x="1" y="11" width="12" height="3" rx="0.5"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <button class="aggregate-toggle" id="aggregateToggle" title="Show aggregates (Total, Min, Max, Avg)">
+                                <span class="aggregate-toggle-icon">Σ</span>
                             </button>
-                            <button class="density-btn" data-density="normal" title="Normal">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                                    <rect x="1" y="1" width="12" height="2.5" rx="0.5"/>
-                                    <rect x="1" y="5.75" width="12" height="2.5" rx="0.5"/>
-                                    <rect x="1" y="10.5" width="12" height="2.5" rx="0.5"/>
-                                </svg>
-                            </button>
-                            <button class="density-btn" data-density="spaced" title="Spaced">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                                    <rect x="1" y="0" width="12" height="3" rx="0.5"/>
-                                    <rect x="1" y="5.5" width="12" height="3" rx="0.5"/>
-                                    <rect x="1" y="11" width="12" height="3" rx="0.5"/>
-                                </svg>
+                            <button class="aggregate-toggle" id="emptyDashToggle" title="Show empty cells as dashes">
+                                <span class="aggregate-toggle-icon">—</span>
                             </button>
                         </div>
-                        <button class="aggregate-toggle" id="aggregateToggle" title="Show aggregates (Total, Min, Max, Avg)">
-                            <span class="aggregate-toggle-icon">Σ</span>
-                        </button>
-                        <button class="aggregate-toggle" id="emptyDashToggle" title="Show empty cells as dashes">
-                            <span class="aggregate-toggle-icon">—</span>
-                        </button>
-                        <span class="row-count-display">
-                            Showing <strong id="visibleRows">0</strong> of <strong id="totalRows">0</strong> rows <span id="rowPercent"></span>
-                        </span>
-                    </div>
-                    <div class="selection-actions" id="selectionActions">
-                        <span class="selected-count-display" id="selectedDisplay">
-                            <span class="selected-dot"></span>
-                            <strong id="selectedRows">0</strong> selected
-                        </span>
-                        <button class="btn-inline" id="clearSelectionBtn" disabled>✕ Clear</button>
-                        <button class="btn-inline btn-inline-danger" id="deleteSelectedBtn" disabled>🗑 Delete</button>
                     </div>
                 </div>
                 <div class="table-scroll" id="tableScroll">
@@ -1737,6 +1802,8 @@
                 this.tableDensity = 'compact'; // compact, normal, spaced
                 this.showAggregates = false;
                 this.showEmptyAsDash = false;
+                this.fileName = '';
+                this.isFullWidth = false;
                 
                 // Drag state
                 this.draggedColIdx = null;
@@ -1805,16 +1872,14 @@
                 this.exportMenu = document.getElementById('exportMenu');
                 this.exportSelectedOption = document.getElementById('exportSelectedOption');
                 this.exportDeselectedOption = document.getElementById('exportDeselectedOption');
-                this.totalRowsSpan = document.getElementById('totalRows');
-                this.visibleRowsSpan = document.getElementById('visibleRows');
-                this.rowPercentSpan = document.getElementById('rowPercent');
+                this.tableTitleText = document.getElementById('tableTitleText');
                 this.selectedRowsSpan = document.getElementById('selectedRows');
                 this.selectedDisplay = document.getElementById('selectedDisplay');
                 this.selectionActions = document.getElementById('selectionActions');
                 this.modificationIndicator = document.getElementById('modificationIndicator');
                 this.densityBtns = document.querySelectorAll('.density-btn');
                 this.tableElement = document.querySelector('table');
-                
+
                 // Add column modal elements
                 this.addColumnModal = document.getElementById('addColumnModal');
                 this.newColumnNameInput = document.getElementById('newColumnName');
@@ -1830,6 +1895,10 @@
                 // Theme toggle
                 this.themeToggle = document.getElementById('themeToggle');
                 this.themeIcon = this.themeToggle.querySelector('.theme-icon');
+
+                // Full-width toggle
+                this.fullWidthToggle = document.getElementById('fullWidthToggle');
+                this.appContainer = document.querySelector('.app-container');
             }
 
             attachEventListeners() {
@@ -2011,10 +2080,16 @@
                 
                 // Theme toggle
                 this.themeToggle.addEventListener('click', () => this.toggleTheme());
-                
+
+                // Full-width toggle
+                this.fullWidthToggle.addEventListener('click', () => this.toggleFullWidth());
+
                 // Initialize theme from localStorage or system preference
                 this.initTheme();
-                
+
+                // Initialize full-width from localStorage
+                this.initFullWidth();
+
                 // Initialize density from localStorage
                 this.initDensity();
             }
@@ -2027,6 +2102,7 @@
             }
 
             loadFile(file) {
+                this.fileName = file.name;
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
@@ -2144,7 +2220,7 @@
                 this.uploadZone.classList.add('hidden');
                 this.editorSection.classList.remove('hidden');
                 this.exportBtn.disabled = false;
-                this.undoChangesBtn.disabled = true;
+                this.undoChangesBtn.classList.add('hidden');
                 this.modificationIndicator.classList.add('hidden');
                 
                 // Hide dropdown arrow initially (no rows selected)
@@ -2669,7 +2745,7 @@
                 valueInput.type = 'text';
                 valueInput.className = 'search-value-input';
                 valueInput.dataset.level = level;
-                valueInput.placeholder = 'Min 2 chars...';
+                valueInput.placeholder = 'Two character minimum';
                 wrapper.appendChild(valueInput);
                 
                 if (showRemove) {
@@ -3945,24 +4021,53 @@
             updateStats() {
                 const total = this.currentData.length;
                 const visible = this.getFilteredData().length;
-                
-                this.totalRowsSpan.textContent = total;
-                this.visibleRowsSpan.textContent = visible;
-                
-                // Calculate and display percentage
-                if (total > 0) {
-                    const percent = (visible / total) * 100;
-                    const isWholeNumber = percent === Math.floor(percent);
-                    
-                    if (isWholeNumber) {
-                        this.rowPercentSpan.textContent = `(${Math.round(percent)}%)`;
+
+                // Update table title with filename and row count
+                const percent = total > 0 ? (visible / total) * 100 : 0;
+                const isWholeNumber = percent === Math.floor(percent);
+                const percentText = total > 0
+                    ? (isWholeNumber ? `${Math.round(percent)}%` : `~${percent.toFixed(1)}%`)
+                    : '0%';
+
+                // Highlight visible count if filtering is active
+                const isFiltered = visible !== total;
+
+                // Check if rows have been added or deleted
+                const rowsModified = this.modStats.rowsDeleted > 0 || this.modStats.rowsAdded > 0;
+
+                // Build filename with red color if modified
+                let filenamePart = '';
+                if (this.fileName) {
+                    if (this.hasModifications()) {
+                        filenamePart = ` from <strong style="color: var(--accent-red); cursor: help;" title="File has been modified">${this.fileName}</strong>`;
                     } else {
-                        this.rowPercentSpan.textContent = `(~${percent.toFixed(1)}%)`;
+                        filenamePart = ` from <strong>${this.fileName}</strong>`;
                     }
-                } else {
-                    this.rowPercentSpan.textContent = '';
                 }
-                
+
+                // Build the label differently based on whether rows are filtered
+                if (isFiltered) {
+                    // Build total count with red color if rows added/deleted
+                    let totalPart = '';
+                    if (rowsModified) {
+                        totalPart = `<strong style="color: var(--accent-red); cursor: help;" title="Rows have been added or deleted">${total}</strong>`;
+                    } else {
+                        totalPart = `<strong>${total}</strong>`;
+                    }
+
+                    this.tableTitleText.innerHTML = `Showing <strong style="color: var(--accent-blue); font-weight: 700;">${visible}</strong> / ${totalPart} rows (<strong>${percentText}</strong>)${filenamePart}`;
+                } else {
+                    // All rows showing - simpler format
+                    let countPart = '';
+                    if (rowsModified) {
+                        countPart = `<strong style="color: var(--accent-red); cursor: help;" title="Rows have been added or deleted">${total}</strong>`;
+                    } else {
+                        countPart = `<strong>${total}</strong>`;
+                    }
+
+                    this.tableTitleText.innerHTML = `Showing all ${countPart} rows${filenamePart}`;
+                }
+
                 this.selectedRowsSpan.textContent = this.selectedRows.size;
                 
                 // Show/hide selection actions area
@@ -3973,18 +4078,30 @@
                 }
             }
 
+            hasModifications() {
+                return this.modStats.rowsDeleted > 0 ||
+                       this.modStats.rowsChanged.size > 0 ||
+                       this.modStats.columnsAdded > 0 ||
+                       this.modStats.columnsDeleted > 0 ||
+                       this.modStats.columnsReordered > 0;
+            }
+
             markAsModified() {
                 this.isModified = true;
-                this.undoChangesBtn.disabled = false;
+
+                // Show/hide undo button based on whether there are actual modifications
+                if (this.hasModifications()) {
+                    this.undoChangesBtn.classList.remove('hidden');
+                } else {
+                    this.undoChangesBtn.classList.add('hidden');
+                }
+
                 this.updateModificationDisplay();
+                this.updateStats(); // Update the title to reflect modifications
             }
 
             updateModificationDisplay() {
-                const hasChanges = this.modStats.rowsDeleted > 0 || 
-                                   this.modStats.rowsChanged.size > 0 || 
-                                   this.modStats.columnsAdded > 0 || 
-                                   this.modStats.columnsDeleted > 0 ||
-                                   this.modStats.columnsReordered > 0;
+                const hasChanges = this.hasModifications();
                 
                 if (hasChanges) {
                     this.modificationIndicator.classList.remove('hidden');
@@ -4055,7 +4172,7 @@
                 this.lastClickedRowIdx = null;
                 this.isModified = false;
                 this.modificationIndicator.classList.add('hidden');
-                this.undoChangesBtn.disabled = true;
+                this.undoChangesBtn.classList.add('hidden');
                 this.modStats = {
                     rowsAdded: 0,
                     rowsDeleted: 0,
@@ -4079,6 +4196,7 @@
                 this.populateDropdowns();
                 this.renderTable();
                 this.updateSelectionUI();
+                this.updateStats(); // Update title to reflect no modifications
                 this.showToast('All changes have been undone', 'success');
             }
 
@@ -4264,7 +4382,7 @@
 
             toggleTheme() {
                 const isDark = document.documentElement.hasAttribute('data-theme');
-                
+
                 if (isDark) {
                     document.documentElement.removeAttribute('data-theme');
                     this.themeIcon.textContent = '🌙';
@@ -4273,6 +4391,26 @@
                     document.documentElement.setAttribute('data-theme', 'dark');
                     this.themeIcon.textContent = '☀️';
                     localStorage.setItem('csv-editor-theme', 'dark');
+                }
+            }
+
+            initFullWidth() {
+                const savedFullWidth = localStorage.getItem('csv-editor-fullwidth');
+                if (savedFullWidth === 'true') {
+                    this.isFullWidth = true;
+                    this.appContainer.classList.add('full-width');
+                }
+            }
+
+            toggleFullWidth() {
+                this.isFullWidth = !this.isFullWidth;
+
+                if (this.isFullWidth) {
+                    this.appContainer.classList.add('full-width');
+                    localStorage.setItem('csv-editor-fullwidth', 'true');
+                } else {
+                    this.appContainer.classList.remove('full-width');
+                    localStorage.setItem('csv-editor-fullwidth', 'false');
                 }
             }
 
