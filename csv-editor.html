@@ -752,7 +752,6 @@
         }
 
         tr.aggregate-row td.aggregate-value {
-            text-align: right;
             font-weight: 500;
             color: var(--text-primary);
         }
@@ -3004,6 +3003,21 @@
                 }
             }
 
+            /**
+             * Applies column-level styling classes to a cell element.
+             * REQUIREMENT: The alignment of aggregate row cell values should be the
+             * same as the alignment of non-aggregate row cell values for that column.
+             * This method ensures consistent styling is applied to all cells in a column.
+             */
+            applyColumnClasses(td, colIdx) {
+                if (this.addedColumns.has(colIdx)) {
+                    td.classList.add('col-added');
+                }
+                if (this.numericColumnsCache && this.numericColumnsCache.has(colIdx)) {
+                    td.classList.add('col-numeric');
+                }
+            }
+
             renderTable() {
                 // Cache numeric columns for this render
                 this.numericColumnsCache = new Set();
@@ -3490,7 +3504,8 @@
                         this.renderGroupedData(groupRows, level + 1, groupPath);
                         
                         // Add aggregate rows for this group at the deepest level
-                        if (this.showAggregates && level === this.groupColumns.length - 1 && groupRows.length > 0) {
+                        // REQUIREMENT: Do not show aggregates for a group if the count of rows in that group is only 1
+                        if (this.showAggregates && level === this.groupColumns.length - 1 && groupRows.length > 1) {
                             this.renderAggregateRows(groupRows, '', true);
                         }
                     }
@@ -3565,17 +3580,9 @@
                 this.headers.forEach((header, colIdx) => {
                     const td = document.createElement('td');
                     td.className = 'editable-cell';
-                    
-                    // Check if this column was added
-                    if (this.addedColumns.has(colIdx)) {
-                        td.classList.add('col-added');
-                    }
-                    
-                    // Check if this column is numeric
-                    if (this.numericColumnsCache && this.numericColumnsCache.has(colIdx)) {
-                        td.classList.add('col-numeric');
-                    }
-                    
+
+                    this.applyColumnClasses(td, colIdx);
+
                     // Check if this specific cell was modified
                     if (modifiedColsForRow.has(colIdx)) {
                         td.classList.add('cell-modified');
@@ -3758,13 +3765,13 @@
                             .filter(val => !isEmpty(val))
                             .map(val => this.parseTimestamp(val))
                             .filter(d => d !== null);
-                        
+
                         if (dates.length > 0) {
                             const timestamps = dates.map(d => d.getTime());
                             const minTime = Math.min(...timestamps);
                             const maxTime = Math.max(...timestamps);
                             const avgTime = timestamps.reduce((a, b) => a + b, 0) / timestamps.length;
-                            
+
                             aggregates[colIdx] = {
                                 type: 'timestamp',
                                 total: '-',
@@ -3774,6 +3781,23 @@
                                 count: dates.length
                             };
                         }
+                    } else {
+                        // REQUIREMENT: For non-numeric and non-date aggregate row values, if all
+                        // the group's rows have the same value, display that value in the aggregate
+                        const values = data.map(row => row[colIdx]);
+                        const nonEmptyValues = values.filter(val => !isEmpty(val));
+
+                        if (nonEmptyValues.length > 0) {
+                            const firstValue = nonEmptyValues[0];
+                            const allSame = nonEmptyValues.every(val => val === firstValue);
+
+                            if (allSame) {
+                                aggregates[colIdx] = {
+                                    type: 'uniform',
+                                    value: firstValue
+                                };
+                            }
+                        }
                     }
                 });
                 
@@ -3781,12 +3805,13 @@
             }
 
             formatAggregateValue(value, precision = 0) {
-                // Format number with appropriate precision
-                if (precision === 0 || Number.isInteger(value)) {
-                    return value.toLocaleString();
+                // REQUIREMENT: If the value is numeric and all the rows are not whole numbers,
+                // the aggregate value should display with the same number of decimals as the
+                // row with the most number of decimals
+                if (precision > 0) {
+                    return value.toFixed(precision);
                 }
-                // Use the specified precision
-                return value.toFixed(precision);
+                return value.toLocaleString();
             }
 
             renderAggregateRows(data, label = '', isGroupAggregate = false, targetElement = null) {
@@ -3821,20 +3846,24 @@
                     // Data columns
                     this.headers.forEach((header, colIdx) => {
                         const td = document.createElement('td');
-                        
+
+                        this.applyColumnClasses(td, colIdx);
+
                         if (aggregates[colIdx]) {
-                            td.className = 'aggregate-value';
+                            td.classList.add('aggregate-value');
                             const aggData = aggregates[colIdx];
-                            const value = aggData[key];
-                            
-                            // Timestamp aggregates are already formatted as strings
-                            if (aggData.type === 'timestamp') {
-                                td.textContent = value;
+
+                            if (aggData.type === 'uniform') {
+                                // Display uniform value for non-numeric/non-date columns
+                                td.textContent = aggData.value;
+                            } else if (aggData.type === 'timestamp') {
+                                // Timestamp aggregates are already formatted as strings
+                                td.textContent = aggData[key];
                             } else {
-                                td.textContent = this.formatAggregateValue(value, aggData.precision);
+                                td.textContent = this.formatAggregateValue(aggData[key], aggData.precision);
                             }
                         }
-                        
+
                         tr.appendChild(td);
                     });
                     
