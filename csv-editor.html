@@ -3708,6 +3708,44 @@
                 return null;
             }
 
+            /**
+             * Formats elapsed time in milliseconds to a human-readable string.
+             * For aggregate "total" on date-type columns, shows elapsed time between min and max.
+             */
+            formatElapsedTime(ms) {
+                if (ms === 0) return '0s';
+
+                const seconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+                const years = Math.floor(days / 365);
+
+                const parts = [];
+
+                if (years > 0) {
+                    parts.push(`${years}y`);
+                    const remainingDays = days % 365;
+                    if (remainingDays > 0) parts.push(`${remainingDays}d`);
+                } else if (days > 0) {
+                    parts.push(`${days}d`);
+                    const remainingHours = hours % 24;
+                    if (remainingHours > 0) parts.push(`${remainingHours}h`);
+                } else if (hours > 0) {
+                    parts.push(`${hours}h`);
+                    const remainingMinutes = minutes % 60;
+                    if (remainingMinutes > 0) parts.push(`${remainingMinutes}m`);
+                } else if (minutes > 0) {
+                    parts.push(`${minutes}m`);
+                    const remainingSeconds = seconds % 60;
+                    if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
+                } else {
+                    parts.push(`${seconds}s`);
+                }
+
+                return parts.join(' ');
+            }
+
             isColumnTimestamp(colIdx) {
                 // Check if all non-empty values in a column are valid timestamps
                 // Must have at least one non-empty value
@@ -3771,10 +3809,11 @@
                             const minTime = Math.min(...timestamps);
                             const maxTime = Math.max(...timestamps);
                             const avgTime = timestamps.reduce((a, b) => a + b, 0) / timestamps.length;
+                            const elapsedMs = maxTime - minTime;
 
                             aggregates[colIdx] = {
                                 type: 'timestamp',
-                                total: '-',
+                                total: `${this.formatElapsedTime(elapsedMs)} span`,
                                 min: new Date(minTime).toISOString(),
                                 max: new Date(maxTime).toISOString(),
                                 avg: new Date(avgTime).toISOString(),
