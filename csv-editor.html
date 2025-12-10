@@ -417,6 +417,18 @@
             margin-right: 4px;
         }
 
+        .group-count-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .group-count-badge .count-num {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
         .sort-selects {
             display: flex;
             gap: 8px;
@@ -1841,9 +1853,12 @@
                         <div class="control-section" id="groupControls">
                             <label>Group:</label>
                             <div class="group-selects">
-                                <select class="group-column-select" data-level="0">
-                                    <option value="">No grouping</option>
-                                </select>
+                                <div class="group-select-wrapper">
+                                    <select class="group-column-select" data-level="0">
+                                        <option value="">No grouping</option>
+                                    </select>
+                                    <span class="group-count-badge" data-level="0" style="display: none;"></span>
+                                </div>
                             </div>
                             <button class="btn btn-small" id="addGroupBtn" title="Add subgroup">+</button>
                         </div>
@@ -2868,6 +2883,13 @@
                 populateColumnOptions(colSelect, this.headers, level === 0 ? 'No grouping' : 'Then by...');
                 wrapper.appendChild(colSelect);
 
+                // Add count badge (hidden by default, shown when column is selected)
+                const countBadge = document.createElement('span');
+                countBadge.className = 'group-count-badge';
+                countBadge.dataset.level = level;
+                countBadge.style.display = 'none';
+                wrapper.appendChild(countBadge);
+
                 if (showRemove) {
                     wrapper.appendChild(createRemoveButton('remove-group', 'Remove this group level'));
                 }
@@ -2912,6 +2934,53 @@
                     indicatorClass: 'group-level-indicator',
                     placeholders: ['No grouping', 'Then by...'],
                     removeTitle: 'Remove this group level'
+                });
+            }
+
+            updateGroupCounts() {
+                const badges = this.groupSelectsContainer.querySelectorAll('.group-count-badge');
+                const selects = this.groupSelectsContainer.querySelectorAll('.group-column-select');
+                const filteredData = this.getFilteredData();
+
+                badges.forEach((badge, level) => {
+                    const select = selects[level];
+                    if (!select || select.value === '') {
+                        badge.style.display = 'none';
+                        return;
+                    }
+
+                    // Calculate unique groups at this level
+                    // For level 0: count unique values in that column
+                    // For level > 0: count total unique combinations considering parent groups
+                    const colIdx = parseInt(select.value);
+                    let count = 0;
+
+                    if (level === 0) {
+                        // Simple count of unique values in this column
+                        const uniqueValues = new Set();
+                        filteredData.forEach(row => {
+                            uniqueValues.add(row[colIdx] || '(empty)');
+                        });
+                        count = uniqueValues.size;
+                    } else {
+                        // Count unique groups at this level across all parent group combinations
+                        // Build a set of all unique group paths up to this level
+                        const uniquePaths = new Set();
+                        filteredData.forEach(row => {
+                            let path = '';
+                            for (let i = 0; i <= level; i++) {
+                                const groupColIdx = parseInt(selects[i].value);
+                                if (isNaN(groupColIdx)) break;
+                                const val = row[groupColIdx] || '(empty)';
+                                path += (i > 0 ? '|' : '') + val;
+                            }
+                            uniquePaths.add(path);
+                        });
+                        count = uniquePaths.size;
+                    }
+
+                    badge.innerHTML = `(<span class="count-num">${count}</span>)`;
+                    badge.style.display = 'inline';
                 });
             }
 
@@ -3108,6 +3177,8 @@
                 this.updateStats();
                 // Update navigation arrows after render
                 setTimeout(() => this.updateNavArrows(), 0);
+                // Update group count badges
+                this.updateGroupCounts();
             }
 
             renderHeader() {
