@@ -1368,11 +1368,21 @@
             transform: rotate(-90deg);
         }
 
+        .group-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 400;
+        }
+
         .group-count {
             font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
             color: var(--text-muted);
             font-weight: 400;
+        }
+
+        .group-count-num {
+            color: var(--text-primary);
         }
 
         tr.hidden {
@@ -3471,8 +3481,8 @@
                     headerTd.innerHTML = `
                         <span class="group-toggle" style="padding-left: ${indent}px;">
                             <span class="group-toggle-icon ${isCollapsed ? 'collapsed' : ''}">▼</span>
-                            ${groupHeaderName}: ${groupValue}
-                            <span class="group-count">(${groupRows.length} rows)</span>
+                            <span class="group-label"><b>${groupHeaderName}</b> = <b>${groupValue}</b></span>
+                            <span class="group-count">(<span class="group-count-num">${groupRows.length}</span> rows)</span>
                         </span>
                     `;
                     headerTd.addEventListener('click', () => {
