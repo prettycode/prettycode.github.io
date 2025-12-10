@@ -670,8 +670,9 @@
         }
 
         .density-btn {
-            width: 28px;
+            min-width: 28px;
             height: 24px;
+            padding: 0 5px;
             border: none;
             background: transparent;
             color: var(--text-muted);
@@ -681,6 +682,8 @@
             align-items: center;
             justify-content: center;
             transition: all 0.15s ease;
+            font-size: 12px;
+            font-weight: 600;
         }
 
         .density-btn:hover {
@@ -1236,8 +1239,22 @@
         }
 
         td.cell-highlighted {
+            position: relative;
+            background: var(--highlight-bg) !important;
             color: var(--accent-red) !important;
             font-weight: 600;
+        }
+
+        /* Use pseudo-element for cell border to avoid layout shift */
+        td.cell-highlighted::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px solid var(--highlight-border);
+            pointer-events: none;
         }
 
         tr.row-highlighted {
@@ -1245,22 +1262,30 @@
         }
 
         tr.row-highlighted td {
-            border-top: 2px solid var(--highlight-border);
-            border-bottom: 2px solid var(--highlight-border);
             background: var(--highlight-bg) !important;
-            margin-top: -1px;
+            border-bottom-color: transparent !important;
         }
 
-        tr.row-highlighted td.checkbox-col {
-            border-left: 2px solid var(--highlight-border);
+        /* In row mode, cell-highlighted only adds text styling (no border) */
+        tr.row-highlighted td.cell-highlighted::after {
+            display: none;
         }
 
-        tr.row-highlighted td:last-child {
-            border-right: 2px solid var(--highlight-border);
+        /* Use pseudo-element for border to avoid layout shift */
+        tr.row-highlighted::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px solid var(--highlight-border);
+            pointer-events: none;
         }
 
-        tr.row-highlighted + tr.row-highlighted td {
-            border-top: none;
+        /* Adjacent highlighted rows: overlap borders to appear as single line */
+        tr.row-highlighted + tr.row-highlighted::after {
+            top: -1px;
         }
 
         /* Row navigation arrows */
@@ -1768,6 +1793,14 @@
                             <button class="aggregate-toggle" id="emptyDashToggle" title="Show empty cells as dashes">
                                 <span class="aggregate-toggle-icon">—</span>
                             </button>
+                            <!-- Rainbow Background: Color each column's background distinctly -->
+                            <button class="aggregate-toggle" id="rainbowBgToggle" title="Rainbow column backgrounds">
+                                <span class="aggregate-toggle-icon">🌈</span>
+                            </button>
+                            <!-- Rainbow Text: Color each column's text distinctly -->
+                            <button class="aggregate-toggle" id="rainbowTextToggle" title="Rainbow column text">
+                                <span class="aggregate-toggle-icon">A</span>
+                            </button>
                             <button class="aggregate-toggle active" id="controlsToggle" title="Toggle filters, sort, group, and search controls">
                                 <span class="aggregate-toggle-icon">⚙</span>
                             </button>
@@ -1818,10 +1851,14 @@
                             <label>Search:</label>
                             <div class="search-selects">
                                 <div class="search-select-wrapper">
-                                    <input type="text" class="search-value-input" data-level="0" placeholder="Two character minimum">
+                                    <input type="text" class="search-value-input" data-level="0" placeholder="2+ chars, or &quot;&quot; for empty">
                                 </div>
                             </div>
                             <button class="btn btn-small" id="addSearchBtn" title="Add search term">+</button>
+                            <div class="density-selector" id="searchHighlightModeSelector">
+                                <button class="density-btn active" data-highlight-mode="row" title="Highlight entire row">Row</button>
+                                <button class="density-btn" data-highlight-mode="cell" title="Highlight matching cells only">Cell</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1918,8 +1955,12 @@
         const UI = {
             MIN_SEARCH_CHARS: 2,
             GROUP_INDENT_PX: 20,
-            REMOVE_BTN_CHAR: '×'
+            REMOVE_BTN_CHAR: '×',
+            EMPTY_CELL_SEARCH: '""'  // Search term to match empty cells
         };
+
+        // Special marker for empty cell search (won't match any actual content)
+        const EMPTY_CELL_MARKER = Symbol('empty-cell');
 
         const TOAST_ICONS = {
             success: '✓',
@@ -2029,12 +2070,15 @@
                 this.groupColumns = [];
                 this.highlightTerms = [];
                 this.searchLogic = LOGIC.AND;
+                this.searchHighlightRow = true;  // true = highlight row, false = cell only
                 this.collapsedGroups = new Set();
                 this.isModified = false;
                 this.editingCell = null;
                 this.tableDensity = 'compact';
                 this.showAggregates = false;
                 this.showEmptyAsDash = false;
+                this.rainbowBgColumns = false;
+                this.rainbowTextColumns = false;
                 this.fileName = '';
                 this.isFullWidth = false;
 
@@ -2078,10 +2122,13 @@
                 this.searchControls = document.getElementById('searchControls');
                 this.searchSelectsContainer = this.searchControls.querySelector('.search-selects');
                 this.addSearchBtn = document.getElementById('addSearchBtn');
-                
+                this.searchHighlightModeBtns = document.querySelectorAll('#searchHighlightModeSelector .density-btn');
+
                 // Aggregate toggle
                 this.aggregateToggle = document.getElementById('aggregateToggle');
                 this.emptyDashToggle = document.getElementById('emptyDashToggle');
+                this.rainbowBgToggle = document.getElementById('rainbowBgToggle');
+                this.rainbowTextToggle = document.getElementById('rainbowTextToggle');
                 this.controlsToggle = document.getElementById('controlsToggle');
                 this.controlsPanel = document.getElementById('controlsPanel');
 
@@ -2224,7 +2271,10 @@
                     }
                 });
                 this.addSearchBtn.addEventListener('click', () => this.addSearchLevel());
-                
+                this.searchHighlightModeBtns.forEach(btn => {
+                    btn.addEventListener('click', () => this.setSearchHighlightMode(btn.dataset.highlightMode));
+                });
+
                 // Navigation arrows
                 this.tableScroll.addEventListener('scroll', () => this.updateNavArrows());
                 this.rowNavUp.addEventListener('click', () => this.scrollToMatchingRow('up'));
@@ -2233,6 +2283,8 @@
                 // Aggregate toggle
                 this.aggregateToggle.addEventListener('click', () => this.toggleAggregates());
                 this.emptyDashToggle.addEventListener('click', () => this.toggleEmptyAsDash());
+                this.rainbowBgToggle.addEventListener('click', () => this.toggleRainbowBg());
+                this.rainbowTextToggle.addEventListener('click', () => this.toggleRainbowText());
                 this.controlsToggle.addEventListener('click', () => this.toggleControlsPanel());
                 window.addEventListener('resize', () => this.updateNavArrows());
 
@@ -2875,7 +2927,7 @@
                 valueInput.type = 'text';
                 valueInput.className = 'search-value-input';
                 valueInput.dataset.level = level;
-                valueInput.placeholder = `${UI.MIN_SEARCH_CHARS} character minimum`;
+                valueInput.placeholder = `${UI.MIN_SEARCH_CHARS}+ chars, or "" for empty`;
                 wrapper.appendChild(valueInput);
 
                 if (showRemove) {
@@ -2888,8 +2940,11 @@
             addSearchLevel() {
                 const inputs = this.searchSelectsContainer.querySelectorAll('.search-value-input');
                 const lastInput = inputs[inputs.length - 1];
+                const term = lastInput.value.trim();
 
-                if (!lastInput.value.trim() || lastInput.value.trim().length < UI.MIN_SEARCH_CHARS) {
+                // Allow "" for empty cells, otherwise require minimum characters
+                const isValid = term === UI.EMPTY_CELL_SEARCH || term.length >= UI.MIN_SEARCH_CHARS;
+                if (!term || !isValid) {
                     this.showToast(`Enter at least ${UI.MIN_SEARCH_CHARS} characters first`, 'error');
                     return;
                 }
@@ -2904,9 +2959,12 @@
                 this.highlightTerms = [];
 
                 inputs.forEach(input => {
-                    const term = input.value.trim().toLowerCase();
-                    if (term && term.length >= UI.MIN_SEARCH_CHARS) {
-                        this.highlightTerms.push(term);
+                    const term = input.value.trim();
+                    // Special case: "" matches empty cells
+                    if (term === UI.EMPTY_CELL_SEARCH) {
+                        this.highlightTerms.push(EMPTY_CELL_MARKER);
+                    } else if (term && term.length >= UI.MIN_SEARCH_CHARS) {
+                        this.highlightTerms.push(term.toLowerCase());
                     }
                 });
 
@@ -2921,9 +2979,19 @@
                 this.renderTable();
             }
 
+            setSearchHighlightMode(mode) {
+                this.searchHighlightRow = mode === 'row';
+                this.searchHighlightModeBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.highlightMode === mode);
+                });
+                this.renderTable();
+            }
+
             getMatchingRows() {
-                // Get all rows that are selected or highlighted (exclude group headers)
-                const rows = this.tableBody.querySelectorAll('tr.selected:not(.group-header), tr.row-highlighted:not(.group-header)');
+                // Get all rows that are selected, row-highlighted, or contain highlighted cells (exclude group headers)
+                const rows = this.tableBody.querySelectorAll(
+                    'tr.selected:not(.group-header), tr.row-highlighted:not(.group-header), tr:has(.cell-highlighted):not(.group-header)'
+                );
                 return Array.from(rows);
             }
 
@@ -3082,6 +3150,13 @@
                     }
                     if (this.numericColumnsCache && this.numericColumnsCache.has(colIdx)) {
                         th.classList.add('col-numeric');
+                    }
+                    // Apply rainbow column coloring to header if enabled
+                    if (this.rainbowBgColumns) {
+                        th.style.backgroundColor = this.getRainbowColor(colIdx, this.headers.length, false);
+                    }
+                    if (this.rainbowTextColumns) {
+                        th.style.color = this.getRainbowColor(colIdx, this.headers.length, true);
                     }
                     th.dataset.column = colIdx;
                     th.draggable = true;
@@ -3596,6 +3671,13 @@
                     } else {
                         td.textContent = cellValue;
                     }
+                    // Apply rainbow column coloring if enabled
+                    if (this.rainbowBgColumns) {
+                        td.style.backgroundColor = this.getRainbowColor(colIdx, this.headers.length, false);
+                    }
+                    if (this.rainbowTextColumns) {
+                        td.style.color = this.getRainbowColor(colIdx, this.headers.length, true);
+                    }
                     td.dataset.column = colIdx;
                     td.dataset.index = idx;
                     
@@ -3603,14 +3685,18 @@
                     if (this.highlightTerms && this.highlightTerms.length > 0) {
                         const cellLower = cellValue.toLowerCase();
                         const matchingTerms = new Set();
-                        
+
                         this.highlightTerms.forEach((term, termIdx) => {
-                            if (cellLower.includes(term)) {
+                            // Special case: EMPTY_CELL_MARKER matches empty cells
+                            const matches = term === EMPTY_CELL_MARKER
+                                ? cellValue === ''
+                                : cellLower.includes(term);
+                            if (matches) {
                                 matchingTerms.add(termIdx);
                                 termFoundInRow.add(termIdx);
                             }
                         });
-                        
+
                         if (matchingTerms.size > 0) {
                             cellMatchesTerms.set(colIdx, matchingTerms);
                         }
@@ -3631,17 +3717,24 @@
                         rowHasHighlight = termFoundInRow.size > 0;
                     }
                 }
-                
+
                 // Apply highlighting to matching cells and row
                 if (rowHasHighlight) {
-                    tr.classList.add('row-highlighted');
-                    // Highlight cells that contain any matching term
+                    // Always mark row as having a match (for navigation)
+                    tr.classList.add('row-has-match');
+
+                    // Always highlight matching cells (for text emphasis)
                     const cells = tr.querySelectorAll('td.editable-cell');
                     cells.forEach((td, colIdx) => {
                         if (cellMatchesTerms.has(colIdx)) {
                             td.classList.add('cell-highlighted');
                         }
                     });
+
+                    // Row mode: also highlight entire row
+                    if (this.searchHighlightRow) {
+                        tr.classList.add('row-highlighted');
+                    }
                 }
 
                 return tr;
@@ -3657,6 +3750,59 @@
                 this.showEmptyAsDash = !this.showEmptyAsDash;
                 this.emptyDashToggle.classList.toggle('active', this.showEmptyAsDash);
                 this.renderTable();
+            }
+
+            toggleRainbowBg() {
+                this.rainbowBgColumns = !this.rainbowBgColumns;
+                this.rainbowBgToggle.classList.toggle('active', this.rainbowBgColumns);
+                this.renderTable();
+            }
+
+            toggleRainbowText() {
+                this.rainbowTextColumns = !this.rainbowTextColumns;
+                this.rainbowTextToggle.classList.toggle('active', this.rainbowTextColumns);
+                this.renderTable();
+            }
+
+            // Calculate a distinct color for a column using HSL color space
+            getRainbowColor(colIdx, totalCols, forText = false) {
+                // Use golden ratio offset to maximize visual distinction between adjacent columns
+                const goldenAngle = 137.508;
+                const adjustedHue = (colIdx * goldenAngle) % 360;
+                // Check if dark theme is active
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+                if (forText) {
+                    if (isDark) {
+                        // Dark theme: bright, vivid colors - uniform treatment works well
+                        return `hsl(${adjustedHue}, 100%, 65%)`;
+                    } else {
+                        // Light theme: need hue-aware adjustment because perceived brightness varies
+                        // Yellow/lime (45-90°) and cyan (170-200°) appear brightest, need darker values
+                        // Red, blue, purple can be lighter while maintaining readability
+                        let lightness;
+                        const hue = adjustedHue;
+
+                        if ((hue >= 45 && hue <= 90) || (hue >= 170 && hue <= 200)) {
+                            // Yellow, lime, cyan - need much darker for contrast
+                            lightness = 32;
+                        } else if ((hue >= 30 && hue < 45) || (hue > 90 && hue <= 120) || (hue > 150 && hue < 170)) {
+                            // Orange, green, teal - moderately dark
+                            lightness = 38;
+                        } else {
+                            // Red, magenta, purple, blue - can be slightly lighter
+                            lightness = 45;
+                        }
+                        return `hsl(${hue}, 90%, ${lightness}%)`;
+                    }
+                } else {
+                    // Background colors: subtle pastels
+                    // Light theme: high lightness, low saturation for subtle pastels
+                    // Dark theme: low lightness, moderate saturation
+                    const saturation = isDark ? 40 : 55;
+                    const lightness = isDark ? 20 : 92;
+                    return `hsl(${adjustedHue}, ${saturation}%, ${lightness}%)`;
+                }
             }
 
             toggleControlsPanel() {
