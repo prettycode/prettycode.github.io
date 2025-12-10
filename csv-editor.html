@@ -334,10 +334,6 @@
             font-size: 13px;
         }
 
-        .table-controls-panel .group-toggle-buttons {
-            display: flex;
-            gap: 4px;
-        }
 
         /* Scrollbar styling for controls panel */
         .table-controls-panel::-webkit-scrollbar {
@@ -419,14 +415,6 @@
             font-size: 11px;
             color: var(--text-muted);
             margin-right: 4px;
-        }
-
-        .group-toggle-buttons {
-            display: flex;
-            gap: 4px;
-            margin-left: 8px;
-            padding-left: 8px;
-            border-left: 1px solid var(--border-color);
         }
 
         .sort-selects {
@@ -1818,10 +1806,6 @@
                                 </select>
                             </div>
                             <button class="btn btn-small" id="addGroupBtn" title="Add subgroup">+</button>
-                            <div class="group-toggle-buttons">
-                                <button class="btn btn-small" id="expandAllBtn" title="Expand all groups">⊞</button>
-                                <button class="btn btn-small" id="collapseAllBtn" title="Collapse all groups">⊟</button>
-                            </div>
                         </div>
                         <div class="control-section" id="searchControls">
                             <label>Search:</label>
@@ -1960,8 +1944,6 @@
                 this.groupControls = document.getElementById('groupControls');
                 this.groupSelectsContainer = this.groupControls.querySelector('.group-selects');
                 this.addGroupBtn = document.getElementById('addGroupBtn');
-                this.expandAllBtn = document.getElementById('expandAllBtn');
-                this.collapseAllBtn = document.getElementById('collapseAllBtn');
                 this.searchControls = document.getElementById('searchControls');
                 this.searchSelectsContainer = this.searchControls.querySelector('.search-selects');
                 this.addSearchBtn = document.getElementById('addSearchBtn');
@@ -1991,7 +1973,7 @@
                 this.selectedDisplay = document.getElementById('selectedDisplay');
                 this.selectionActions = document.getElementById('selectionActions');
                 this.modificationIndicator = document.getElementById('modificationIndicator');
-                this.densityBtns = document.querySelectorAll('.density-btn');
+                this.densityBtns = document.querySelectorAll('.density-btn[data-density]');
                 this.tableElement = document.querySelector('table');
 
                 // Add column modal elements
@@ -2097,8 +2079,6 @@
                     }
                 });
                 this.addGroupBtn.addEventListener('click', () => this.addGroupLevel());
-                this.expandAllBtn.addEventListener('click', () => this.expandAllGroups());
-                this.collapseAllBtn.addEventListener('click', () => this.collapseAllGroups());
                 
                 // Search controls
                 this.searchSelectsContainer.addEventListener('input', (e) => {
@@ -2752,13 +2732,13 @@
             updateGroupColumns() {
                 const selects = this.groupSelectsContainer.querySelectorAll('.group-column-select');
                 this.groupColumns = [];
-                
+
                 selects.forEach(select => {
                     if (select.value !== '') {
                         this.groupColumns.push(parseInt(select.value));
                     }
                 });
-                
+
                 this.collapsedGroups.clear();
                 this.renderTable();
             }
@@ -2795,44 +2775,6 @@
                         wrapper.appendChild(newRemoveBtn);
                     }
                 });
-            }
-
-            expandAllGroups() {
-                if (this.groupColumns.length === 0) {
-                    this.showToast('No grouping is active', 'error');
-                    return;
-                }
-                this.collapsedGroups.clear();
-                this.renderTable();
-            }
-
-            collapseAllGroups() {
-                if (this.groupColumns.length === 0) {
-                    this.showToast('No grouping is active', 'error');
-                    return;
-                }
-                const allPaths = new Set();
-                const collectPaths = (data, level = 0, parentPath = '') => {
-                    if (level >= this.groupColumns.length) return;
-                    
-                    const groupCol = this.groupColumns[level];
-                    const groups = {};
-                    data.forEach(row => {
-                        const key = row[groupCol] || '(empty)';
-                        if (!groups[key]) groups[key] = [];
-                        groups[key].push(row);
-                    });
-                    
-                    Object.keys(groups).forEach(groupValue => {
-                        const groupPath = parentPath ? `${parentPath}|${groupValue}` : groupValue;
-                        allPaths.add(groupPath);
-                        collectPaths(groups[groupValue], level + 1, groupPath);
-                    });
-                };
-                
-                collectPaths(this.getFilteredData());
-                this.collapsedGroups = allPaths;
-                this.renderTable();
             }
 
             createSearchSelect(level, showRemove = false) {
