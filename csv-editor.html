@@ -1886,6 +1886,137 @@
     </div>
 
     <script>
+        // ============================================
+        // Constants
+        // ============================================
+        const STORAGE_KEYS = {
+            THEME: 'csv-editor-theme',
+            DENSITY: 'csv-editor-density',
+            FULLWIDTH: 'csv-editor-fullwidth'
+        };
+
+        const LOGIC = {
+            AND: 'AND',
+            OR: 'OR'
+        };
+
+        const SORT_DIR = {
+            ASC: 'asc',
+            DESC: 'desc'
+        };
+
+        const FILTER_VALUES = {
+            PLACEHOLDER: '__placeholder__',
+            EMPTY: '__empty__'
+        };
+
+        const TIMING = {
+            TOAST_DURATION: 3000,
+            TOAST_FADE: 300,
+            SCROLL_DELAY: 300
+        };
+
+        const UI = {
+            MIN_SEARCH_CHARS: 2,
+            GROUP_INDENT_PX: 20,
+            REMOVE_BTN_CHAR: '×'
+        };
+
+        const TOAST_ICONS = {
+            success: '✓',
+            error: '✕',
+            info: 'ℹ'
+        };
+
+        // ============================================
+        // Helper Functions
+        // ============================================
+
+        /**
+         * Creates a fresh modification stats object
+         */
+        function createModStats() {
+            return {
+                rowsAdded: 0,
+                rowsDeleted: 0,
+                columnsAdded: 0,
+                columnsDeleted: 0,
+                columnsReordered: 0,
+                rowsChanged: new Set()
+            };
+        }
+
+        /**
+         * Checks if a value is empty (undefined, null, or empty string)
+         */
+        function isEmpty(val) {
+            return val === undefined || val === null || val === '';
+        }
+
+        /**
+         * Adjusts a column index after a column move operation
+         */
+        function adjustIndexAfterMove(idx, fromIdx, toIdx) {
+            if (idx === fromIdx) return toIdx;
+            if (fromIdx < toIdx) {
+                return (idx > fromIdx && idx <= toIdx) ? idx - 1 : idx;
+            } else {
+                return (idx >= toIdx && idx < fromIdx) ? idx + 1 : idx;
+            }
+        }
+
+        /**
+         * Adjusts a column index after a column delete operation
+         */
+        function adjustIndexAfterDelete(idx, deletedIdx) {
+            if (idx === deletedIdx) return null;
+            return idx > deletedIdx ? idx - 1 : idx;
+        }
+
+        /**
+         * Adjusts a column index after a column insert operation
+         */
+        function adjustIndexAfterInsert(idx, insertIdx) {
+            return idx >= insertIdx ? idx + 1 : idx;
+        }
+
+        /**
+         * Creates a remove button element
+         */
+        function createRemoveButton(className, title) {
+            const btn = document.createElement('button');
+            btn.className = className;
+            btn.innerHTML = UI.REMOVE_BTN_CHAR;
+            btn.title = title;
+            return btn;
+        }
+
+        /**
+         * Creates an indicator span element
+         */
+        function createIndicator(className, text) {
+            const indicator = document.createElement('span');
+            indicator.className = className;
+            indicator.textContent = text;
+            return indicator;
+        }
+
+        /**
+         * Populates a select element with column options
+         */
+        function populateColumnOptions(select, headers, placeholderText) {
+            select.innerHTML = `<option value="">${placeholderText}</option>`;
+            headers.forEach((header, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = header;
+                select.appendChild(option);
+            });
+        }
+
+        // ============================================
+        // CSVEditor Class
+        // ============================================
         class CSVEditor {
             constructor() {
                 this.originalData = [];
@@ -1894,45 +2025,38 @@
                 this.originalHeaders = [];
                 this.selectedRows = new Set();
                 this.filters = [];
-                this.filterLogic = 'AND';
+                this.filterLogic = LOGIC.AND;
                 this.sortColumns = [];
                 this.groupColumns = [];
                 this.highlightTerms = [];
-                this.searchLogic = 'AND';
+                this.searchLogic = LOGIC.AND;
                 this.collapsedGroups = new Set();
                 this.isModified = false;
                 this.editingCell = null;
-                this.tableDensity = 'compact'; // compact, normal
+                this.tableDensity = 'compact';
                 this.showAggregates = false;
                 this.showEmptyAsDash = false;
                 this.fileName = '';
                 this.isFullWidth = false;
-                
+
                 // Drag state
                 this.draggedColIdx = null;
                 this.dragGhost = null;
-                
+
                 // Insert position for new column
                 this.insertColumnIdx = null;
-                
+
                 // Last clicked row for shift-select
                 this.lastClickedRowIdx = null;
-                
+
                 // Modification tracking
-                this.modStats = {
-                    rowsAdded: 0,
-                    rowsDeleted: 0,
-                    columnsAdded: 0,
-                    columnsDeleted: 0,
-                    columnsReordered: 0,
-                    rowsChanged: new Set()
-                };
-                this.modifiedCells = new Map(); // Map<rowIdx, Set<colIdx>>
-                this.addedColumns = new Set(); // Set of column indices that were added
+                this.modStats = createModStats();
+                this.modifiedCells = new Map();
+                this.addedColumns = new Set();
 
                 this.initializeElements();
                 this.attachEventListeners();
-                this.renderTable(); // Render empty table on initialization
+                this.renderTable();
             }
 
             initializeElements() {
@@ -2247,22 +2371,15 @@
                 this.isModified = false;
                 this.collapsedGroups.clear();
                 this.filters = [];
-                this.filterLogic = 'AND';
+                this.filterLogic = LOGIC.AND;
                 this.highlightTerms = [];
-                this.searchLogic = 'AND';
+                this.searchLogic = LOGIC.AND;
                 this.sortColumns = [];
                 this.groupColumns = [];
-                this.modStats = {
-                    rowsAdded: 0,
-                    rowsDeleted: 0,
-                    columnsAdded: 0,
-                    columnsDeleted: 0,
-                    columnsReordered: 0,
-                    rowsChanged: new Set()
-                };
+                this.modStats = createModStats();
                 this.modifiedCells = new Map();
                 this.addedColumns = new Set();
-                
+
                 // Clear search and reset
                 if (this.searchSelectsContainer) {
                     this.searchSelectsContainer.innerHTML = '';
@@ -2359,86 +2476,91 @@
             createFilterSelect(level, showRemove = false) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'filter-select-wrapper';
-                
+
                 if (level > 0) {
-                    const logicToggle = document.createElement('button');
-                    logicToggle.className = 'filter-logic-toggle';
-                    logicToggle.textContent = this.filterLogic;
-                    if (this.filterLogic === 'OR') {
-                        logicToggle.classList.add('active-or');
-                    }
-                    logicToggle.title = 'Click to toggle AND/OR';
-                    logicToggle.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.filterLogic = this.filterLogic === 'AND' ? 'OR' : 'AND';
-                        this.updateFilterLogicToggles();
-                        this.updateFilters();
-                    });
-                    wrapper.appendChild(logicToggle);
+                    wrapper.appendChild(this.createLogicToggle('filter'));
                 }
-                
+
                 const colSelect = document.createElement('select');
                 colSelect.className = 'filter-column-select';
                 colSelect.dataset.level = level;
-                
-                colSelect.innerHTML = `<option value="">${level === 0 ? 'No filter' : 'Select column'}</option>`;
-                this.headers.forEach((header, idx) => {
-                    const option = document.createElement('option');
-                    option.value = idx;
-                    option.textContent = header;
-                    colSelect.appendChild(option);
-                });
-                
+                populateColumnOptions(colSelect, this.headers, level === 0 ? 'No filter' : 'Select column');
                 wrapper.appendChild(colSelect);
-                
+
                 const valueSelect = document.createElement('select');
                 valueSelect.className = 'filter-value-select';
                 valueSelect.dataset.level = level;
-                valueSelect.innerHTML = '<option value="__placeholder__">Select value...</option>';
+                valueSelect.innerHTML = `<option value="${FILTER_VALUES.PLACEHOLDER}">Select value...</option>`;
                 valueSelect.disabled = true;
                 wrapper.appendChild(valueSelect);
-                
+
                 if (showRemove) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'remove-filter';
-                    removeBtn.innerHTML = '×';
-                    removeBtn.title = 'Remove this filter';
-                    wrapper.appendChild(removeBtn);
+                    wrapper.appendChild(createRemoveButton('remove-filter', 'Remove this filter'));
                 }
-                
+
                 return wrapper;
             }
 
-            updateFilterLogicToggles() {
-                const toggles = this.filterSelectsContainer.querySelectorAll('.filter-logic-toggle');
-                toggles.forEach(toggle => {
-                    toggle.textContent = this.filterLogic;
-                    if (this.filterLogic === 'OR') {
-                        toggle.classList.add('active-or');
+            /**
+             * Creates a logic toggle button (AND/OR) for filter or search
+             */
+            createLogicToggle(type) {
+                const isFilter = type === 'filter';
+                const logic = isFilter ? this.filterLogic : this.searchLogic;
+
+                const toggle = document.createElement('button');
+                toggle.className = `${type}-logic-toggle`;
+                toggle.textContent = logic;
+                toggle.classList.toggle('active-or', logic === LOGIC.OR);
+                toggle.title = 'Click to toggle AND/OR';
+                toggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (isFilter) {
+                        this.filterLogic = this.filterLogic === LOGIC.AND ? LOGIC.OR : LOGIC.AND;
+                        this.updateLogicToggles('filter');
+                        this.updateFilters();
                     } else {
-                        toggle.classList.remove('active-or');
+                        this.searchLogic = this.searchLogic === LOGIC.AND ? LOGIC.OR : LOGIC.AND;
+                        this.updateLogicToggles('search');
+                        this.updateSearch();
                     }
                 });
+                return toggle;
             }
+
+            /**
+             * Updates all logic toggles for a given type (filter or search)
+             */
+            updateLogicToggles(type) {
+                const isFilter = type === 'filter';
+                const container = isFilter ? this.filterSelectsContainer : this.searchSelectsContainer;
+                const logic = isFilter ? this.filterLogic : this.searchLogic;
+
+                container.querySelectorAll(`.${type}-logic-toggle`).forEach(toggle => {
+                    toggle.textContent = logic;
+                    toggle.classList.toggle('active-or', logic === LOGIC.OR);
+                });
+            }
+
 
             populateFilterValueSelect(colSelect) {
                 const wrapper = colSelect.closest('.filter-select-wrapper');
                 const valueSelect = wrapper.querySelector('.filter-value-select');
                 const colIdx = colSelect.value;
-                
-                valueSelect.innerHTML = '<option value="__placeholder__">Select value...</option>';
-                
+
+                valueSelect.innerHTML = `<option value="${FILTER_VALUES.PLACEHOLDER}">Select value...</option>`;
+
                 if (colIdx === '') {
                     valueSelect.disabled = true;
                     return;
                 }
-                
+
                 // Get unique values from this column
                 const uniqueValues = new Set();
                 let hasEmpty = false;
                 this.currentData.forEach(row => {
                     const val = row[colIdx];
-                    if (val === undefined || val === null || val === '') {
+                    if (isEmpty(val)) {
                         hasEmpty = true;
                     } else {
                         uniqueValues.add(val);
@@ -2466,7 +2588,7 @@
                 // Add empty option first if there are empty values
                 if (hasEmpty) {
                     const emptyOption = document.createElement('option');
-                    emptyOption.value = '__empty__';
+                    emptyOption.value = FILTER_VALUES.EMPTY;
                     emptyOption.textContent = '(empty)';
                     valueSelect.appendChild(emptyOption);
                 }
@@ -2486,12 +2608,12 @@
                 const lastWrapper = colSelects[colSelects.length - 1].closest('.filter-select-wrapper');
                 const lastSelect = lastWrapper.querySelector('.filter-column-select');
                 const lastValueSelect = lastWrapper.querySelector('.filter-value-select');
-                
-                if (!lastSelect.value || lastValueSelect.value === '__placeholder__') {
+
+                if (!lastSelect.value || lastValueSelect.value === FILTER_VALUES.PLACEHOLDER) {
                     this.showToast('Complete the current filter first', 'error');
                     return;
                 }
-                
+
                 const newLevel = colSelects.length;
                 const newWrapper = this.createFilterSelect(newLevel, true);
                 this.filterSelectsContainer.appendChild(newWrapper);
@@ -2500,17 +2622,17 @@
             updateFilters() {
                 const wrappers = this.filterSelectsContainer.querySelectorAll('.filter-select-wrapper');
                 this.filters = [];
-                
+
                 wrappers.forEach(wrapper => {
                     const colSelect = wrapper.querySelector('.filter-column-select');
                     const valueSelect = wrapper.querySelector('.filter-value-select');
-                    
+
                     // Check if a column is selected and a valid value is selected (not the placeholder)
-                    if (colSelect.value !== '' && valueSelect.value !== '__placeholder__') {
+                    if (colSelect.value !== '' && valueSelect.value !== FILTER_VALUES.PLACEHOLDER) {
                         this.filters.push({
                             column: colSelect.value,
-                            value: valueSelect.value === '__empty__' ? '' : valueSelect.value,
-                            isEmpty: valueSelect.value === '__empty__'
+                            value: valueSelect.value === FILTER_VALUES.EMPTY ? '' : valueSelect.value,
+                            isEmpty: valueSelect.value === FILTER_VALUES.EMPTY
                         });
                     }
                 });
@@ -2528,94 +2650,111 @@
                 this.updateSelectionUI();
             }
 
-            updateFilterSelectLevels() {
-                const wrappers = this.filterSelectsContainer.querySelectorAll('.filter-select-wrapper');
+            /**
+             * Generic method to update select levels for filter/sort/group controls
+             */
+            updateSelectLevels(config) {
+                const {
+                    container,
+                    wrapperClass,
+                    colSelectClass,
+                    removeClass,
+                    indicatorClass,
+                    logicClass,
+                    extraSelectClass,
+                    placeholders,
+                    removeTitle,
+                    type
+                } = config;
+
+                const wrappers = container.querySelectorAll(`.${wrapperClass}`);
                 wrappers.forEach((wrapper, idx) => {
-                    const colSelect = wrapper.querySelector('.filter-column-select');
-                    const valueSelect = wrapper.querySelector('.filter-value-select');
+                    const colSelect = wrapper.querySelector(`.${colSelectClass}`);
                     colSelect.dataset.level = idx;
-                    valueSelect.dataset.level = idx;
-                    
+
+                    // Update extra select level if present
+                    if (extraSelectClass) {
+                        const extraSelect = wrapper.querySelector(`.${extraSelectClass}`);
+                        if (extraSelect) extraSelect.dataset.level = idx;
+                    }
+
+                    // Update placeholder text
                     const firstOption = colSelect.querySelector('option[value=""]');
                     if (firstOption) {
-                        firstOption.textContent = idx === 0 ? 'No filter' : 'Select column';
+                        firstOption.textContent = idx === 0 ? placeholders[0] : placeholders[1];
                     }
-                    
-                    const logicToggle = wrapper.querySelector('.filter-logic-toggle');
-                    if (idx === 0 && logicToggle) {
-                        logicToggle.remove();
-                    } else if (idx > 0 && !logicToggle) {
-                        const newToggle = document.createElement('button');
-                        newToggle.className = 'filter-logic-toggle';
-                        newToggle.textContent = this.filterLogic;
-                        if (this.filterLogic === 'OR') {
-                            newToggle.classList.add('active-or');
+
+                    // Handle indicator (→ for sort/group)
+                    if (indicatorClass) {
+                        const indicator = wrapper.querySelector(`.${indicatorClass}`);
+                        if (idx === 0 && indicator) {
+                            indicator.remove();
+                        } else if (idx > 0 && !indicator) {
+                            wrapper.insertBefore(createIndicator(indicatorClass, '→'), colSelect);
                         }
-                        newToggle.title = 'Click to toggle AND/OR';
-                        newToggle.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            this.filterLogic = this.filterLogic === 'AND' ? 'OR' : 'AND';
-                            this.updateFilterLogicToggles();
-                            this.updateFilters();
-                        });
-                        wrapper.insertBefore(newToggle, colSelect);
                     }
-                    
-                    const removeBtn = wrapper.querySelector('.remove-filter');
+
+                    // Handle logic toggle (AND/OR for filter/search)
+                    if (logicClass && type) {
+                        const logicToggle = wrapper.querySelector(`.${logicClass}`);
+                        if (idx === 0 && logicToggle) {
+                            logicToggle.remove();
+                        } else if (idx > 0 && !logicToggle) {
+                            wrapper.insertBefore(this.createLogicToggle(type), colSelect);
+                        }
+                    }
+
+                    // Handle remove button
+                    const removeBtn = wrapper.querySelector(`.${removeClass}`);
                     if (idx === 0 && wrappers.length === 1 && removeBtn) {
                         removeBtn.remove();
                     } else if (idx > 0 && !removeBtn) {
-                        const newRemoveBtn = document.createElement('button');
-                        newRemoveBtn.className = 'remove-filter';
-                        newRemoveBtn.innerHTML = '×';
-                        newRemoveBtn.title = 'Remove this filter';
-                        wrapper.appendChild(newRemoveBtn);
+                        wrapper.appendChild(createRemoveButton(removeClass, removeTitle));
                     }
+                });
+            }
+
+            updateFilterSelectLevels() {
+                this.updateSelectLevels({
+                    container: this.filterSelectsContainer,
+                    wrapperClass: 'filter-select-wrapper',
+                    colSelectClass: 'filter-column-select',
+                    removeClass: 'remove-filter',
+                    logicClass: 'filter-logic-toggle',
+                    extraSelectClass: 'filter-value-select',
+                    placeholders: ['No filter', 'Select column'],
+                    removeTitle: 'Remove this filter',
+                    type: 'filter'
                 });
             }
 
             createSortSelect(level, showRemove = false) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'sort-select-wrapper';
-                
+
                 if (level > 0) {
-                    const indicator = document.createElement('span');
-                    indicator.className = 'sort-level-indicator';
-                    indicator.textContent = '→';
-                    wrapper.appendChild(indicator);
+                    wrapper.appendChild(createIndicator('sort-level-indicator', '→'));
                 }
-                
+
                 const colSelect = document.createElement('select');
                 colSelect.className = 'sort-column-select';
                 colSelect.dataset.level = level;
-                
-                colSelect.innerHTML = `<option value="">${level === 0 ? 'No sorting' : 'Then by...'}</option>`;
-                this.headers.forEach((header, idx) => {
-                    const option = document.createElement('option');
-                    option.value = idx;
-                    option.textContent = header;
-                    colSelect.appendChild(option);
-                });
-                
+                populateColumnOptions(colSelect, this.headers, level === 0 ? 'No sorting' : 'Then by...');
                 wrapper.appendChild(colSelect);
-                
+
                 const dirSelect = document.createElement('select');
                 dirSelect.className = 'sort-direction-select';
                 dirSelect.dataset.level = level;
                 dirSelect.innerHTML = `
-                    <option value="asc">Asc</option>
-                    <option value="desc">Desc</option>
+                    <option value="${SORT_DIR.ASC}">Asc</option>
+                    <option value="${SORT_DIR.DESC}">Desc</option>
                 `;
                 wrapper.appendChild(dirSelect);
-                
+
                 if (showRemove) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'remove-sort';
-                    removeBtn.innerHTML = '×';
-                    removeBtn.title = 'Remove this sort level';
-                    wrapper.appendChild(removeBtn);
+                    wrapper.appendChild(createRemoveButton('remove-sort', 'Remove this sort level'));
                 }
-                
+
                 return wrapper;
             }
 
@@ -2652,74 +2791,36 @@
             }
 
             updateSortSelectLevels() {
-                const wrappers = this.sortSelectsContainer.querySelectorAll('.sort-select-wrapper');
-                wrappers.forEach((wrapper, idx) => {
-                    const colSelect = wrapper.querySelector('.sort-column-select');
-                    const dirSelect = wrapper.querySelector('.sort-direction-select');
-                    colSelect.dataset.level = idx;
-                    dirSelect.dataset.level = idx;
-                    
-                    const firstOption = colSelect.querySelector('option[value=""]');
-                    if (firstOption) {
-                        firstOption.textContent = idx === 0 ? 'No sorting' : 'Then by...';
-                    }
-                    
-                    const indicator = wrapper.querySelector('.sort-level-indicator');
-                    if (idx === 0 && indicator) {
-                        indicator.remove();
-                    } else if (idx > 0 && !indicator) {
-                        const newIndicator = document.createElement('span');
-                        newIndicator.className = 'sort-level-indicator';
-                        newIndicator.textContent = '→';
-                        wrapper.insertBefore(newIndicator, colSelect);
-                    }
-                    
-                    const removeBtn = wrapper.querySelector('.remove-sort');
-                    if (idx === 0 && wrappers.length === 1 && removeBtn) {
-                        removeBtn.remove();
-                    } else if (idx > 0 && !removeBtn) {
-                        const newRemoveBtn = document.createElement('button');
-                        newRemoveBtn.className = 'remove-sort';
-                        newRemoveBtn.innerHTML = '×';
-                        newRemoveBtn.title = 'Remove this sort level';
-                        wrapper.appendChild(newRemoveBtn);
-                    }
+                this.updateSelectLevels({
+                    container: this.sortSelectsContainer,
+                    wrapperClass: 'sort-select-wrapper',
+                    colSelectClass: 'sort-column-select',
+                    removeClass: 'remove-sort',
+                    indicatorClass: 'sort-level-indicator',
+                    extraSelectClass: 'sort-direction-select',
+                    placeholders: ['No sorting', 'Then by...'],
+                    removeTitle: 'Remove this sort level'
                 });
             }
 
             createGroupSelect(level, showRemove = false) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'group-select-wrapper';
-                
+
                 if (level > 0) {
-                    const indicator = document.createElement('span');
-                    indicator.className = 'group-level-indicator';
-                    indicator.textContent = '→';
-                    wrapper.appendChild(indicator);
+                    wrapper.appendChild(createIndicator('group-level-indicator', '→'));
                 }
-                
+
                 const colSelect = document.createElement('select');
                 colSelect.className = 'group-column-select';
                 colSelect.dataset.level = level;
-                
-                colSelect.innerHTML = `<option value="">${level === 0 ? 'No grouping' : 'Then by...'}</option>`;
-                this.headers.forEach((header, idx) => {
-                    const option = document.createElement('option');
-                    option.value = idx;
-                    option.textContent = header;
-                    colSelect.appendChild(option);
-                });
-                
+                populateColumnOptions(colSelect, this.headers, level === 0 ? 'No grouping' : 'Then by...');
                 wrapper.appendChild(colSelect);
-                
+
                 if (showRemove) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'remove-group';
-                    removeBtn.innerHTML = '×';
-                    removeBtn.title = 'Remove this group level';
-                    wrapper.appendChild(removeBtn);
+                    wrapper.appendChild(createRemoveButton('remove-group', 'Remove this group level'));
                 }
-                
+
                 return wrapper;
             }
 
@@ -2752,99 +2853,48 @@
             }
 
             updateGroupSelectLevels() {
-                const wrappers = this.groupSelectsContainer.querySelectorAll('.group-select-wrapper');
-                wrappers.forEach((wrapper, idx) => {
-                    const colSelect = wrapper.querySelector('.group-column-select');
-                    colSelect.dataset.level = idx;
-                    
-                    const firstOption = colSelect.querySelector('option[value=""]');
-                    if (firstOption) {
-                        firstOption.textContent = idx === 0 ? 'No grouping' : 'Then by...';
-                    }
-                    
-                    const indicator = wrapper.querySelector('.group-level-indicator');
-                    if (idx === 0 && indicator) {
-                        indicator.remove();
-                    } else if (idx > 0 && !indicator) {
-                        const newIndicator = document.createElement('span');
-                        newIndicator.className = 'group-level-indicator';
-                        newIndicator.textContent = '→';
-                        wrapper.insertBefore(newIndicator, colSelect);
-                    }
-                    
-                    const removeBtn = wrapper.querySelector('.remove-group');
-                    if (idx === 0 && wrappers.length === 1 && removeBtn) {
-                        removeBtn.remove();
-                    } else if (idx > 0 && !removeBtn) {
-                        const newRemoveBtn = document.createElement('button');
-                        newRemoveBtn.className = 'remove-group';
-                        newRemoveBtn.innerHTML = '×';
-                        newRemoveBtn.title = 'Remove this group level';
-                        wrapper.appendChild(newRemoveBtn);
-                    }
+                this.updateSelectLevels({
+                    container: this.groupSelectsContainer,
+                    wrapperClass: 'group-select-wrapper',
+                    colSelectClass: 'group-column-select',
+                    removeClass: 'remove-group',
+                    indicatorClass: 'group-level-indicator',
+                    placeholders: ['No grouping', 'Then by...'],
+                    removeTitle: 'Remove this group level'
                 });
             }
 
             createSearchSelect(level, showRemove = false) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'search-select-wrapper';
-                
+
                 if (level > 0) {
-                    const logicToggle = document.createElement('button');
-                    logicToggle.className = 'search-logic-toggle';
-                    logicToggle.textContent = this.searchLogic;
-                    if (this.searchLogic === 'OR') {
-                        logicToggle.classList.add('active-or');
-                    }
-                    logicToggle.title = 'Click to toggle AND/OR';
-                    logicToggle.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.searchLogic = this.searchLogic === 'AND' ? 'OR' : 'AND';
-                        this.updateSearchLogicToggles();
-                        this.updateSearch();
-                    });
-                    wrapper.appendChild(logicToggle);
+                    wrapper.appendChild(this.createLogicToggle('search'));
                 }
-                
+
                 const valueInput = document.createElement('input');
                 valueInput.type = 'text';
                 valueInput.className = 'search-value-input';
                 valueInput.dataset.level = level;
-                valueInput.placeholder = 'Two character minimum';
+                valueInput.placeholder = `${UI.MIN_SEARCH_CHARS} character minimum`;
                 wrapper.appendChild(valueInput);
-                
-                if (showRemove) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'remove-search';
-                    removeBtn.innerHTML = '×';
-                    removeBtn.title = 'Remove this search term';
-                    wrapper.appendChild(removeBtn);
-                }
-                
-                return wrapper;
-            }
 
-            updateSearchLogicToggles() {
-                const toggles = this.searchSelectsContainer.querySelectorAll('.search-logic-toggle');
-                toggles.forEach(toggle => {
-                    toggle.textContent = this.searchLogic;
-                    if (this.searchLogic === 'OR') {
-                        toggle.classList.add('active-or');
-                    } else {
-                        toggle.classList.remove('active-or');
-                    }
-                });
+                if (showRemove) {
+                    wrapper.appendChild(createRemoveButton('remove-search', 'Remove this search term'));
+                }
+
+                return wrapper;
             }
 
             addSearchLevel() {
                 const inputs = this.searchSelectsContainer.querySelectorAll('.search-value-input');
                 const lastInput = inputs[inputs.length - 1];
-                
-                if (!lastInput.value.trim() || lastInput.value.trim().length < 2) {
-                    this.showToast('Enter at least 2 characters first', 'error');
+
+                if (!lastInput.value.trim() || lastInput.value.trim().length < UI.MIN_SEARCH_CHARS) {
+                    this.showToast(`Enter at least ${UI.MIN_SEARCH_CHARS} characters first`, 'error');
                     return;
                 }
-                
+
                 const newLevel = inputs.length;
                 const newWrapper = this.createSearchSelect(newLevel, true);
                 this.searchSelectsContainer.appendChild(newWrapper);
@@ -2853,20 +2903,20 @@
             updateSearch() {
                 const inputs = this.searchSelectsContainer.querySelectorAll('.search-value-input');
                 this.highlightTerms = [];
-                
+
                 inputs.forEach(input => {
                     const term = input.value.trim().toLowerCase();
-                    if (term && term.length >= 2) {
+                    if (term && term.length >= UI.MIN_SEARCH_CHARS) {
                         this.highlightTerms.push(term);
                     }
                 });
-                
+
                 this.renderTable();
             }
 
             clearSearch() {
                 this.highlightTerms = [];
-                this.searchLogic = 'AND';
+                this.searchLogic = LOGIC.AND;
                 this.searchSelectsContainer.innerHTML = '';
                 this.searchSelectsContainer.appendChild(this.createSearchSelect(0));
                 this.renderTable();
@@ -2936,7 +2986,7 @@
                         const rowRect = row.getBoundingClientRect();
                         if (rowRect.bottom < viewTop) {
                             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            setTimeout(() => this.updateNavArrows(), 300);
+                            setTimeout(() => this.updateNavArrows(), TIMING.SCROLL_DELAY);
                             return;
                         }
                     }
@@ -2947,7 +2997,7 @@
                         const rowRect = row.getBoundingClientRect();
                         if (rowRect.top > viewBottom) {
                             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            setTimeout(() => this.updateNavArrows(), 300);
+                            setTimeout(() => this.updateNavArrows(), TIMING.SCROLL_DELAY);
                             return;
                         }
                     }
@@ -3030,7 +3080,7 @@
                     let sortIndicator = '';
                     if (sortIndex >= 0) {
                         const sortConfig = this.sortColumns[sortIndex];
-                        const arrow = sortConfig.direction === 'asc' ? '↑' : '↓';
+                        const arrow = sortConfig.direction === SORT_DIR.ASC ? '↑' : '↓';
                         const isSecondary = sortIndex > 0;
                         const showNumber = this.sortColumns.length > 1;
                         
@@ -3061,9 +3111,9 @@
                         }
                         
                         if (sortIndex === 0) {
-                            this.sortColumns[0].direction = this.sortColumns[0].direction === 'asc' ? 'desc' : 'asc';
+                            this.sortColumns[0].direction = this.sortColumns[0].direction === SORT_DIR.ASC ? SORT_DIR.DESC : SORT_DIR.ASC;
                         } else {
-                            this.sortColumns = [{ column: colIdxStr, direction: 'asc' }];
+                            this.sortColumns = [{ column: colIdxStr, direction: SORT_DIR.ASC }];
                         }
                         this.syncSortSelectsFromState();
                         this.applySort();
@@ -3216,45 +3266,15 @@
                 for (const [rowIdx, cols] of this.modifiedCells) {
                     const newCols = new Set();
                     for (const col of cols) {
-                        if (col === fromIdx) {
-                            newCols.add(targetIdx);
-                        } else if (fromIdx < targetIdx) {
-                            if (col > fromIdx && col <= targetIdx) {
-                                newCols.add(col - 1);
-                            } else {
-                                newCols.add(col);
-                            }
-                        } else {
-                            if (col >= targetIdx && col < fromIdx) {
-                                newCols.add(col + 1);
-                            } else {
-                                newCols.add(col);
-                            }
-                        }
+                        newCols.add(adjustIndexAfterMove(col, fromIdx, targetIdx));
                     }
                     this.modifiedCells.set(rowIdx, newCols);
                 }
-                
+
                 // Update addedColumns indices
-                const newAddedColumns = new Set();
-                for (const col of this.addedColumns) {
-                    if (col === fromIdx) {
-                        newAddedColumns.add(targetIdx);
-                    } else if (fromIdx < targetIdx) {
-                        if (col > fromIdx && col <= targetIdx) {
-                            newAddedColumns.add(col - 1);
-                        } else {
-                            newAddedColumns.add(col);
-                        }
-                    } else {
-                        if (col >= targetIdx && col < fromIdx) {
-                            newAddedColumns.add(col + 1);
-                        } else {
-                            newAddedColumns.add(col);
-                        }
-                    }
-                }
-                this.addedColumns = newAddedColumns;
+                this.addedColumns = new Set(
+                    Array.from(this.addedColumns).map(col => adjustIndexAfterMove(col, fromIdx, targetIdx))
+                );
                 
                 this.modStats.columnsReordered++;
                 
@@ -3265,36 +3285,20 @@
             }
 
             updateColumnReferences(fromIdx, toIdx) {
-                const updateIndex = (oldIdx) => {
-                    const idx = parseInt(oldIdx);
-                    if (idx === fromIdx) {
-                        return String(toIdx);
-                    } else if (fromIdx < toIdx) {
-                        if (idx > fromIdx && idx <= toIdx) {
-                            return String(idx - 1);
-                        }
-                    } else {
-                        if (idx >= toIdx && idx < fromIdx) {
-                            return String(idx + 1);
-                        }
-                    }
-                    return String(idx);
-                };
-                
                 // Update sort columns
                 this.sortColumns = this.sortColumns.map(s => ({
                     ...s,
-                    column: updateIndex(s.column)
+                    column: String(adjustIndexAfterMove(parseInt(s.column), fromIdx, toIdx))
                 }));
-                
+
                 // Update filters
                 this.filters = this.filters.map(f => ({
                     ...f,
-                    column: updateIndex(f.column)
+                    column: String(adjustIndexAfterMove(parseInt(f.column), fromIdx, toIdx))
                 }));
-                
+
                 // Update group columns
-                this.groupColumns = this.groupColumns.map(col => parseInt(updateIndex(col)));
+                this.groupColumns = this.groupColumns.map(col => adjustIndexAfterMove(col, fromIdx, toIdx));
             }
 
             deleteColumn(colIdx) {
@@ -3325,12 +3329,8 @@
                 for (const [rowIdx, cols] of this.modifiedCells) {
                     const newCols = new Set();
                     for (const col of cols) {
-                        if (col < colIdx) {
-                            newCols.add(col);
-                        } else if (col > colIdx) {
-                            newCols.add(col - 1);
-                        }
-                        // If col === colIdx, it gets removed
+                        const adjusted = adjustIndexAfterDelete(col, colIdx);
+                        if (adjusted !== null) newCols.add(adjusted);
                     }
                     if (newCols.size > 0) {
                         this.modifiedCells.set(rowIdx, newCols);
@@ -3338,16 +3338,12 @@
                         this.modifiedCells.delete(rowIdx);
                     }
                 }
-                
+
                 // Update addedColumns - remove deleted column and adjust remaining indices
                 const newAddedColumns = new Set();
                 for (const col of this.addedColumns) {
-                    if (col < colIdx) {
-                        newAddedColumns.add(col);
-                    } else if (col > colIdx) {
-                        newAddedColumns.add(col - 1);
-                    }
-                    // If col === colIdx, it gets removed
+                    const adjusted = adjustIndexAfterDelete(col, colIdx);
+                    if (adjusted !== null) newAddedColumns.add(adjusted);
                 }
                 this.addedColumns = newAddedColumns;
                 
@@ -3365,24 +3361,20 @@
             updateColumnReferencesAfterDelete(deletedIdx) {
                 // Update sort columns
                 this.sortColumns = this.sortColumns
-                    .filter(s => parseInt(s.column) !== deletedIdx)
-                    .map(s => ({
-                        ...s,
-                        column: String(parseInt(s.column) > deletedIdx ? parseInt(s.column) - 1 : parseInt(s.column))
-                    }));
-                
+                    .map(s => ({ ...s, column: adjustIndexAfterDelete(parseInt(s.column), deletedIdx) }))
+                    .filter(s => s.column !== null)
+                    .map(s => ({ ...s, column: String(s.column) }));
+
                 // Update filters
                 this.filters = this.filters
-                    .filter(f => parseInt(f.column) !== deletedIdx)
-                    .map(f => ({
-                        ...f,
-                        column: String(parseInt(f.column) > deletedIdx ? parseInt(f.column) - 1 : parseInt(f.column))
-                    }));
-                
+                    .map(f => ({ ...f, column: adjustIndexAfterDelete(parseInt(f.column), deletedIdx) }))
+                    .filter(f => f.column !== null)
+                    .map(f => ({ ...f, column: String(f.column) }));
+
                 // Update group columns
                 this.groupColumns = this.groupColumns
-                    .filter(col => col !== deletedIdx)
-                    .map(col => col > deletedIdx ? col - 1 : col);
+                    .map(col => adjustIndexAfterDelete(col, deletedIdx))
+                    .filter(col => col !== null);
             }
 
             syncSortSelectsFromState() {
@@ -3464,7 +3456,7 @@
 
                 const sortedGroups = Object.keys(groups).sort();
                 const groupHeaderName = this.headers[groupCol];
-                const indent = level * 20;
+                const indent = level * UI.GROUP_INDENT_PX;
 
                 sortedGroups.forEach(groupValue => {
                     const groupRows = groups[groupValue];
@@ -3624,7 +3616,7 @@
                 // Determine if row should be highlighted based on AND/OR logic
                 let rowHasHighlight = false;
                 if (this.highlightTerms && this.highlightTerms.length > 0) {
-                    if (this.searchLogic === 'AND') {
+                    if (this.searchLogic === LOGIC.AND) {
                         // All terms must be found somewhere in the row
                         rowHasHighlight = termFoundInRow.size === this.highlightTerms.length;
                     } else {
@@ -3670,7 +3662,7 @@
                 // Check if all non-empty values in a column are numeric
                 for (const row of this.currentData) {
                     const val = row[colIdx];
-                    if (val !== undefined && val !== null && val !== '') {
+                    if (!isEmpty(val)) {
                         // Check that the entire string is a valid number
                         const trimmed = String(val).trim();
                         if (trimmed === '') continue;
@@ -3716,7 +3708,7 @@
                 
                 for (const row of this.currentData) {
                     const val = row[colIdx];
-                    if (val !== undefined && val !== null && val !== '') {
+                    if (!isEmpty(val)) {
                         hasValue = true;
                         if (this.parseTimestamp(val) === null) {
                             return false;
@@ -3733,7 +3725,7 @@
                     if (this.numericColumnsCache && this.numericColumnsCache.has(colIdx)) {
                         const rawValues = data
                             .map(row => row[colIdx])
-                            .filter(val => val !== undefined && val !== null && val !== '');
+                            .filter(val => !isEmpty(val));
                         
                         // Calculate max decimal precision from original string values
                         let maxPrecision = 0;
@@ -3763,7 +3755,7 @@
                     } else if (this.timestampColumnsCache && this.timestampColumnsCache.has(colIdx)) {
                         const dates = data
                             .map(row => row[colIdx])
-                            .filter(val => val !== undefined && val !== null && val !== '')
+                            .filter(val => !isEmpty(val))
                             .map(val => this.parseTimestamp(val))
                             .filter(d => d !== null);
                         
@@ -3933,7 +3925,7 @@
                             return cellValue === filterConfig.value;
                         };
                         
-                        if (this.filterLogic === 'OR') {
+                        if (this.filterLogic === LOGIC.OR) {
                             return this.filters.some(matchFunction);
                         } else {
                             return this.filters.every(matchFunction);
@@ -3986,7 +3978,7 @@
                             }
                             
                             if (comparison !== 0) {
-                                return sortConfig.direction === 'asc' ? comparison : -comparison;
+                                return sortConfig.direction === SORT_DIR.ASC ? comparison : -comparison;
                             }
                         }
                         return 0;
@@ -4263,20 +4255,13 @@
                 this.isModified = false;
                 this.modificationIndicator.classList.add('hidden');
                 this.undoChangesBtn.classList.add('hidden');
-                this.modStats = {
-                    rowsAdded: 0,
-                    rowsDeleted: 0,
-                    columnsAdded: 0,
-                    columnsDeleted: 0,
-                    columnsReordered: 0,
-                    rowsChanged: new Set()
-                };
+                this.modStats = createModStats();
                 this.modifiedCells = new Map();
                 this.addedColumns = new Set();
                 this.filters = [];
-                this.filterLogic = 'AND';
+                this.filterLogic = LOGIC.AND;
                 this.highlightTerms = [];
-                this.searchLogic = 'AND';
+                this.searchLogic = LOGIC.AND;
                 this.searchSelectsContainer.innerHTML = '';
                 this.searchSelectsContainer.appendChild(this.createSearchSelect(0));
                 this.sortColumns = [];
@@ -4381,31 +4366,21 @@
 
                 // Update references for columns after insert
                 this.updateColumnReferencesAfterInsert(insertIdx);
-                
+
                 // Update modifiedCells column indices
                 for (const [rowIdx, cols] of this.modifiedCells) {
                     const newCols = new Set();
                     for (const col of cols) {
-                        if (col >= insertIdx) {
-                            newCols.add(col + 1);
-                        } else {
-                            newCols.add(col);
-                        }
+                        newCols.add(adjustIndexAfterInsert(col, insertIdx));
                     }
                     this.modifiedCells.set(rowIdx, newCols);
                 }
-                
+
                 // Update addedColumns indices and add new column
-                const newAddedColumns = new Set();
-                for (const col of this.addedColumns) {
-                    if (col >= insertIdx) {
-                        newAddedColumns.add(col + 1);
-                    } else {
-                        newAddedColumns.add(col);
-                    }
-                }
-                newAddedColumns.add(insertIdx);
-                this.addedColumns = newAddedColumns;
+                this.addedColumns = new Set(
+                    Array.from(this.addedColumns).map(col => adjustIndexAfterInsert(col, insertIdx))
+                );
+                this.addedColumns.add(insertIdx);
 
                 this.modStats.columnsAdded++;
 
@@ -4420,47 +4395,47 @@
                 // Update sort columns
                 this.sortColumns = this.sortColumns.map(s => ({
                     ...s,
-                    column: String(parseInt(s.column) >= insertIdx ? parseInt(s.column) + 1 : parseInt(s.column))
+                    column: String(adjustIndexAfterInsert(parseInt(s.column), insertIdx))
                 }));
-                
+
                 // Update filters
                 this.filters = this.filters.map(f => ({
                     ...f,
-                    column: String(parseInt(f.column) >= insertIdx ? parseInt(f.column) + 1 : parseInt(f.column))
+                    column: String(adjustIndexAfterInsert(parseInt(f.column), insertIdx))
                 }));
-                
+
                 // Update group columns
-                this.groupColumns = this.groupColumns.map(col => col >= insertIdx ? col + 1 : col);
+                this.groupColumns = this.groupColumns.map(col => adjustIndexAfterInsert(col, insertIdx));
             }
 
             setDensity(density) {
                 this.tableDensity = density;
-                
+
                 // Update button states
                 this.densityBtns.forEach(btn => {
                     btn.classList.toggle('active', btn.dataset.density === density);
                 });
-                
+
                 // Update table class
                 this.tableElement.classList.remove('table-compact', 'table-normal');
                 if (density !== 'compact') {
                     this.tableElement.classList.add(`table-${density}`);
                 }
-                
+
                 // Save preference
-                localStorage.setItem('csv-editor-density', density);
+                localStorage.setItem(STORAGE_KEYS.DENSITY, density);
             }
 
             initDensity() {
-                const savedDensity = localStorage.getItem('csv-editor-density') || 'compact';
+                const savedDensity = localStorage.getItem(STORAGE_KEYS.DENSITY) || 'compact';
                 this.setDensity(savedDensity);
             }
 
             initTheme() {
-                const savedTheme = localStorage.getItem('csv-editor-theme');
+                const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 const theme = savedTheme || (prefersDark ? 'dark' : 'light');
-                
+
                 if (theme === 'dark') {
                     document.documentElement.setAttribute('data-theme', 'dark');
                     this.themeIcon.textContent = '☀️';
@@ -4476,16 +4451,16 @@
                 if (isDark) {
                     document.documentElement.removeAttribute('data-theme');
                     this.themeIcon.textContent = '🌙';
-                    localStorage.setItem('csv-editor-theme', 'light');
+                    localStorage.setItem(STORAGE_KEYS.THEME, 'light');
                 } else {
                     document.documentElement.setAttribute('data-theme', 'dark');
                     this.themeIcon.textContent = '☀️';
-                    localStorage.setItem('csv-editor-theme', 'dark');
+                    localStorage.setItem(STORAGE_KEYS.THEME, 'dark');
                 }
             }
 
             initFullWidth() {
-                const savedFullWidth = localStorage.getItem('csv-editor-fullwidth');
+                const savedFullWidth = localStorage.getItem(STORAGE_KEYS.FULLWIDTH);
                 if (savedFullWidth === 'true') {
                     this.isFullWidth = true;
                     this.appContainer.classList.add('full-width');
@@ -4497,10 +4472,10 @@
 
                 if (this.isFullWidth) {
                     this.appContainer.classList.add('full-width');
-                    localStorage.setItem('csv-editor-fullwidth', 'true');
+                    localStorage.setItem(STORAGE_KEYS.FULLWIDTH, 'true');
                 } else {
                     this.appContainer.classList.remove('full-width');
-                    localStorage.setItem('csv-editor-fullwidth', 'false');
+                    localStorage.setItem(STORAGE_KEYS.FULLWIDTH, 'false');
                 }
             }
 
@@ -4513,15 +4488,15 @@
                 const toast = document.createElement('div');
                 toast.className = `toast ${type}`;
                 toast.innerHTML = `
-                    <span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>
+                    <span>${TOAST_ICONS[type] || TOAST_ICONS.info}</span>
                     ${message}
                 `;
                 document.body.appendChild(toast);
 
                 setTimeout(() => {
                     toast.classList.add('hiding');
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
+                    setTimeout(() => toast.remove(), TIMING.TOAST_FADE);
+                }, TIMING.TOAST_DURATION);
             }
         }
 
