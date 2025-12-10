@@ -417,14 +417,16 @@
             margin-right: 4px;
         }
 
-        .group-count-badge {
+        .group-count-badge,
+        .filter-count-badge {
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
             color: var(--text-muted);
             margin-left: 4px;
         }
 
-        .group-count-badge .count-num {
+        .group-count-badge .count-num,
+        .filter-count-badge .count-num {
             color: var(--accent-blue);
             font-weight: 600;
         }
@@ -1831,9 +1833,14 @@
                                     <select class="filter-value-select" data-level="0" disabled>
                                         <option value="__placeholder__">Select value...</option>
                                     </select>
+                                    <span class="filter-count-badge" data-level="0" style="display: none;"></span>
                                 </div>
                             </div>
                             <button class="btn btn-small" id="addFilterBtn" title="Add filter condition">+</button>
+                            <div class="density-selector" id="filterModeSelector">
+                                <button class="density-btn active" data-filter-mode="filter" title="Hide non-matching rows">Filter</button>
+                                <button class="density-btn" data-filter-mode="highlight" title="Highlight matching rows">Highlight</button>
+                            </div>
                         </div>
                         <div class="control-section" id="sortControls">
                             <label>Sort:</label>
@@ -2081,6 +2088,7 @@
                 this.selectedRows = new Set();
                 this.filters = [];
                 this.filterLogic = LOGIC.AND;
+                this.filterAsHighlight = false;  // false = filter mode (default), true = highlight mode
                 this.sortColumns = [];
                 this.groupColumns = [];
                 this.highlightTerms = [];
@@ -2128,6 +2136,7 @@
                 this.filterControls = document.getElementById('filterControls');
                 this.filterSelectsContainer = this.filterControls.querySelector('.filter-selects');
                 this.addFilterBtn = document.getElementById('addFilterBtn');
+                this.filterModeBtns = document.querySelectorAll('#filterModeSelector .density-btn');
                 this.sortControls = document.getElementById('sortControls');
                 this.sortSelectsContainer = this.sortControls.querySelector('.sort-selects');
                 this.addSortBtn = document.getElementById('addSortBtn');
@@ -2235,7 +2244,10 @@
                     }
                 });
                 this.addFilterBtn.addEventListener('click', () => this.addFilterLevel());
-                
+                this.filterModeBtns.forEach(btn => {
+                    btn.addEventListener('click', () => this.setFilterMode(btn.dataset.filterMode));
+                });
+
                 // Sort controls
                 this.sortSelectsContainer.addEventListener('change', (e) => {
                     if (e.target.classList.contains('sort-column-select') || 
@@ -2438,6 +2450,10 @@
                 this.collapsedGroups.clear();
                 this.filters = [];
                 this.filterLogic = LOGIC.AND;
+                this.filterAsHighlight = false;
+                this.filterModeBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filterMode === 'filter');
+                });
                 this.highlightTerms = [];
                 this.searchLogic = LOGIC.AND;
                 this.sortColumns = [];
@@ -2559,6 +2575,13 @@
                 valueSelect.innerHTML = `<option value="${FILTER_VALUES.PLACEHOLDER}">Select value...</option>`;
                 valueSelect.disabled = true;
                 wrapper.appendChild(valueSelect);
+
+                // Add count badge (hidden by default, shown when filter is active)
+                const countBadge = document.createElement('span');
+                countBadge.className = 'filter-count-badge';
+                countBadge.dataset.level = level;
+                countBadge.style.display = 'none';
+                wrapper.appendChild(countBadge);
 
                 if (showRemove) {
                     wrapper.appendChild(createRemoveButton('remove-filter', 'Remove this filter'));
@@ -2984,6 +3007,61 @@
                 });
             }
 
+            updateFilterCounts() {
+                const badges = this.filterSelectsContainer.querySelectorAll('.filter-count-badge');
+                const wrappers = this.filterSelectsContainer.querySelectorAll('.filter-select-wrapper');
+
+                // Build list of active filters up to each level
+                const activeFilters = [];
+                wrappers.forEach((wrapper, level) => {
+                    const colSelect = wrapper.querySelector('.filter-column-select');
+                    const valueSelect = wrapper.querySelector('.filter-value-select');
+                    const badge = badges[level];
+
+                    if (!colSelect || !valueSelect || colSelect.value === '' ||
+                        valueSelect.value === FILTER_VALUES.PLACEHOLDER || valueSelect.disabled) {
+                        if (badge) badge.style.display = 'none';
+                        return;
+                    }
+
+                    // Add this filter to active filters
+                    const filterConfig = {
+                        column: parseInt(colSelect.value),
+                        value: valueSelect.value,
+                        isEmpty: valueSelect.value === FILTER_VALUES.EMPTY
+                    };
+                    activeFilters.push(filterConfig);
+
+                    // Count matching rows using all filters up to this level
+                    const filtersUpToHere = [...activeFilters];
+                    let count = 0;
+
+                    this.currentData.forEach(row => {
+                        const matchFunction = fc => {
+                            const cellValue = String(row[fc.column] || '');
+                            if (fc.isEmpty) {
+                                return cellValue === '';
+                            }
+                            return cellValue === fc.value;
+                        };
+
+                        let matches;
+                        if (this.filterLogic === LOGIC.OR) {
+                            matches = filtersUpToHere.some(matchFunction);
+                        } else {
+                            matches = filtersUpToHere.every(matchFunction);
+                        }
+
+                        if (matches) count++;
+                    });
+
+                    if (badge) {
+                        badge.innerHTML = `(<span class="count-num">${count}</span>)`;
+                        badge.style.display = 'inline';
+                    }
+                });
+            }
+
             createSearchSelect(level, showRemove = false) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'search-select-wrapper';
@@ -3052,6 +3130,14 @@
                 this.searchHighlightRow = mode === 'row';
                 this.searchHighlightModeBtns.forEach(btn => {
                     btn.classList.toggle('active', btn.dataset.highlightMode === mode);
+                });
+                this.renderTable();
+            }
+
+            setFilterMode(mode) {
+                this.filterAsHighlight = mode === 'highlight';
+                this.filterModeBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filterMode === mode);
                 });
                 this.renderTable();
             }
@@ -3177,8 +3263,9 @@
                 this.updateStats();
                 // Update navigation arrows after render
                 setTimeout(() => this.updateNavArrows(), 0);
-                // Update group count badges
+                // Update group and filter count badges
                 this.updateGroupCounts();
+                this.updateFilterCounts();
             }
 
             renderHeader() {
@@ -3808,6 +3895,29 @@
                     }
                 }
 
+                // Apply filter highlighting when in highlight mode
+                if (this.filterAsHighlight && this.filters.length > 0) {
+                    const matchFunction = filterConfig => {
+                        const cellValue = String(row[filterConfig.column] || '');
+                        if (filterConfig.isEmpty) {
+                            return cellValue === '';
+                        }
+                        return cellValue === filterConfig.value;
+                    };
+
+                    let filterMatches;
+                    if (this.filterLogic === LOGIC.OR) {
+                        filterMatches = this.filters.some(matchFunction);
+                    } else {
+                        filterMatches = this.filters.every(matchFunction);
+                    }
+
+                    if (filterMatches) {
+                        tr.classList.add('row-highlighted');
+                        tr.classList.add('row-has-match');
+                    }
+                }
+
                 return tr;
             }
 
@@ -4199,7 +4309,8 @@
             getFilteredData() {
                 let data = [...this.currentData];
 
-                if (this.filters.length > 0) {
+                // Only filter when not in highlight mode
+                if (this.filters.length > 0 && !this.filterAsHighlight) {
                     data = data.filter(row => {
                         const matchFunction = filterConfig => {
                             const cellValue = String(row[filterConfig.column] || '');
@@ -4209,7 +4320,7 @@
                             }
                             return cellValue === filterConfig.value;
                         };
-                        
+
                         if (this.filterLogic === LOGIC.OR) {
                             return this.filters.some(matchFunction);
                         } else {
@@ -4545,6 +4656,10 @@
                 this.addedColumns = new Set();
                 this.filters = [];
                 this.filterLogic = LOGIC.AND;
+                this.filterAsHighlight = false;
+                this.filterModeBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filterMode === 'filter');
+                });
                 this.highlightTerms = [];
                 this.searchLogic = LOGIC.AND;
                 this.searchSelectsContainer.innerHTML = '';
