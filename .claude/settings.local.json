@@ -1,14 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(move \"c:\\GitHub\\prettycode.github.io\\retirement-runway.htm\" \"c:\\GitHub\\prettycode.github.io\\retirement-calc\\index.html\")",
-      "Bash(npm create:*)",
-      "Bash(npm install:*)",
-      "Bash(npx tailwindcss:*)",
-      "Bash(node node_modules/tailwindcss/lib/cli.js:*)",
-      "Bash(test:*)",
-      "Bash(npm run dev:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(move:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(start chrome:*)",
+      "Bash(powershell:*)",
+      "Bash(find:*)",
+      "Bash(sort:*)"
     ],
     "deny": [],
     "ask": []

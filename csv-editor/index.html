@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <h1>CSV <span>Editor</span></h1>
+            </div>
+            <div class="header-actions" id="headerActions">
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button class="theme-toggle" id="fullWidthToggle" title="Toggle full-width mode">
+                    <span class="fullwidth-icon">⇔</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="upload-zone hidden" id="uploadZone">
+            <h2>Import CSV File</h2>
+            <p>Drag and drop your CSV file here, or click to browse</p>
+            <button class="btn btn-primary" id="browseBtn">Browse Files</button>
+            <input type="file" id="fileInput" accept=".csv">
+        </div>
+
+        <div id="editorSection" class="">
+            <div class="controls-row">
+                <div class="actions-bar">
+                    <div id="modificationIndicator" class="modification-panel hidden">
+                        <span class="mod-title">● Modifications</span>
+                        <div class="mod-stats">
+                            <span id="modRowsDeleted" class="mod-stat hidden"><span class="mod-num"></span> rows deleted</span>
+                            <span id="modRowsChanged" class="mod-stat hidden"><span class="mod-num"></span> rows edited</span>
+                            <span id="modColsAdded" class="mod-stat hidden"><span class="mod-num"></span> columns added</span>
+                            <span id="modColsDeleted" class="mod-stat hidden"><span class="mod-num"></span> columns deleted</span>
+                            <span id="modColsReordered" class="mod-stat hidden">columns reordered</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-info-bar">
+                    <div class="table-title-area">
+                        <div class="table-title-text" id="tableTitleText"></div>
+                        <button class="aggregate-toggle hidden" id="undoChangesBtn" title="Undo all changes">
+                            <span class="aggregate-toggle-icon">↺</span>
+                        </button>
+                    </div>
+                    <div class="table-info-row">
+                        <div class="selection-actions" id="selectionActions">
+                            <span class="selected-count-display" id="selectedDisplay">
+                                <span class="selected-dot"></span>
+                                <strong id="selectedRows">0</strong> selected
+                            </span>
+                            <button class="btn-inline" id="clearSelectionBtn" disabled>✕ Clear</button>
+                            <button class="btn-inline btn-inline-danger" id="deleteSelectedBtn" disabled>🗑 Delete</button>
+                        </div>
+                        <div class="table-info-left">
+                            <button class="btn btn-compact" id="importBtn">
+                                <span>↑</span> Import CSV
+                            </button>
+                            <div class="export-dropdown">
+                                <button class="btn btn-compact" id="exportBtn" disabled>
+                                    <span>↓</span> Export CSV <span class="dropdown-arrow">▾</span>
+                                </button>
+                                <div class="export-menu hidden" id="exportMenu">
+                                    <button class="export-option" data-export="all">Export All Rows</button>
+                                    <button class="export-option" data-export="selected" id="exportSelectedOption" disabled>Export Selected Rows</button>
+                                    <button class="export-option" data-export="deselected" id="exportDeselectedOption" disabled>Export Deselected Rows</button>
+                                </div>
+                            </div>
+                            <div class="density-selector">
+                                <button class="density-btn active" data-density="compact" title="Compact">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                                        <rect x="1" y="2" width="12" height="2" rx="0.5"/>
+                                        <rect x="1" y="6" width="12" height="2" rx="0.5"/>
+                                        <rect x="1" y="10" width="12" height="2" rx="0.5"/>
+                                    </svg>
+                                </button>
+                                <button class="density-btn" data-density="normal" title="Normal">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                                        <rect x="1" y="1" width="12" height="2.5" rx="0.5"/>
+                                        <rect x="1" y="5.75" width="12" height="2.5" rx="0.5"/>
+                                        <rect x="1" y="10.5" width="12" height="2.5" rx="0.5"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <button class="aggregate-toggle" id="aggregateToggle" title="Show aggregates (Total, Min, Max, Avg)">
+                                <span class="aggregate-toggle-icon">Σ</span>
+                            </button>
+                            <button class="aggregate-toggle" id="emptyDashToggle" title="Show empty cells as dashes">
+                                <span class="aggregate-toggle-icon">—</span>
+                            </button>
+                            <!-- Rainbow Background: Color each column's background distinctly -->
+                            <button class="aggregate-toggle" id="rainbowBgToggle" title="Rainbow column backgrounds">
+                                <span class="aggregate-toggle-icon">🌈</span>
+                            </button>
+                            <!-- Rainbow Text: Color each column's text distinctly -->
+                            <button class="aggregate-toggle" id="rainbowTextToggle" title="Rainbow column text">
+                                <span class="aggregate-toggle-icon">A</span>
+                            </button>
+                            <button class="aggregate-toggle active" id="controlsToggle" title="Toggle filters, sort, group, and search controls">
+                                <span class="aggregate-toggle-icon">⚙</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-controls-panel" id="controlsPanel">
+                    <div class="controls-row-inline">
+                        <div class="control-section" id="filterControls">
+                            <label>Filter</label>
+                            <div class="filter-selects">
+                                <div class="filter-select-wrapper">
+                                    <select class="filter-column-select" data-level="0">
+                                        <option value="">No filter</option>
+                                    </select>
+                                    <select class="filter-value-select" data-level="0" disabled>
+                                        <option value="__placeholder__">Select value...</option>
+                                    </select>
+                                    <span class="filter-count-badge" data-level="0" style="display: none;"></span>
+                                </div>
+                            </div>
+                            <button class="btn btn-small" id="addFilterBtn" title="Add filter condition">+</button>
+                            <div class="density-selector" id="filterModeSelector">
+                                <button class="density-btn active" data-filter-mode="filter" title="Hide non-matching rows">Filter</button>
+                                <button class="density-btn" data-filter-mode="highlight" title="Highlight matching rows">Highlight</button>
+                            </div>
+                        </div>
+                        <div class="control-section" id="groupControls">
+                            <label>Group</label>
+                            <div class="group-selects">
+                                <div class="group-select-wrapper">
+                                    <select class="group-column-select" data-level="0">
+                                        <option value="">No grouping</option>
+                                    </select>
+                                    <span class="group-count-badge" data-level="0" style="display: none;"></span>
+                                </div>
+                            </div>
+                            <button class="btn btn-small" id="addGroupBtn" title="Add subgroup">+</button>
+                        </div>
+                        <div class="control-section" id="searchControls">
+                            <label>Search</label>
+                            <div class="search-selects">
+                                <div class="search-select-wrapper">
+                                    <input type="text" class="search-value-input" data-level="0" placeholder="2+ chars, or &quot;&quot; for empty">
+                                    <span class="search-count-badge" data-level="0" style="display: none;"></span>
+                                </div>
+                            </div>
+                            <button class="btn btn-small" id="addSearchBtn" title="Add search term">+</button>
+                            <div class="density-selector" id="searchHighlightModeSelector">
+                                <button class="density-btn active" data-highlight-mode="row" title="Highlight entire row">Row</button>
+                                <button class="density-btn" data-highlight-mode="cell" title="Highlight matching cells only">Cell</button>
+                            </div>
+                        </div>
+                        <div class="control-section" id="sortControls">
+                            <label>Sort</label>
+                            <div class="sort-selects">
+                                <div class="sort-select-wrapper">
+                                    <select class="sort-column-select" data-level="0">
+                                        <option value="">No sorting</option>
+                                    </select>
+                                    <select class="sort-direction-select" data-level="0">
+                                        <option value="asc">Asc</option>
+                                        <option value="desc">Desc</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn btn-small" id="addSortBtn" title="Add sub-sort">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-scroll" id="tableScroll">
+                    <table id="dataTable">
+                        <thead id="tableHead"></thead>
+                        <tbody id="tableBody"></tbody>
+                        <tfoot id="tableFoot"></tfoot>
+                    </table>
+                </div>
+                <div class="row-nav-arrows">
+                    <button class="row-nav-arrow row-nav-up hidden" id="rowNavUp" title="Jump to previous match">
+                        <span>↑</span>
+                        <span class="nav-arrow-count" id="rowNavUpCount">0</span>
+                    </button>
+                    <button class="row-nav-arrow row-nav-down hidden" id="rowNavDown" title="Jump to next match">
+                        <span>↓</span>
+                        <span class="nav-arrow-count" id="rowNavDownCount">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Column Modal -->
+        <div class="modal-overlay hidden" id="addColumnModal">
+            <div class="modal">
+                <h3>➕ Add New Column</h3>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="newColumnName">Column Name</label>
+                        <input type="text" id="newColumnName" placeholder="Enter column name...">
+                    </div>
+                    <div class="form-group">
+                        <label for="newColumnDefault">Default Value (optional)</label>
+                        <input type="text" id="newColumnDefault" placeholder="Leave empty for blank cells">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" id="cancelAddColumn">Cancel</button>
+                    <button class="btn btn-primary" id="confirmAddColumn">Add Column</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Import Modal -->
+        <div class="modal-overlay hidden" id="confirmImportModal">
+            <div class="modal">
+                <h3>⚠️ Unsaved Changes</h3>
+                <div class="modal-body">
+                    <p style="color: var(--text-secondary); line-height: 1.6;">
+                        You have unsaved changes that will be lost if you import a new file.
+                        Would you like to continue?
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" id="cancelImport">Cancel</button>
+                    <button class="btn btn-danger" id="confirmImport">Import Anyway</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts in dependency order -->
+    <script src="js/constants.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/managers/FilterManager.js"></script>
+    <script src="js/managers/SortManager.js"></script>
+    <script src="js/managers/GroupManager.js"></script>
+    <script src="js/managers/SearchManager.js"></script>
+    <script src="js/managers/ColumnManager.js"></script>
+    <script src="js/managers/SelectionManager.js"></script>
+    <script src="js/CSVEditor.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
