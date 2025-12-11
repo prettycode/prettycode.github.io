@@ -149,10 +149,20 @@
                             <button class="btn btn-small" id="addGroupBtn" title="Add subgroup">+</button>
                         </div>
                         <div class="control-section" id="searchControls">
-                            <label>Search</label>
+                            <label>
+                                Search
+                                <span class="info-tooltip-trigger">
+                                    <svg class="info-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+                                        <path d="M8 7V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                        <circle cx="8" cy="5" r="0.75" fill="currentColor"/>
+                                    </svg>
+                                    <span class="info-tooltip">Case-insensitive contains search. Use quotes for case-sensitive literal match (e.g., "A"). Search "" to find empty cells.</span>
+                                </span>
+                            </label>
                             <div class="search-selects">
                                 <div class="search-select-wrapper">
-                                    <input type="text" class="search-value-input" data-level="0" placeholder="2+ chars, or &quot;&quot; for empty">
+                                    <input type="text" class="search-value-input" data-level="0" placeholder="2+ chars, &quot;&quot;, or &quot;X&quot;">
                                     <span class="search-count-badge" data-level="0" style="display: none;"></span>
                                 </div>
                             </div>

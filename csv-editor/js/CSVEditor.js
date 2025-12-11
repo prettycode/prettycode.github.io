@@ -1158,11 +1158,19 @@ class CSVEditor {
                 const cellLower = cellValue.toLowerCase();
                 const matchingTerms = new Set();
 
-                this.highlightTerms.forEach((term, termIdx) => {
-                    // Special case: EMPTY_CELL_MARKER matches empty cells
-                    const matches = term === EMPTY_CELL_MARKER
-                        ? cellValue === ''
-                        : cellLower.includes(term);
+                this.highlightTerms.forEach((searchObj, termIdx) => {
+                    // searchObj is { term: string|Symbol, caseSensitive: boolean }
+                    let matches;
+                    if (searchObj.term === EMPTY_CELL_MARKER) {
+                        // Special case: EMPTY_CELL_MARKER matches empty cells
+                        matches = cellValue === '';
+                    } else if (searchObj.caseSensitive) {
+                        // Case-sensitive match (quoted search)
+                        matches = cellValue.includes(searchObj.term);
+                    } else {
+                        // Case-insensitive match (unquoted search)
+                        matches = cellLower.includes(searchObj.term);
+                    }
                     if (matches) {
                         matchingTerms.add(termIdx);
                         termFoundInRow.add(termIdx);

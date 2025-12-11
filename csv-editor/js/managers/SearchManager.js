@@ -26,7 +26,7 @@ class SearchManager {
         valueInput.type = 'text';
         valueInput.className = 'search-value-input';
         valueInput.dataset.level = level;
-        valueInput.placeholder = `${UI.MIN_SEARCH_CHARS}+ chars, or "" for empty`;
+        valueInput.placeholder = `${UI.MIN_SEARCH_CHARS}+ chars, "x" for 1, "" for empty`;
         wrapper.appendChild(valueInput);
 
         // Add count badge (hidden by default, shown when search is active)
@@ -43,16 +43,39 @@ class SearchManager {
         return wrapper;
     }
 
+    // Check if a search term is valid (quoted literal, empty cell search, or meets min chars)
+    isValidSearchTerm(term) {
+        if (!term) return false;
+        // "" matches empty cells
+        if (term === UI.EMPTY_CELL_SEARCH) return true;
+        // Quoted literal search (e.g., "a" or "hello world")
+        if (term.startsWith('"') && term.endsWith('"') && term.length >= 3) return true;
+        // Standard search requires minimum characters
+        return term.length >= UI.MIN_SEARCH_CHARS;
+    }
+
+    // Convert user input to search term object (handles quoted literals)
+    // Returns { term: string|Symbol, caseSensitive: boolean }
+    parseSearchTerm(term) {
+        if (term === UI.EMPTY_CELL_SEARCH) {
+            return { term: EMPTY_CELL_MARKER, caseSensitive: false };
+        }
+        // Quoted literal: case-sensitive, extract content between quotes (preserve case)
+        if (term.startsWith('"') && term.endsWith('"') && term.length >= 3) {
+            return { term: term.slice(1, -1), caseSensitive: true };
+        }
+        // Unquoted: case-insensitive
+        return { term: term.toLowerCase(), caseSensitive: false };
+    }
+
     addLevel() {
         const container = this.editor.searchSelectsContainer;
         const inputs = container.querySelectorAll('.search-value-input');
         const lastInput = inputs[inputs.length - 1];
         const term = lastInput.value.trim();
 
-        // Allow "" for empty cells, otherwise require minimum characters
-        const isValid = term === UI.EMPTY_CELL_SEARCH || term.length >= UI.MIN_SEARCH_CHARS;
-        if (!term || !isValid) {
-            showToast(`Enter at least ${UI.MIN_SEARCH_CHARS} characters first`, 'error');
+        if (!this.isValidSearchTerm(term)) {
+            showToast(`Enter at least ${UI.MIN_SEARCH_CHARS} characters, or use quotes for single character`, 'error');
             return;
         }
 
@@ -68,11 +91,8 @@ class SearchManager {
 
         inputs.forEach(input => {
             const term = input.value.trim();
-            // Special case: "" matches empty cells
-            if (term === UI.EMPTY_CELL_SEARCH) {
-                this.highlightTerms.push(EMPTY_CELL_MARKER);
-            } else if (term && term.length >= UI.MIN_SEARCH_CHARS) {
-                this.highlightTerms.push(term.toLowerCase());
+            if (this.isValidSearchTerm(term)) {
+                this.highlightTerms.push(this.parseSearchTerm(term));
             }
         });
 
@@ -120,16 +140,13 @@ class SearchManager {
             }
 
             const term = input.value.trim();
-            // Check if term is valid (either empty cell search or meets minimum length)
-            const isValid = term === UI.EMPTY_CELL_SEARCH || term.length >= UI.MIN_SEARCH_CHARS;
-
-            if (!term || !isValid) {
+            if (!this.isValidSearchTerm(term)) {
                 if (badge) badge.style.display = 'none';
                 return;
             }
 
             // Add this term to active terms (convert to search format)
-            const searchTerm = term === UI.EMPTY_CELL_SEARCH ? EMPTY_CELL_MARKER : term.toLowerCase();
+            const searchTerm = this.parseSearchTerm(term);
             activeTerms.push(searchTerm);
 
             // Count matching rows using all terms up to this level
@@ -140,12 +157,18 @@ class SearchManager {
                 const termFoundInRow = new Set();
 
                 this.editor.headers.forEach((_, colIdx) => {
-                    const cellValue = row[colIdx];
-                    const cellLower = String(cellValue || '').toLowerCase();
-                    termsUpToHere.forEach((t, termIdx) => {
-                        const matches = t === EMPTY_CELL_MARKER
-                            ? String(cellValue || '') === ''
-                            : cellLower.includes(t);
+                    const cellValue = String(row[colIdx] || '');
+                    const cellLower = cellValue.toLowerCase();
+                    termsUpToHere.forEach((searchObj, termIdx) => {
+                        // searchObj is { term: string|Symbol, caseSensitive: boolean }
+                        let matches;
+                        if (searchObj.term === EMPTY_CELL_MARKER) {
+                            matches = cellValue === '';
+                        } else if (searchObj.caseSensitive) {
+                            matches = cellValue.includes(searchObj.term);
+                        } else {
+                            matches = cellLower.includes(searchObj.term);
+                        }
                         if (matches) {
                             termFoundInRow.add(termIdx);
                         }
