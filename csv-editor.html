@@ -418,7 +418,8 @@
         }
 
         .group-count-badge,
-        .filter-count-badge {
+        .filter-count-badge,
+        .search-count-badge {
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
             color: var(--text-muted);
@@ -426,7 +427,8 @@
         }
 
         .group-count-badge .count-num,
-        .filter-count-badge .count-num {
+        .filter-count-badge .count-num,
+        .search-count-badge .count-num {
             color: var(--accent-blue);
             font-weight: 600;
         }
@@ -1824,7 +1826,7 @@
                 <div class="table-controls-panel" id="controlsPanel">
                     <div class="controls-row-inline">
                         <div class="control-section" id="filterControls">
-                            <label>Filter:</label>
+                            <label>Filter</label>
                             <div class="filter-selects">
                                 <div class="filter-select-wrapper">
                                     <select class="filter-column-select" data-level="0">
@@ -1843,7 +1845,7 @@
                             </div>
                         </div>
                         <div class="control-section" id="sortControls">
-                            <label>Sort:</label>
+                            <label>Sort</label>
                             <div class="sort-selects">
                                 <div class="sort-select-wrapper">
                                     <select class="sort-column-select" data-level="0">
@@ -1858,7 +1860,7 @@
                             <button class="btn btn-small" id="addSortBtn" title="Add sub-sort">+</button>
                         </div>
                         <div class="control-section" id="groupControls">
-                            <label>Group:</label>
+                            <label>Group</label>
                             <div class="group-selects">
                                 <div class="group-select-wrapper">
                                     <select class="group-column-select" data-level="0">
@@ -1870,10 +1872,11 @@
                             <button class="btn btn-small" id="addGroupBtn" title="Add subgroup">+</button>
                         </div>
                         <div class="control-section" id="searchControls">
-                            <label>Search:</label>
+                            <label>Search</label>
                             <div class="search-selects">
                                 <div class="search-select-wrapper">
                                     <input type="text" class="search-value-input" data-level="0" placeholder="2+ chars, or &quot;&quot; for empty">
+                                    <span class="search-count-badge" data-level="0" style="display: none;"></span>
                                 </div>
                             </div>
                             <button class="btn btn-small" id="addSearchBtn" title="Add search term">+</button>
@@ -3062,6 +3065,72 @@
                 });
             }
 
+            updateSearchCounts() {
+                const badges = this.searchSelectsContainer.querySelectorAll('.search-count-badge');
+                const wrappers = this.searchSelectsContainer.querySelectorAll('.search-select-wrapper');
+                const filteredData = this.getFilteredData();
+
+                // Build list of active search terms up to each level
+                const activeTerms = [];
+                wrappers.forEach((wrapper, level) => {
+                    const input = wrapper.querySelector('.search-value-input');
+                    const badge = badges[level];
+
+                    if (!input) {
+                        if (badge) badge.style.display = 'none';
+                        return;
+                    }
+
+                    const term = input.value.trim();
+                    // Check if term is valid (either empty cell search or meets minimum length)
+                    const isValid = term === UI.EMPTY_CELL_SEARCH || term.length >= UI.MIN_SEARCH_CHARS;
+
+                    if (!term || !isValid) {
+                        if (badge) badge.style.display = 'none';
+                        return;
+                    }
+
+                    // Add this term to active terms (convert to search format)
+                    const searchTerm = term === UI.EMPTY_CELL_SEARCH ? EMPTY_CELL_MARKER : term.toLowerCase();
+                    activeTerms.push(searchTerm);
+
+                    // Count matching rows using all terms up to this level
+                    const termsUpToHere = [...activeTerms];
+                    let count = 0;
+
+                    filteredData.forEach(row => {
+                        const termFoundInRow = new Set();
+
+                        this.headers.forEach((_, colIdx) => {
+                            const cellValue = row[colIdx];
+                            const cellLower = String(cellValue || '').toLowerCase();
+                            termsUpToHere.forEach((t, termIdx) => {
+                                const matches = t === EMPTY_CELL_MARKER
+                                    ? String(cellValue || '') === ''
+                                    : cellLower.includes(t);
+                                if (matches) {
+                                    termFoundInRow.add(termIdx);
+                                }
+                            });
+                        });
+
+                        let rowMatches;
+                        if (this.searchLogic === LOGIC.AND) {
+                            rowMatches = termFoundInRow.size === termsUpToHere.length;
+                        } else {
+                            rowMatches = termFoundInRow.size > 0;
+                        }
+
+                        if (rowMatches) count++;
+                    });
+
+                    if (badge) {
+                        badge.innerHTML = `(<span class="count-num">${count}</span>)`;
+                        badge.style.display = 'inline';
+                    }
+                });
+            }
+
             createSearchSelect(level, showRemove = false) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'search-select-wrapper';
@@ -3076,6 +3145,13 @@
                 valueInput.dataset.level = level;
                 valueInput.placeholder = `${UI.MIN_SEARCH_CHARS}+ chars, or "" for empty`;
                 wrapper.appendChild(valueInput);
+
+                // Add count badge (hidden by default, shown when search is active)
+                const countBadge = document.createElement('span');
+                countBadge.className = 'search-count-badge';
+                countBadge.dataset.level = level;
+                countBadge.style.display = 'none';
+                wrapper.appendChild(countBadge);
 
                 if (showRemove) {
                     wrapper.appendChild(createRemoveButton('remove-search', 'Remove this search term'));
@@ -3263,9 +3339,10 @@
                 this.updateStats();
                 // Update navigation arrows after render
                 setTimeout(() => this.updateNavArrows(), 0);
-                // Update group and filter count badges
+                // Update group, filter, and search count badges
                 this.updateGroupCounts();
                 this.updateFilterCounts();
+                this.updateSearchCounts();
             }
 
             renderHeader() {
