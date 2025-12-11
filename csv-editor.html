@@ -851,7 +851,7 @@
             padding: 0;
             text-align: left;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-secondary);
             border-bottom: 1px solid var(--border-color);
             white-space: nowrap;
@@ -4673,7 +4673,7 @@
                         totalPart = `<strong>${total}</strong>`;
                     }
 
-                    this.tableTitleText.innerHTML = `Showing <strong style="color: var(--accent-blue); font-weight: 700;">${visible}</strong> / ${totalPart} rows (<strong>${percentText}</strong>)${filenamePart}`;
+                    this.tableTitleText.innerHTML = `<strong style="color: var(--accent-blue); font-weight: 700;">${visible}</strong> / ${totalPart} rows (<strong>${percentText}</strong>) showing${filenamePart}`;
                 } else {
                     // All rows showing - simpler format
                     let countPart = '';
@@ -4683,7 +4683,7 @@
                         countPart = `<strong>${total}</strong>`;
                     }
 
-                    this.tableTitleText.innerHTML = `Showing all ${countPart} rows${filenamePart}`;
+                    this.tableTitleText.innerHTML = `${countPart} rows (<strong>100%</strong>) showing${filenamePart}`;
                 }
 
                 this.selectedRowsSpan.textContent = this.selectedRows.size;
