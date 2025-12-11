@@ -1825,6 +1825,20 @@
                 </div>
                 <div class="table-controls-panel" id="controlsPanel">
                     <div class="controls-row-inline">
+                        <div class="control-section" id="searchControls">
+                            <label>Search</label>
+                            <div class="search-selects">
+                                <div class="search-select-wrapper">
+                                    <input type="text" class="search-value-input" data-level="0" placeholder="2+ chars, or &quot;&quot; for empty">
+                                    <span class="search-count-badge" data-level="0" style="display: none;"></span>
+                                </div>
+                            </div>
+                            <button class="btn btn-small" id="addSearchBtn" title="Add search term">+</button>
+                            <div class="density-selector" id="searchHighlightModeSelector">
+                                <button class="density-btn active" data-highlight-mode="row" title="Highlight entire row">Row</button>
+                                <button class="density-btn" data-highlight-mode="cell" title="Highlight matching cells only">Cell</button>
+                            </div>
+                        </div>
                         <div class="control-section" id="filterControls">
                             <label>Filter</label>
                             <div class="filter-selects">
@@ -1844,6 +1858,18 @@
                                 <button class="density-btn" data-filter-mode="highlight" title="Highlight matching rows">Highlight</button>
                             </div>
                         </div>
+                        <div class="control-section" id="groupControls">
+                            <label>Group</label>
+                            <div class="group-selects">
+                                <div class="group-select-wrapper">
+                                    <select class="group-column-select" data-level="0">
+                                        <option value="">No grouping</option>
+                                    </select>
+                                    <span class="group-count-badge" data-level="0" style="display: none;"></span>
+                                </div>
+                            </div>
+                            <button class="btn btn-small" id="addGroupBtn" title="Add subgroup">+</button>
+                        </div>
                         <div class="control-section" id="sortControls">
                             <label>Sort</label>
                             <div class="sort-selects">
@@ -1858,32 +1884,6 @@
                                 </div>
                             </div>
                             <button class="btn btn-small" id="addSortBtn" title="Add sub-sort">+</button>
-                        </div>
-                        <div class="control-section" id="groupControls">
-                            <label>Group</label>
-                            <div class="group-selects">
-                                <div class="group-select-wrapper">
-                                    <select class="group-column-select" data-level="0">
-                                        <option value="">No grouping</option>
-                                    </select>
-                                    <span class="group-count-badge" data-level="0" style="display: none;"></span>
-                                </div>
-                            </div>
-                            <button class="btn btn-small" id="addGroupBtn" title="Add subgroup">+</button>
-                        </div>
-                        <div class="control-section" id="searchControls">
-                            <label>Search</label>
-                            <div class="search-selects">
-                                <div class="search-select-wrapper">
-                                    <input type="text" class="search-value-input" data-level="0" placeholder="2+ chars, or &quot;&quot; for empty">
-                                    <span class="search-count-badge" data-level="0" style="display: none;"></span>
-                                </div>
-                            </div>
-                            <button class="btn btn-small" id="addSearchBtn" title="Add search term">+</button>
-                            <div class="density-selector" id="searchHighlightModeSelector">
-                                <button class="density-btn active" data-highlight-mode="row" title="Highlight entire row">Row</button>
-                                <button class="density-btn" data-highlight-mode="cell" title="Highlight matching cells only">Cell</button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -2241,6 +2241,10 @@
                         const wrapper = e.target.closest('.filter-select-wrapper');
                         if (wrapper) {
                             wrapper.remove();
+                            // If no filters left, add a fresh empty one
+                            if (this.filterSelectsContainer.children.length === 0) {
+                                this.filterSelectsContainer.appendChild(this.createFilterSelect(0));
+                            }
                             this.updateFilters();
                             this.updateFilterSelectLevels();
                         }
@@ -2263,6 +2267,10 @@
                         const wrapper = e.target.closest('.sort-select-wrapper');
                         if (wrapper) {
                             wrapper.remove();
+                            // If no sorts left, add a fresh empty one
+                            if (this.sortSelectsContainer.children.length === 0) {
+                                this.sortSelectsContainer.appendChild(this.createSortSelect(0));
+                            }
                             this.updateSortColumns();
                             this.updateSortSelectLevels();
                         }
@@ -2281,6 +2289,10 @@
                         const wrapper = e.target.closest('.group-select-wrapper');
                         if (wrapper) {
                             wrapper.remove();
+                            // If no groups left, add a fresh empty one
+                            if (this.groupSelectsContainer.children.length === 0) {
+                                this.groupSelectsContainer.appendChild(this.createGroupSelect(0));
+                            }
                             this.updateGroupColumns();
                             this.updateGroupSelectLevels();
                         }
@@ -2297,7 +2309,12 @@
                 this.searchSelectsContainer.addEventListener('click', (e) => {
                     if (e.target.classList.contains('remove-search')) {
                         e.target.closest('.search-select-wrapper').remove();
+                        // If no searches left, add a fresh empty one
+                        if (this.searchSelectsContainer.children.length === 0) {
+                            this.searchSelectsContainer.appendChild(this.createSearchSelect(0));
+                        }
                         this.updateSearch();
+                        this.updateSearchSelectLevels();
                     }
                 });
                 this.addSearchBtn.addEventListener('click', () => this.addSearchLevel());
@@ -2586,7 +2603,8 @@
                 countBadge.style.display = 'none';
                 wrapper.appendChild(countBadge);
 
-                if (showRemove) {
+                // Add remove button for non-first filters (first filter gets it when complete)
+                if (level > 0) {
                     wrapper.appendChild(createRemoveButton('remove-filter', 'Remove this filter'));
                 }
 
@@ -2740,6 +2758,7 @@
                 
                 this.renderTable();
                 this.updateSelectionUI();
+                this.updateFilterSelectLevels();
             }
 
             /**
@@ -2798,10 +2817,36 @@
 
                     // Handle remove button
                     const removeBtn = wrapper.querySelector(`.${removeClass}`);
-                    if (idx === 0 && wrappers.length === 1 && removeBtn) {
-                        removeBtn.remove();
-                    } else if (idx > 0 && !removeBtn) {
-                        wrapper.appendChild(createRemoveButton(removeClass, removeTitle));
+
+                    // For first row: only show remove if selection is complete
+                    if (idx === 0) {
+                        let isComplete = false;
+
+                        if (type === 'filter') {
+                            const valueSelect = wrapper.querySelector(`.${extraSelectClass}`);
+                            isComplete = colSelect.value !== '' &&
+                                valueSelect && !valueSelect.disabled &&
+                                valueSelect.value !== FILTER_VALUES.PLACEHOLDER;
+                        } else if (type === 'sort' || type === 'group') {
+                            isComplete = colSelect.value !== '';
+                        } else if (type === 'search') {
+                            const input = wrapper.querySelector('.search-value-input');
+                            if (input) {
+                                const term = input.value.trim();
+                                isComplete = term === UI.EMPTY_CELL_SEARCH || term.length >= UI.MIN_SEARCH_CHARS;
+                            }
+                        }
+
+                        if (isComplete && !removeBtn) {
+                            wrapper.appendChild(createRemoveButton(removeClass, removeTitle));
+                        } else if (!isComplete && removeBtn) {
+                            removeBtn.remove();
+                        }
+                    } else {
+                        // All other rows always have remove button
+                        if (!removeBtn) {
+                            wrapper.appendChild(createRemoveButton(removeClass, removeTitle));
+                        }
                     }
                 });
             }
@@ -2867,7 +2912,7 @@
             updateSortColumns() {
                 const wrappers = this.sortSelectsContainer.querySelectorAll('.sort-select-wrapper');
                 this.sortColumns = [];
-                
+
                 wrappers.forEach(wrapper => {
                     const colSelect = wrapper.querySelector('.sort-column-select');
                     const dirSelect = wrapper.querySelector('.sort-direction-select');
@@ -2878,8 +2923,9 @@
                         });
                     }
                 });
-                
+
                 this.renderTable();
+                this.updateSortSelectLevels();
             }
 
             updateSortSelectLevels() {
@@ -2891,7 +2937,8 @@
                     indicatorClass: 'sort-level-indicator',
                     extraSelectClass: 'sort-direction-select',
                     placeholders: ['No sorting', 'Then by...'],
-                    removeTitle: 'Remove this sort level'
+                    removeTitle: 'Remove this sort level',
+                    type: 'sort'
                 });
             }
 
@@ -2949,6 +2996,7 @@
 
                 this.collapsedGroups.clear();
                 this.renderTable();
+                this.updateGroupSelectLevels();
             }
 
             updateGroupSelectLevels() {
@@ -2959,7 +3007,8 @@
                     removeClass: 'remove-group',
                     indicatorClass: 'group-level-indicator',
                     placeholders: ['No grouping', 'Then by...'],
-                    removeTitle: 'Remove this group level'
+                    removeTitle: 'Remove this group level',
+                    type: 'group'
                 });
             }
 
@@ -3192,6 +3241,7 @@
                 });
 
                 this.renderTable();
+                this.updateSearchSelectLevels();
             }
 
             clearSearch() {
@@ -3200,6 +3250,19 @@
                 this.searchSelectsContainer.innerHTML = '';
                 this.searchSelectsContainer.appendChild(this.createSearchSelect(0));
                 this.renderTable();
+            }
+
+            updateSearchSelectLevels() {
+                this.updateSelectLevels({
+                    container: this.searchSelectsContainer,
+                    wrapperClass: 'search-select-wrapper',
+                    colSelectClass: 'search-value-input',
+                    removeClass: 'remove-search',
+                    logicClass: 'search-logic-toggle',
+                    placeholders: ['', ''],
+                    removeTitle: 'Remove this search term',
+                    type: 'search'
+                });
             }
 
             setSearchHighlightMode(mode) {
