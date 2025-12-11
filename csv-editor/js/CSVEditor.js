@@ -43,6 +43,9 @@ class CSVEditor {
         this.initializeManagers();
         this.attachEventListeners();
         this.renderTable();
+
+        // Ensure export button is disabled until a CSV is imported
+        this.exportBtn.disabled = true;
     }
 
     initializeManagers() {
@@ -100,6 +103,7 @@ class CSVEditor {
         this.exportSelectedOption = document.getElementById('exportSelectedOption');
         this.exportDeselectedOption = document.getElementById('exportDeselectedOption');
         this.tableTitleText = document.getElementById('tableTitleText');
+        this.tableRowCount = document.getElementById('tableRowCount');
         this.selectedRowsSpan = document.getElementById('selectedRows');
         this.selectedDisplay = document.getElementById('selectedDisplay');
         this.selectionActions = document.getElementById('selectionActions');
@@ -1747,17 +1751,18 @@ class CSVEditor {
         // Check if rows have been added or deleted
         const rowsModified = this.modStats.rowsDeleted > 0 || this.modStats.rowsAdded > 0;
 
-        // Build filename with red color if modified
-        let filenamePart = '';
+        // Build filename (in title area)
         if (this.fileName) {
             if (this.hasModifications()) {
-                filenamePart = ` from <strong style="color: var(--accent-red); cursor: help;" title="File has been modified">${this.fileName}</strong>`;
+                this.tableTitleText.innerHTML = `<strong style="color: var(--accent-red); cursor: help;" title="File has been modified">${this.fileName}</strong>`;
             } else {
-                filenamePart = ` from <strong>${this.fileName}</strong>`;
+                this.tableTitleText.innerHTML = `<strong>${this.fileName}</strong>`;
             }
+        } else {
+            this.tableTitleText.innerHTML = '';
         }
 
-        // Build the label differently based on whether rows are filtered
+        // Build the row count line (after controls panel)
         if (isFiltered) {
             // Build total count with red color if rows added/deleted
             let totalPart = '';
@@ -1767,7 +1772,7 @@ class CSVEditor {
                 totalPart = `<strong>${total}</strong>`;
             }
 
-            this.tableTitleText.innerHTML = `<strong style="color: var(--accent-blue); font-weight: 700;">${visible}</strong> / ${totalPart} rows (<strong>${percentText}</strong>) showing${filenamePart}`;
+            this.tableRowCount.innerHTML = `<strong style="color: var(--accent-blue); font-weight: 700;">${visible}</strong> / ${totalPart} rows (<strong>${percentText}</strong>) showing`;
         } else {
             // All rows showing - simpler format
             let countPart = '';
@@ -1777,7 +1782,7 @@ class CSVEditor {
                 countPart = `<strong>${total}</strong>`;
             }
 
-            this.tableTitleText.innerHTML = `${countPart} rows (<strong>100%</strong>) showing${filenamePart}`;
+            this.tableRowCount.innerHTML = `${countPart} rows (<strong>100%</strong>) showing`;
         }
 
         this.selectedRowsSpan.textContent = this.selectedRows.size;

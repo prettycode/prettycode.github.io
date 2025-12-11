@@ -230,7 +230,7 @@
         .controls-row {
             display: flex;
             gap: 16px;
-            margin-bottom: 16px;
+            margin-top: 16px;
             flex-wrap: wrap;
             flex-shrink: 0;
         }
@@ -643,6 +643,14 @@
             color: var(--text-secondary);
             flex-shrink: 1;
             min-width: 0;
+        }
+
+        .table-row-count {
+            font-size: 14px;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .table-info-row {
@@ -1710,7 +1718,7 @@
         }
 
         .export-dropdown .dropdown-arrow {
-            font-size: 10px;
+            font-size: 14px;
             margin-left: 4px;
         }
 
