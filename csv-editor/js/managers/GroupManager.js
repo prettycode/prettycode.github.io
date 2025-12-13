@@ -45,7 +45,7 @@ class GroupManager {
         const lastSelect = colSelects[colSelects.length - 1];
 
         if (!lastSelect.value) {
-            showToast('Select a column to group by first', 'error');
+            showToast('Select a column to group by first', TOAST_TYPE.ERROR);
             return;
         }
 
@@ -106,7 +106,7 @@ class GroupManager {
                 // Simple count of unique values in this column
                 const uniqueValues = new Set();
                 filteredData.forEach(row => {
-                    uniqueValues.add(row[colIdx] || '(empty)');
+                    uniqueValues.add(row[colIdx] || PLACEHOLDER.EMPTY);
                 });
                 count = uniqueValues.size;
             } else {
@@ -118,7 +118,7 @@ class GroupManager {
                     for (let i = 0; i <= level; i++) {
                         const groupColIdx = parseInt(selects[i].value);
                         if (isNaN(groupColIdx)) break;
-                        const val = row[groupColIdx] || '(empty)';
+                        const val = row[groupColIdx] || PLACEHOLDER.EMPTY;
                         path += (i > 0 ? '|' : '') + val;
                     }
                     uniquePaths.add(path);

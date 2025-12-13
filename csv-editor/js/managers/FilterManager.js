@@ -96,7 +96,7 @@ class FilterManager {
         if (hasEmpty) {
             const emptyOption = document.createElement('option');
             emptyOption.value = FILTER_VALUES.EMPTY;
-            emptyOption.textContent = '(empty)';
+            emptyOption.textContent = PLACEHOLDER.EMPTY;
             valueSelect.appendChild(emptyOption);
         }
 
@@ -118,7 +118,7 @@ class FilterManager {
         const lastValueSelect = lastWrapper.querySelector('.filter-value-select');
 
         if (!lastSelect.value || lastValueSelect.value === FILTER_VALUES.PLACEHOLDER) {
-            showToast('Complete the current filter first', 'error');
+            showToast('Complete the current filter first', TOAST_TYPE.ERROR);
             return;
         }
 
@@ -233,7 +233,7 @@ class FilterManager {
     setMode(mode) {
         this.filterAsHighlight = mode === 'highlight';
         this.editor.filterModeBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.filterMode === mode);
+            btn.classList.toggle(CSS.ACTIVE, btn.dataset.filterMode === mode);
         });
         this.editor.renderTable();
     }

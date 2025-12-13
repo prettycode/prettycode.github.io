@@ -3,6 +3,14 @@
 // ============================================
 
 /**
+ * Deep clones an object using JSON serialization.
+ * Note: Does not preserve functions, undefined, Symbol, or circular references.
+ */
+function deepClone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
+/**
  * Creates a fresh modification stats object
  */
 function createModStats() {
@@ -87,7 +95,7 @@ function populateColumnOptions(select, headers, placeholderText) {
 /**
  * Shows a toast notification
  */
-function showToast(message, type = 'info') {
+function showToast(message, type = TOAST_TYPE.INFO) {
     const existingToast = document.querySelector('.toast');
     if (existingToast) {
         existingToast.remove();
@@ -96,13 +104,13 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
-        <span>${TOAST_ICONS[type] || TOAST_ICONS.info}</span>
+        <span>${TOAST_ICONS[type] || TOAST_ICONS[TOAST_TYPE.INFO]}</span>
         ${message}
     `;
     document.body.appendChild(toast);
 
     setTimeout(() => {
-        toast.classList.add('hiding');
+        toast.classList.add(CSS.HIDING);
         setTimeout(() => toast.remove(), TIMING.TOAST_FADE);
     }, TIMING.TOAST_DURATION);
 }

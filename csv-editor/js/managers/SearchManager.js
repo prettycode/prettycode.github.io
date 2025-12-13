@@ -75,7 +75,7 @@ class SearchManager {
         const term = lastInput.value.trim();
 
         if (!this.isValidSearchTerm(term)) {
-            showToast(`Enter at least ${UI.MIN_SEARCH_CHARS} characters, or use quotes for single character`, 'error');
+            showToast(`Enter at least ${UI.MIN_SEARCH_CHARS} characters, or use quotes for single character`, TOAST_TYPE.ERROR);
             return;
         }
 
@@ -195,7 +195,7 @@ class SearchManager {
     setMode(mode) {
         this.searchHighlightRow = mode === 'row';
         this.editor.searchHighlightModeBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.highlightMode === mode);
+            btn.classList.toggle(CSS.ACTIVE, btn.dataset.highlightMode === mode);
         });
         this.editor.renderTable();
     }

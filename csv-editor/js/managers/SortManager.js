@@ -46,7 +46,7 @@ class SortManager {
         const lastSelect = colSelects[colSelects.length - 1];
 
         if (!lastSelect.value) {
-            showToast('Select a column to sort by first', 'error');
+            showToast('Select a column to sort by first', TOAST_TYPE.ERROR);
             return;
         }
 

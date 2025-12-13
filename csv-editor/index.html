@@ -66,14 +66,6 @@
                         </div>
                     </div>
                     <div class="table-info-row">
-                        <div class="selection-actions" id="selectionActions">
-                            <span class="selected-count-display" id="selectedDisplay">
-                                <span class="selected-dot"></span>
-                                <strong id="selectedRows">0</strong> selected
-                            </span>
-                            <button class="btn-inline" id="clearSelectionBtn" disabled>✕ Clear</button>
-                            <button class="btn-inline btn-inline-danger" id="deleteSelectedBtn" disabled>🗑 Delete</button>
-                        </div>
                         <div class="table-info-left">
                             <div class="density-selector">
                                 <button class="density-btn active" data-density="compact" title="Compact">
@@ -185,7 +177,17 @@
                         </div>
                     </div>
                 </div>
-                <div class="table-row-count" id="tableRowCount"></div>
+                <div class="table-row-count">
+                    <span id="tableRowCount"></span>
+                    <div class="selection-actions" id="selectionActions">
+                        <span class="selected-count-display" id="selectedDisplay">
+                            <span class="selected-dot"></span>
+                            <strong id="selectedRows">0</strong> selected
+                        </span>
+                        <button class="btn-inline" id="clearSelectionBtn" disabled>✕ Clear</button>
+                        <button class="btn-inline btn-inline-danger" id="deleteSelectedBtn" disabled>🗑 Delete</button>
+                    </div>
+                </div>
                 <div class="table-scroll" id="tableScroll">
                     <table id="dataTable">
                         <thead id="tableHead"></thead>

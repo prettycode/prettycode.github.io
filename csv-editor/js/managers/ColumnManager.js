@@ -18,7 +18,7 @@ class ColumnManager {
 
     handleDragStart(e, colIdx) {
         this.draggedColIdx = colIdx;
-        e.target.classList.add('dragging');
+        e.target.classList.add(CSS.DRAGGING);
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', colIdx);
 
@@ -31,7 +31,7 @@ class ColumnManager {
     }
 
     handleDragEnd(e) {
-        e.target.classList.remove('dragging');
+        e.target.classList.remove(CSS.DRAGGING);
         this.draggedColIdx = null;
 
         // Remove drag ghost
@@ -41,8 +41,8 @@ class ColumnManager {
         }
 
         // Remove all drag-over classes
-        document.querySelectorAll('.drag-over-left, .drag-over-right').forEach(el => {
-            el.classList.remove('drag-over-left', 'drag-over-right');
+        document.querySelectorAll('.' + CSS.DRAG_OVER_LEFT + ', .' + CSS.DRAG_OVER_RIGHT).forEach(el => {
+            el.classList.remove(CSS.DRAG_OVER_LEFT, CSS.DRAG_OVER_RIGHT);
         });
     }
 
@@ -55,24 +55,24 @@ class ColumnManager {
         const midpoint = rect.left + rect.width / 2;
 
         // Remove existing classes
-        th.classList.remove('drag-over-left', 'drag-over-right');
+        th.classList.remove(CSS.DRAG_OVER_LEFT, CSS.DRAG_OVER_RIGHT);
 
         // Add appropriate class based on cursor position
         if (e.clientX < midpoint) {
-            th.classList.add('drag-over-left');
+            th.classList.add(CSS.DRAG_OVER_LEFT);
         } else {
-            th.classList.add('drag-over-right');
+            th.classList.add(CSS.DRAG_OVER_RIGHT);
         }
     }
 
     handleDragLeave(e) {
-        e.currentTarget.classList.remove('drag-over-left', 'drag-over-right');
+        e.currentTarget.classList.remove(CSS.DRAG_OVER_LEFT, CSS.DRAG_OVER_RIGHT);
     }
 
     handleDrop(e, targetColIdx) {
         e.preventDefault();
         const th = e.currentTarget;
-        th.classList.remove('drag-over-left', 'drag-over-right');
+        th.classList.remove(CSS.DRAG_OVER_LEFT, CSS.DRAG_OVER_RIGHT);
 
         if (this.draggedColIdx === null || this.draggedColIdx === targetColIdx) return;
 
@@ -140,7 +140,7 @@ class ColumnManager {
         this.editor.markAsModified();
         this.editor.populateDropdowns();
         this.editor.renderTable();
-        showToast(`Moved column "${header}"`, 'success');
+        showToast(`Moved column "${header}"`, TOAST_TYPE.SUCCESS);
     }
 
     updateReferences(fromIdx, toIdx) {
@@ -162,7 +162,7 @@ class ColumnManager {
 
     delete(colIdx) {
         if (this.editor.headers.length <= 1) {
-            showToast('Cannot delete the last column', 'error');
+            showToast('Cannot delete the last column', TOAST_TYPE.ERROR);
             return;
         }
 
@@ -214,7 +214,7 @@ class ColumnManager {
         this.editor.markAsModified();
         this.editor.populateDropdowns();
         this.editor.renderTable();
-        showToast(`Deleted column "${headerName}"`, 'success');
+        showToast(`Deleted column "${headerName}"`, TOAST_TYPE.SUCCESS);
     }
 
     updateReferencesAfterDelete(deletedIdx) {
@@ -239,12 +239,12 @@ class ColumnManager {
     showAddModal() {
         this.editor.newColumnNameInput.value = '';
         this.editor.newColumnDefaultInput.value = '';
-        this.editor.addColumnModal.classList.remove('hidden');
+        this.editor.addColumnModal.classList.remove(CSS.HIDDEN);
         this.editor.newColumnNameInput.focus();
     }
 
     hideAddModal() {
-        this.editor.addColumnModal.classList.add('hidden');
+        this.editor.addColumnModal.classList.add(CSS.HIDDEN);
         this.insertColumnIdx = null;
     }
 
@@ -252,7 +252,7 @@ class ColumnManager {
         const columnName = this.editor.newColumnNameInput.value.trim();
 
         if (!columnName) {
-            showToast('Please enter a column name', 'error');
+            showToast('Please enter a column name', TOAST_TYPE.ERROR);
             return;
         }
 
@@ -306,7 +306,7 @@ class ColumnManager {
         this.editor.populateDropdowns();
         this.editor.renderTable();
         this.hideAddModal();
-        showToast(`Column "${columnName}" added`, 'success');
+        showToast(`Column "${columnName}" added`, TOAST_TYPE.SUCCESS);
     }
 
     updateReferencesAfterInsert(insertIdx) {

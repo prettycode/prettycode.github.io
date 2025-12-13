@@ -71,7 +71,7 @@ class SelectionManager {
         this.editor.markAsModified();
         this.editor.renderTable();
         this.updateUI();
-        showToast(`Deleted ${indicesToDelete.length} row${indicesToDelete.length !== 1 ? 's' : ''}`, 'success');
+        showToast(`Deleted ${indicesToDelete.length} row${indicesToDelete.length !== 1 ? 's' : ''}`, TOAST_TYPE.SUCCESS);
     }
 
     updateUI() {
@@ -82,9 +82,9 @@ class SelectionManager {
 
         // Show/hide selection actions area
         if (hasSelected) {
-            this.editor.selectionActions.classList.add('has-selection');
+            this.editor.selectionActions.classList.add(CSS.HAS_SELECTION);
         } else {
-            this.editor.selectionActions.classList.remove('has-selection');
+            this.editor.selectionActions.classList.remove(CSS.HAS_SELECTION);
         }
 
         // Update export dropdown options and arrow visibility
@@ -100,7 +100,7 @@ class SelectionManager {
 
         // Close menu if no rows selected
         if (!hasSelected) {
-            this.editor.exportMenu.classList.add('hidden');
+            this.editor.exportMenu.classList.add(CSS.HIDDEN);
         }
 
         const headerCheckbox = document.getElementById('headerCheckbox');
@@ -127,8 +127,8 @@ class SelectionManager {
         const matchingRows = this.getMatchingRows();
 
         if (matchingRows.length === 0) {
-            this.editor.rowNavUp.classList.add('hidden');
-            this.editor.rowNavDown.classList.add('hidden');
+            this.editor.rowNavUp.classList.add(CSS.HIDDEN);
+            this.editor.rowNavDown.classList.add(CSS.HIDDEN);
             return;
         }
 
@@ -151,17 +151,17 @@ class SelectionManager {
         });
 
         if (aboveCount > 0) {
-            this.editor.rowNavUp.classList.remove('hidden');
+            this.editor.rowNavUp.classList.remove(CSS.HIDDEN);
             this.editor.rowNavUpCount.textContent = aboveCount;
         } else {
-            this.editor.rowNavUp.classList.add('hidden');
+            this.editor.rowNavUp.classList.add(CSS.HIDDEN);
         }
 
         if (belowCount > 0) {
-            this.editor.rowNavDown.classList.remove('hidden');
+            this.editor.rowNavDown.classList.remove(CSS.HIDDEN);
             this.editor.rowNavDownCount.textContent = belowCount;
         } else {
-            this.editor.rowNavDown.classList.add('hidden');
+            this.editor.rowNavDown.classList.add(CSS.HIDDEN);
         }
     }
 

@@ -262,14 +262,14 @@ class CSVEditor {
             if (this.selectedRows.size === 0) {
                 this.showExportModal('all');
             } else {
-                this.exportMenu.classList.toggle('hidden');
+                this.exportMenu.classList.toggle(CSS.HIDDEN);
             }
         });
 
         document.addEventListener('click', (e) => {
-            if (!this.exportMenu.classList.contains('hidden') &&
+            if (!this.exportMenu.classList.contains(CSS.HIDDEN) &&
                 !e.target.closest('.export-dropdown')) {
-                this.exportMenu.classList.add('hidden');
+                this.exportMenu.classList.add(CSS.HIDDEN);
             }
         });
 
@@ -278,7 +278,7 @@ class CSVEditor {
             if (option && !option.disabled) {
                 const exportType = option.dataset.export;
                 this.showExportModal(exportType);
-                this.exportMenu.classList.add('hidden');
+                this.exportMenu.classList.add(CSS.HIDDEN);
             }
         });
 
@@ -355,7 +355,7 @@ class CSVEditor {
             this.originalData.push(row);
         }
 
-        this.currentData = JSON.parse(JSON.stringify(this.originalData));
+        this.currentData = deepClone(this.originalData);
         this.selectedRows.clear();
         this.lastClickedRowIdx = null;
         this.isModified = false;
@@ -364,7 +364,7 @@ class CSVEditor {
         this.filterLogic = LOGIC.AND;
         this.filterAsHighlight = false;
         this.filterModeBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.filterMode === 'filter');
+            btn.classList.toggle(CSS.ACTIVE, btn.dataset.filterMode === 'filter');
         });
         this.highlightTerms = [];
         this.searchLogic = LOGIC.AND;
@@ -431,11 +431,11 @@ class CSVEditor {
     }
 
     showEditor() {
-        this.uploadZone.classList.add('hidden');
-        this.editorSection.classList.remove('hidden');
+        this.uploadZone.classList.add(CSS.HIDDEN);
+        this.editorSection.classList.remove(CSS.HIDDEN);
         this.exportBtn.disabled = false;
-        this.undoChangesBtn.classList.add('hidden');
-        this.modificationIndicator.classList.add('hidden');
+        this.undoChangesBtn.classList.add(CSS.HIDDEN);
+        this.modificationIndicator.classList.add(CSS.HIDDEN);
 
         // Hide dropdown arrow initially (no rows selected)
         const dropdownArrow = this.exportBtn.querySelector('.dropdown-arrow');
@@ -708,10 +708,10 @@ class CSVEditor {
      */
     applyColumnClasses(td, colIdx) {
         if (this.addedColumns.has(colIdx)) {
-            td.classList.add('col-added');
+            td.classList.add(CSS.COL_ADDED);
         }
         if (this.numericColumnsCache && this.numericColumnsCache.has(colIdx)) {
-            td.classList.add('col-numeric');
+            td.classList.add(CSS.COL_NUMERIC);
         }
     }
 
@@ -779,10 +779,10 @@ class CSVEditor {
             const th = document.createElement('th');
             th.className = 'draggable';
             if (this.addedColumns.has(colIdx)) {
-                th.classList.add('col-added');
+                th.classList.add(CSS.COL_ADDED);
             }
             if (this.numericColumnsCache && this.numericColumnsCache.has(colIdx)) {
-                th.classList.add('col-numeric');
+                th.classList.add(CSS.COL_NUMERIC);
             }
             // Apply rainbow column coloring to header if enabled
             if (this.rainbowBgColumns) {
@@ -959,7 +959,7 @@ class CSVEditor {
         const groupCol = this.groupColumns[level];
         const groups = {};
         data.forEach(row => {
-            const groupValue = row[groupCol] || '(empty)';
+            const groupValue = row[groupCol] || PLACEHOLDER.EMPTY;
             if (!groups[groupValue]) {
                 groups[groupValue] = [];
             }
@@ -982,7 +982,7 @@ class CSVEditor {
             headerTd.colSpan = this.headers.length + 2; // +2 for checkbox and line number columns
             headerTd.innerHTML = `
                 <span class="group-toggle" style="padding-left: ${indent}px;">
-                    <span class="group-toggle-icon ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                    <span class="group-toggle-icon ${isCollapsed ? CSS.COLLAPSED : ''}">▼</span>
                     <span class="group-label"><b>${groupHeaderName}</b> = <b>${groupValue}</b></span>
                     <span class="group-count">(<span class="group-count-num">${groupRows.length}</span> rows)</span>
                 </span>
@@ -1015,7 +1015,7 @@ class CSVEditor {
         tr.dataset.index = idx;
 
         if (this.selectedRows.has(idx)) {
-            tr.classList.add('selected');
+            tr.classList.add(CSS.SELECTED);
         }
 
         const tdCheckbox = document.createElement('td');
@@ -1045,10 +1045,10 @@ class CSVEditor {
                 // Normal click
                 if (checkbox.checked) {
                     this.selectedRows.add(idx);
-                    tr.classList.add('selected');
+                    tr.classList.add(CSS.SELECTED);
                 } else {
                     this.selectedRows.delete(idx);
-                    tr.classList.remove('selected');
+                    tr.classList.remove(CSS.SELECTED);
                 }
                 this.lastClickedRowIdx = idx;
                 this.updateSelectionUI();
@@ -1064,13 +1064,13 @@ class CSVEditor {
         
         // Check if this row has any modified cells
         if (this.modifiedCells.has(idx)) {
-            tdLineNum.classList.add('row-modified');
+            tdLineNum.classList.add(CSS.ROW_MODIFIED);
         }
         tr.appendChild(tdLineNum);
 
         // Get modified cells for this row
         const modifiedColsForRow = this.modifiedCells.get(idx) || new Set();
-        
+
         // Track which search terms match which cells
         const cellMatchesTerms = new Map(); // colIdx -> Set of matching term indices
         const termFoundInRow = new Set(); // Which terms have been found anywhere in row
@@ -1083,14 +1083,14 @@ class CSVEditor {
 
             // Check if this specific cell was modified
             if (modifiedColsForRow.has(colIdx)) {
-                td.classList.add('cell-modified');
+                td.classList.add(CSS.CELL_MODIFIED);
             }
-            
+
             const cellValue = row[colIdx] || '';
             // Display dash for empty cells if setting is enabled
             if (cellValue === '' && this.showEmptyAsDash) {
                 td.textContent = '—';
-                td.classList.add('empty-cell-dash');
+                td.classList.add(CSS.EMPTY_CELL_DASH);
             } else {
                 td.textContent = cellValue;
             }
@@ -1152,19 +1152,19 @@ class CSVEditor {
         // Apply highlighting to matching cells and row
         if (rowHasHighlight) {
             // Always mark row as having a match (for navigation)
-            tr.classList.add('row-has-match');
+            tr.classList.add(CSS.ROW_HAS_MATCH);
 
             // Always highlight matching cells (for text emphasis)
             const cells = tr.querySelectorAll('td.editable-cell');
             cells.forEach((td, colIdx) => {
                 if (cellMatchesTerms.has(colIdx)) {
-                    td.classList.add('cell-highlighted');
+                    td.classList.add(CSS.CELL_HIGHLIGHTED);
                 }
             });
 
             // Row mode: also highlight entire row
             if (this.searchHighlightRow) {
-                tr.classList.add('row-highlighted');
+                tr.classList.add(CSS.ROW_HIGHLIGHTED);
             }
         }
 
@@ -1186,8 +1186,8 @@ class CSVEditor {
             }
 
             if (filterMatches) {
-                tr.classList.add('row-highlighted');
-                tr.classList.add('row-has-match');
+                tr.classList.add(CSS.ROW_HIGHLIGHTED);
+                tr.classList.add(CSS.ROW_HAS_MATCH);
             }
         }
 
@@ -1196,25 +1196,25 @@ class CSVEditor {
 
     toggleAggregates() {
         this.showAggregates = !this.showAggregates;
-        this.aggregateToggle.classList.toggle('active', this.showAggregates);
+        this.aggregateToggle.classList.toggle(CSS.ACTIVE, this.showAggregates);
         this.renderTable();
     }
 
     toggleEmptyAsDash() {
         this.showEmptyAsDash = !this.showEmptyAsDash;
-        this.emptyDashToggle.classList.toggle('active', this.showEmptyAsDash);
+        this.emptyDashToggle.classList.toggle(CSS.ACTIVE, this.showEmptyAsDash);
         this.renderTable();
     }
 
     toggleRainbowBg() {
         this.rainbowBgColumns = !this.rainbowBgColumns;
-        this.rainbowBgToggle.classList.toggle('active', this.rainbowBgColumns);
+        this.rainbowBgToggle.classList.toggle(CSS.ACTIVE, this.rainbowBgColumns);
         this.renderTable();
     }
 
     toggleRainbowText() {
         this.rainbowTextColumns = !this.rainbowTextColumns;
-        this.rainbowTextToggle.classList.toggle('active', this.rainbowTextColumns);
+        this.rainbowTextToggle.classList.toggle(CSS.ACTIVE, this.rainbowTextColumns);
         this.renderTable();
     }
 
@@ -1224,7 +1224,7 @@ class CSVEditor {
         const goldenAngle = 137.508;
         const adjustedHue = (colIdx * goldenAngle) % 360;
         // Check if dark theme is active
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const isDark = document.documentElement.getAttribute('data-theme') === THEME.DARK;
 
         if (forText) {
             if (isDark) {
@@ -1260,9 +1260,9 @@ class CSVEditor {
     }
 
     toggleControlsPanel() {
-        const isHidden = this.controlsPanel.classList.contains('hidden');
-        this.controlsPanel.classList.toggle('hidden');
-        this.controlsToggle.classList.toggle('active', isHidden);
+        const isHidden = this.controlsPanel.classList.contains(CSS.HIDDEN);
+        this.controlsPanel.classList.toggle(CSS.HIDDEN);
+        this.controlsToggle.classList.toggle(CSS.ACTIVE, isHidden);
     }
 
     isColumnNumeric(colIdx) {
@@ -1555,13 +1555,13 @@ class CSVEditor {
             this.modifiedCells.get(rowIdx).add(column);
             
             // Apply modified styling to the cell
-            td.classList.add('cell-modified');
-            
+            td.classList.add(CSS.CELL_MODIFIED);
+
             // Apply modified styling to the line number cell
             const row = td.closest('tr');
             const lineNumCell = row.querySelector('.line-num-col');
             if (lineNumCell) {
-                lineNumCell.classList.add('row-modified');
+                lineNumCell.classList.add(CSS.ROW_MODIFIED);
             }
             
             this.markAsModified();
@@ -1729,12 +1729,12 @@ class CSVEditor {
         }
 
         this.selectedRowsSpan.textContent = this.selectedRows.size;
-        
+
         // Show/hide selection actions area
         if (this.selectedRows.size > 0) {
-            this.selectionActions.classList.add('has-selection');
+            this.selectionActions.classList.add(CSS.HAS_SELECTION);
         } else {
-            this.selectionActions.classList.remove('has-selection');
+            this.selectionActions.classList.remove(CSS.HAS_SELECTION);
         }
     }
 
@@ -1751,9 +1751,9 @@ class CSVEditor {
 
         // Show/hide undo button based on whether there are actual modifications
         if (this.hasModifications()) {
-            this.undoChangesBtn.classList.remove('hidden');
+            this.undoChangesBtn.classList.remove(CSS.HIDDEN);
         } else {
-            this.undoChangesBtn.classList.add('hidden');
+            this.undoChangesBtn.classList.add(CSS.HIDDEN);
         }
 
         this.updateModificationDisplay();
@@ -1765,65 +1765,65 @@ class CSVEditor {
 
     updateModificationDisplay() {
         const hasChanges = this.hasModifications();
-        
+
         if (hasChanges) {
-            this.modificationIndicator.classList.remove('hidden');
-            
+            this.modificationIndicator.classList.remove(CSS.HIDDEN);
+
             // Update each stat
             const rowsDeletedEl = document.getElementById('modRowsDeleted');
             const rowsChangedEl = document.getElementById('modRowsChanged');
             const colsAddedEl = document.getElementById('modColsAdded');
             const colsDeletedEl = document.getElementById('modColsDeleted');
             const colsReorderedEl = document.getElementById('modColsReordered');
-            
+
             if (this.modStats.rowsDeleted > 0) {
-                rowsDeletedEl.classList.remove('hidden');
+                rowsDeletedEl.classList.remove(CSS.HIDDEN);
                 rowsDeletedEl.querySelector('.mod-num').textContent = this.modStats.rowsDeleted;
             } else {
-                rowsDeletedEl.classList.add('hidden');
+                rowsDeletedEl.classList.add(CSS.HIDDEN);
             }
-            
+
             if (this.modStats.rowsChanged.size > 0) {
-                rowsChangedEl.classList.remove('hidden');
+                rowsChangedEl.classList.remove(CSS.HIDDEN);
                 rowsChangedEl.querySelector('.mod-num').textContent = this.modStats.rowsChanged.size;
             } else {
-                rowsChangedEl.classList.add('hidden');
+                rowsChangedEl.classList.add(CSS.HIDDEN);
             }
-            
+
             if (this.modStats.columnsAdded > 0) {
-                colsAddedEl.classList.remove('hidden');
+                colsAddedEl.classList.remove(CSS.HIDDEN);
                 colsAddedEl.querySelector('.mod-num').textContent = this.modStats.columnsAdded;
             } else {
-                colsAddedEl.classList.add('hidden');
+                colsAddedEl.classList.add(CSS.HIDDEN);
             }
-            
+
             if (this.modStats.columnsDeleted > 0) {
-                colsDeletedEl.classList.remove('hidden');
+                colsDeletedEl.classList.remove(CSS.HIDDEN);
                 colsDeletedEl.querySelector('.mod-num').textContent = this.modStats.columnsDeleted;
             } else {
-                colsDeletedEl.classList.add('hidden');
+                colsDeletedEl.classList.add(CSS.HIDDEN);
             }
-            
+
             if (this.modStats.columnsReordered > 0) {
-                colsReorderedEl.classList.remove('hidden');
+                colsReorderedEl.classList.remove(CSS.HIDDEN);
             } else {
-                colsReorderedEl.classList.add('hidden');
+                colsReorderedEl.classList.add(CSS.HIDDEN);
             }
         } else {
-            this.modificationIndicator.classList.add('hidden');
+            this.modificationIndicator.classList.add(CSS.HIDDEN);
         }
     }
 
     undoChanges() {
         if (!this.isModified) return;
 
-        this.currentData = JSON.parse(JSON.stringify(this.originalData));
+        this.currentData = deepClone(this.originalData);
         this.headers = [...this.originalHeaders];
         this.selectedRows.clear();
         this.lastClickedRowIdx = null;
         this.isModified = false;
-        this.modificationIndicator.classList.add('hidden');
-        this.undoChangesBtn.classList.add('hidden');
+        this.modificationIndicator.classList.add(CSS.HIDDEN);
+        this.undoChangesBtn.classList.add(CSS.HIDDEN);
         this.modStats = createModStats();
         this.modifiedCells = new Map();
         this.addedColumns = new Set();
@@ -1831,7 +1831,7 @@ class CSVEditor {
         this.filterLogic = LOGIC.AND;
         this.filterAsHighlight = false;
         this.filterModeBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.filterMode === 'filter');
+            btn.classList.toggle(CSS.ACTIVE, btn.dataset.filterMode === 'filter');
         });
         this.highlightTerms = [];
         this.searchLogic = LOGIC.AND;
@@ -1849,7 +1849,7 @@ class CSVEditor {
         // Notify TabManager to update tab modified state
         this.tabManager.saveTabState(this.tabManager.getCurrentTabId());
 
-        showToast('All changes have been undone', 'success');
+        showToast('All changes have been undone', TOAST_TYPE.SUCCESS);
     }
 
     showExportModal(exportType) {
@@ -1862,27 +1862,27 @@ class CSVEditor {
         } else if (exportType === 'deselected') {
             defaultName += '_deselected';
         }
-        defaultName += '.csv';
+        defaultName += FILE_EXT.CSV;
 
         this.exportFilenameInput.value = defaultName;
-        this.exportFilenameModal.classList.remove('hidden');
+        this.exportFilenameModal.classList.remove(CSS.HIDDEN);
         this.exportFilenameInput.focus();
         this.exportFilenameInput.select();
     }
 
     hideExportModal() {
-        this.exportFilenameModal.classList.add('hidden');
+        this.exportFilenameModal.classList.add(CSS.HIDDEN);
         this.pendingExportType = null;
     }
 
     confirmExport() {
         let filename = this.exportFilenameInput.value.trim();
         if (!filename) {
-            filename = 'exported_data.csv';
+            filename = 'exported_data' + FILE_EXT.CSV;
         }
         // Ensure .csv extension
-        if (!filename.toLowerCase().endsWith('.csv')) {
-            filename += '.csv';
+        if (!filename.toLowerCase().endsWith(FILE_EXT.CSV)) {
+            filename += FILE_EXT.CSV;
         }
         this.hideExportModal();
         this.exportCSV(this.pendingExportType, filename);
@@ -1912,7 +1912,7 @@ class CSVEditor {
             csv += this.headers.map((_, colIdx) => escapeCSV(row[colIdx])).join(',') + '\n';
         });
 
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([csv], { type: MIME_TYPE.CSV });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -1924,7 +1924,7 @@ class CSVEditor {
 
         const rowCount = dataToExport.length;
         const typeLabel = exportType === 'all' ? '' : ` (${exportType})`;
-        showToast(`Exported ${rowCount} row${rowCount !== 1 ? 's' : ''}${typeLabel}`, 'success');
+        showToast(`Exported ${rowCount} row${rowCount !== 1 ? 's' : ''}${typeLabel}`, TOAST_TYPE.SUCCESS);
     }
 
     showAddColumnModal() {
@@ -1944,7 +1944,7 @@ class CSVEditor {
 
         // Update button states
         this.densityBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.density === density);
+            btn.classList.toggle(CSS.ACTIVE, btn.dataset.density === density);
         });
 
         // Update table class
@@ -1965,10 +1965,10 @@ class CSVEditor {
     initTheme() {
         const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+        const theme = savedTheme || (prefersDark ? THEME.DARK : THEME.LIGHT);
 
-        if (theme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
+        if (theme === THEME.DARK) {
+            document.documentElement.setAttribute('data-theme', THEME.DARK);
             this.themeIcon.textContent = '☀️';
         } else {
             document.documentElement.removeAttribute('data-theme');
@@ -1982,11 +1982,11 @@ class CSVEditor {
         if (isDark) {
             document.documentElement.removeAttribute('data-theme');
             this.themeIcon.textContent = '🌙';
-            localStorage.setItem(STORAGE_KEYS.THEME, 'light');
+            localStorage.setItem(STORAGE_KEYS.THEME, THEME.LIGHT);
         } else {
-            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.setAttribute('data-theme', THEME.DARK);
             this.themeIcon.textContent = '☀️';
-            localStorage.setItem(STORAGE_KEYS.THEME, 'dark');
+            localStorage.setItem(STORAGE_KEYS.THEME, THEME.DARK);
         }
     }
 
@@ -1994,7 +1994,7 @@ class CSVEditor {
         const savedFullWidth = localStorage.getItem(STORAGE_KEYS.FULLWIDTH);
         if (savedFullWidth === 'true') {
             this.isFullWidth = true;
-            this.appContainer.classList.add('full-width');
+            this.appContainer.classList.add(CSS.FULL_WIDTH);
         }
     }
 
@@ -2002,10 +2002,10 @@ class CSVEditor {
         this.isFullWidth = !this.isFullWidth;
 
         if (this.isFullWidth) {
-            this.appContainer.classList.add('full-width');
+            this.appContainer.classList.add(CSS.FULL_WIDTH);
             localStorage.setItem(STORAGE_KEYS.FULLWIDTH, 'true');
         } else {
-            this.appContainer.classList.remove('full-width');
+            this.appContainer.classList.remove(CSS.FULL_WIDTH);
             localStorage.setItem(STORAGE_KEYS.FULLWIDTH, 'false');
         }
     }

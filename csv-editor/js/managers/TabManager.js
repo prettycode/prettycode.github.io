@@ -34,19 +34,19 @@ class TabManager {
         // Handle drag and drop on upload zone
         this.uploadZone.addEventListener('dragover', (e) => {
             e.preventDefault();
-            this.uploadZone.classList.add('drag-over');
+            this.uploadZone.classList.add(CSS.DRAG_OVER);
         });
         this.uploadZone.addEventListener('dragleave', () => {
-            this.uploadZone.classList.remove('drag-over');
+            this.uploadZone.classList.remove(CSS.DRAG_OVER);
         });
         this.uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            this.uploadZone.classList.remove('drag-over');
-            const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.csv'));
+            this.uploadZone.classList.remove(CSS.DRAG_OVER);
+            const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith(FILE_EXT.CSV));
             if (files.length > 0) {
                 this.loadFiles(files);
             } else {
-                showToast('Please drop valid CSV file(s)', 'error');
+                showToast('Please drop valid CSV file(s)', TOAST_TYPE.ERROR);
             }
         });
 
@@ -60,7 +60,7 @@ class TabManager {
         document.addEventListener('drop', (e) => {
             if (e.dataTransfer.types.includes('Files') && !e.target.closest('.upload-zone')) {
                 e.preventDefault();
-                const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.csv'));
+                const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith(FILE_EXT.CSV));
                 if (files.length > 0) {
                     this.loadFiles(files);
                 }
@@ -85,16 +85,16 @@ class TabManager {
 
     showCloseTabModal(tabId) {
         this.pendingCloseTabId = tabId;
-        this.confirmCloseTabModal.classList.remove('hidden');
+        this.confirmCloseTabModal.classList.remove(CSS.HIDDEN);
     }
 
     hideCloseTabModal() {
-        this.confirmCloseTabModal.classList.add('hidden');
+        this.confirmCloseTabModal.classList.add(CSS.HIDDEN);
         this.pendingCloseTabId = null;
     }
 
     handleFileSelect(e) {
-        const files = Array.from(e.target.files).filter(f => f.name.endsWith('.csv'));
+        const files = Array.from(e.target.files).filter(f => f.name.endsWith(FILE_EXT.CSV));
         if (files.length > 0) {
             this.loadFiles(files);
         }
@@ -132,9 +132,9 @@ class TabManager {
                 this.editor.showEditor();
                 this.updateTabTitle(tabId, file.name);
                 this.saveTabState(tabId);
-                showToast(`Loaded ${file.name} successfully`, 'success');
+                showToast(`Loaded ${file.name} successfully`, TOAST_TYPE.SUCCESS);
             } catch (error) {
-                showToast('Error parsing CSV file', 'error');
+                showToast('Error parsing CSV file', TOAST_TYPE.ERROR);
                 console.error(error);
             }
         };
@@ -146,8 +146,8 @@ class TabManager {
         const tabData = this.createEmptyTabData();
         this.tabs.set(tabId, tabData);
 
-        const tabElement = this.createTabElement(tabId, '(Empty)');
-        tabElement.classList.add('empty');
+        const tabElement = this.createTabElement(tabId, PLACEHOLDER.EMPTY_TAB);
+        tabElement.classList.add(CSS.EMPTY);
         this.tabList.appendChild(tabElement);
 
         if (switchTo) {
@@ -160,7 +160,7 @@ class TabManager {
 
     createEmptyTabData() {
         return {
-            title: '(Empty)',
+            title: PLACEHOLDER.EMPTY_TAB,
             fileName: '',
             originalData: [],
             currentData: [],
@@ -218,30 +218,30 @@ class TabManager {
 
         // Tab drag events for reordering
         tab.addEventListener('dragstart', (e) => {
-            tab.classList.add('dragging');
+            tab.classList.add(CSS.DRAGGING);
             e.dataTransfer.setData('text/plain', tabId);
             e.dataTransfer.effectAllowed = 'move';
         });
 
         tab.addEventListener('dragend', () => {
-            tab.classList.remove('dragging');
+            tab.classList.remove(CSS.DRAGGING);
         });
 
         tab.addEventListener('dragover', (e) => {
             e.preventDefault();
-            const draggingTab = this.tabList.querySelector('.dragging');
+            const draggingTab = this.tabList.querySelector('.' + CSS.DRAGGING);
             if (draggingTab && draggingTab !== tab) {
-                tab.classList.add('drag-over');
+                tab.classList.add(CSS.DRAG_OVER);
             }
         });
 
         tab.addEventListener('dragleave', () => {
-            tab.classList.remove('drag-over');
+            tab.classList.remove(CSS.DRAG_OVER);
         });
 
         tab.addEventListener('drop', (e) => {
             e.preventDefault();
-            tab.classList.remove('drag-over');
+            tab.classList.remove(CSS.DRAG_OVER);
             const draggedTabId = e.dataTransfer.getData('text/plain');
             const draggedTab = this.tabList.querySelector(`[data-tab-id="${draggedTabId}"]`);
             if (draggedTab && draggedTab !== tab) {
@@ -268,7 +268,7 @@ class TabManager {
 
         // Update tab UI
         this.tabList.querySelectorAll('.tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.tabId === tabId);
+            tab.classList.toggle(CSS.ACTIVE, tab.dataset.tabId === tabId);
         });
 
         this.activeTabId = tabId;
@@ -290,15 +290,15 @@ class TabManager {
         if (!tabData) return;
 
         tabData.fileName = this.editor.fileName;
-        tabData.originalData = JSON.parse(JSON.stringify(this.editor.originalData));
-        tabData.currentData = JSON.parse(JSON.stringify(this.editor.currentData));
+        tabData.originalData = deepClone(this.editor.originalData);
+        tabData.currentData = deepClone(this.editor.currentData);
         tabData.headers = [...this.editor.headers];
         tabData.originalHeaders = [...this.editor.originalHeaders];
         tabData.selectedRows = new Set(this.editor.selectedRows);
-        tabData.filters = JSON.parse(JSON.stringify(this.editor.filters));
+        tabData.filters = deepClone(this.editor.filters);
         tabData.filterLogic = this.editor.filterLogic;
         tabData.filterAsHighlight = this.editor.filterAsHighlight;
-        tabData.sortColumns = JSON.parse(JSON.stringify(this.editor.sortColumns));
+        tabData.sortColumns = deepClone(this.editor.sortColumns);
         tabData.groupColumns = [...this.editor.groupColumns];
         // highlightTerms may contain Symbols, so we need to serialize them specially
         tabData.highlightTerms = this.editor.highlightTerms.map(term => ({
@@ -336,15 +336,15 @@ class TabManager {
         if (!this.editor) return;
 
         this.editor.fileName = tabData.fileName;
-        this.editor.originalData = JSON.parse(JSON.stringify(tabData.originalData));
-        this.editor.currentData = JSON.parse(JSON.stringify(tabData.currentData));
+        this.editor.originalData = deepClone(tabData.originalData);
+        this.editor.currentData = deepClone(tabData.currentData);
         this.editor.headers = [...tabData.headers];
         this.editor.originalHeaders = [...tabData.originalHeaders];
         this.editor.selectedRows = new Set(tabData.selectedRows);
-        this.editor.filters = JSON.parse(JSON.stringify(tabData.filters));
+        this.editor.filters = deepClone(tabData.filters);
         this.editor.filterLogic = tabData.filterLogic;
         this.editor.filterAsHighlight = tabData.filterAsHighlight;
-        this.editor.sortColumns = JSON.parse(JSON.stringify(tabData.sortColumns));
+        this.editor.sortColumns = deepClone(tabData.sortColumns);
         this.editor.groupColumns = [...tabData.groupColumns];
         // Restore highlightTerms with Symbol handling
         this.editor.highlightTerms = tabData.highlightTerms.map(term => ({
@@ -376,20 +376,20 @@ class TabManager {
 
         // Update UI based on state
         if (tabData.currentData.length > 0) {
-            this.uploadZone.classList.add('hidden');
-            this.editorSection.classList.remove('hidden');
+            this.uploadZone.classList.add(CSS.HIDDEN);
+            this.editorSection.classList.remove(CSS.HIDDEN);
             this.editor.exportBtn.disabled = false;
         } else {
-            this.uploadZone.classList.remove('hidden');
-            this.editorSection.classList.add('hidden');
+            this.uploadZone.classList.remove(CSS.HIDDEN);
+            this.editorSection.classList.add(CSS.HIDDEN);
             this.editor.exportBtn.disabled = true;
         }
 
         // Update toggle buttons
-        this.editor.aggregateToggle.classList.toggle('active', tabData.showAggregates);
-        this.editor.emptyDashToggle.classList.toggle('active', tabData.showEmptyAsDash);
-        this.editor.rainbowBgToggle.classList.toggle('active', tabData.rainbowBgColumns);
-        this.editor.rainbowTextToggle.classList.toggle('active', tabData.rainbowTextColumns);
+        this.editor.aggregateToggle.classList.toggle(CSS.ACTIVE, tabData.showAggregates);
+        this.editor.emptyDashToggle.classList.toggle(CSS.ACTIVE, tabData.showEmptyAsDash);
+        this.editor.rainbowBgToggle.classList.toggle(CSS.ACTIVE, tabData.rainbowBgColumns);
+        this.editor.rainbowTextToggle.classList.toggle(CSS.ACTIVE, tabData.rainbowTextColumns);
 
         // Repopulate dropdowns and render
         if (tabData.currentData.length > 0) {
@@ -399,9 +399,9 @@ class TabManager {
             this.editor.updateModificationDisplay();
 
             if (this.editor.hasModifications()) {
-                this.editor.undoChangesBtn.classList.remove('hidden');
+                this.editor.undoChangesBtn.classList.remove(CSS.HIDDEN);
             } else {
-                this.editor.undoChangesBtn.classList.add('hidden');
+                this.editor.undoChangesBtn.classList.add(CSS.HIDDEN);
             }
         } else {
             this.editor.tableHead.innerHTML = '';
@@ -419,7 +419,7 @@ class TabManager {
         const tabElement = this.tabList.querySelector(`[data-tab-id="${tabId}"]`);
         if (tabElement) {
             tabElement.querySelector('.tab-title').textContent = title;
-            tabElement.classList.remove('empty');
+            tabElement.classList.remove(CSS.EMPTY);
         }
     }
 
@@ -434,7 +434,7 @@ class TabManager {
                 tabData.modStats.columnsDeleted > 0 ||
                 tabData.modStats.columnsReordered > 0;
 
-            tabElement.classList.toggle('modified', hasModifications);
+            tabElement.classList.toggle(CSS.MODIFIED, hasModifications);
         }
     }
 
