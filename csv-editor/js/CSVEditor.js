@@ -1,5 +1,6 @@
 class CSVEditor {
-    constructor() {
+    constructor(tabManager) {
+        this.tabManager = tabManager;
         this.originalData = [];
         this.currentData = [];
         this.headers = [];
@@ -31,6 +32,9 @@ class CSVEditor {
         // Insert position for new column
         this.insertColumnIdx = null;
 
+        // Pending export type for export modal
+        this.pendingExportType = null;
+
         // Last clicked row for shift-select
         this.lastClickedRowIdx = null;
 
@@ -60,7 +64,6 @@ class CSVEditor {
     initializeElements() {
         this.uploadZone = document.getElementById('uploadZone');
         this.fileInput = document.getElementById('fileInput');
-        this.browseBtn = document.getElementById('browseBtn');
         this.editorSection = document.getElementById('editorSection');
         this.tableHead = document.getElementById('tableHead');
         this.tableBody = document.getElementById('tableBody');
@@ -96,7 +99,6 @@ class CSVEditor {
         this.rowNavDownCount = document.getElementById('rowNavDownCount');
         this.clearSelectionBtn = document.getElementById('clearSelectionBtn');
         this.deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-        this.importBtn = document.getElementById('importBtn');
         this.undoChangesBtn = document.getElementById('undoChangesBtn');
         this.exportBtn = document.getElementById('exportBtn');
         this.exportMenu = document.getElementById('exportMenu');
@@ -117,12 +119,13 @@ class CSVEditor {
         this.newColumnDefaultInput = document.getElementById('newColumnDefault');
         this.cancelAddColumnBtn = document.getElementById('cancelAddColumn');
         this.confirmAddColumnBtn = document.getElementById('confirmAddColumn');
-        
-        // Confirm import modal elements
-        this.confirmImportModal = document.getElementById('confirmImportModal');
-        this.cancelImportBtn = document.getElementById('cancelImport');
-        this.confirmImportBtn = document.getElementById('confirmImport');
-        
+
+        // Export filename modal elements
+        this.exportFilenameModal = document.getElementById('exportFilenameModal');
+        this.exportFilenameInput = document.getElementById('exportFilename');
+        this.cancelExportBtn = document.getElementById('cancelExport');
+        this.confirmExportBtn = document.getElementById('confirmExport');
+
         // Theme toggle
         this.themeToggle = document.getElementById('themeToggle');
         this.themeIcon = this.themeToggle.querySelector('.theme-icon');
@@ -133,28 +136,8 @@ class CSVEditor {
     }
 
     attachEventListeners() {
-        // File upload
-        this.browseBtn.addEventListener('click', () => this.fileInput.click());
-        this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-        
-        // Drag and drop files
-        this.uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            this.uploadZone.classList.add('drag-over');
-        });
-        this.uploadZone.addEventListener('dragleave', () => {
-            this.uploadZone.classList.remove('drag-over');
-        });
-        this.uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            this.uploadZone.classList.remove('drag-over');
-            const file = e.dataTransfer.files[0];
-            if (file && file.name.endsWith('.csv')) {
-                this.loadFile(file);
-            } else {
-                showToast('Please drop a valid CSV file', 'error');
-            }
-        });
+        // File upload - clicking upload zone triggers file input, TabManager handles the rest
+        this.uploadZone.addEventListener('click', () => this.fileInput.click());
 
         // Filter controls
         this.filterSelectsContainer.addEventListener('change', (e) => {
@@ -270,7 +253,6 @@ class CSVEditor {
         this.deleteSelectedBtn.addEventListener('click', () => this.deleteSelected());
 
         // Header actions
-        this.importBtn.addEventListener('click', () => this.handleImportClick());
         this.undoChangesBtn.addEventListener('click', () => this.undoChanges());
         
         // Export dropdown
@@ -278,25 +260,41 @@ class CSVEditor {
             e.stopPropagation();
             // If no rows selected, export all directly
             if (this.selectedRows.size === 0) {
-                this.exportCSV('all');
+                this.showExportModal('all');
             } else {
                 this.exportMenu.classList.toggle('hidden');
             }
         });
-        
+
         document.addEventListener('click', (e) => {
-            if (!this.exportMenu.classList.contains('hidden') && 
+            if (!this.exportMenu.classList.contains('hidden') &&
                 !e.target.closest('.export-dropdown')) {
                 this.exportMenu.classList.add('hidden');
             }
         });
-        
+
         this.exportMenu.addEventListener('click', (e) => {
             const option = e.target.closest('.export-option');
             if (option && !option.disabled) {
                 const exportType = option.dataset.export;
-                this.exportCSV(exportType);
+                this.showExportModal(exportType);
                 this.exportMenu.classList.add('hidden');
+            }
+        });
+
+        // Export filename modal
+        this.cancelExportBtn.addEventListener('click', () => this.hideExportModal());
+        this.confirmExportBtn.addEventListener('click', () => this.confirmExport());
+        this.exportFilenameModal.addEventListener('click', (e) => {
+            if (e.target === this.exportFilenameModal) {
+                this.hideExportModal();
+            }
+        });
+        this.exportFilenameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                this.confirmExport();
+            } else if (e.key === 'Escape') {
+                this.hideExportModal();
             }
         });
 
@@ -313,18 +311,6 @@ class CSVEditor {
                 this.addColumn();
             } else if (e.key === 'Escape') {
                 this.hideAddColumnModal();
-            }
-        });
-
-        // Confirm import modal
-        this.cancelImportBtn.addEventListener('click', () => this.hideConfirmImportModal());
-        this.confirmImportBtn.addEventListener('click', () => {
-            this.hideConfirmImportModal();
-            this.fileInput.click();
-        });
-        this.confirmImportModal.addEventListener('click', (e) => {
-            if (e.target === this.confirmImportModal) {
-                this.hideConfirmImportModal();
             }
         });
 
@@ -347,30 +333,6 @@ class CSVEditor {
 
         // Initialize density from localStorage
         this.initDensity();
-    }
-
-    handleFileSelect(e) {
-        const file = e.target.files[0];
-        if (file) {
-            this.loadFile(file);
-        }
-    }
-
-    loadFile(file) {
-        this.fileName = file.name;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const content = e.target.result;
-                this.parseCSV(content);
-                this.showEditor();
-                showToast(`Loaded ${file.name} successfully`, 'success');
-            } catch (error) {
-                showToast('Error parsing CSV file', 'error');
-                console.error(error);
-            }
-        };
-        reader.readAsText(file);
     }
 
     parseCSV(content) {
@@ -474,7 +436,7 @@ class CSVEditor {
         this.exportBtn.disabled = false;
         this.undoChangesBtn.classList.add('hidden');
         this.modificationIndicator.classList.add('hidden');
-        
+
         // Hide dropdown arrow initially (no rows selected)
         const dropdownArrow = this.exportBtn.querySelector('.dropdown-arrow');
         if (dropdownArrow) {
@@ -483,6 +445,11 @@ class CSVEditor {
 
         this.populateDropdowns();
         this.renderTable();
+
+        // Update tab title
+        if (this.fileName) {
+            this.tabManager.updateTabTitle(this.tabManager.getCurrentTabId(), this.fileName);
+        }
     }
 
     populateDropdowns() {
@@ -713,10 +680,6 @@ class CSVEditor {
         this.searchManager.update();
     }
 
-    clearSearch() {
-        this.searchManager.clear();
-    }
-
     updateSearchSelectLevels() {
         this.searchManager.updateLevels();
     }
@@ -727,10 +690,6 @@ class CSVEditor {
 
     setFilterMode(mode) {
         this.filterManager.setMode(mode);
-    }
-
-    getMatchingRows() {
-        return this.selectionManager.getMatchingRows();
     }
 
     updateNavArrows() {
@@ -940,20 +899,8 @@ class CSVEditor {
         this.columnManager.handleDrop(e, targetColIdx);
     }
 
-    moveColumn(fromIdx, toIdx, insertBefore) {
-        this.columnManager.move(fromIdx, toIdx, insertBefore);
-    }
-
-    updateColumnReferences(fromIdx, toIdx) {
-        this.columnManager.updateReferences(fromIdx, toIdx);
-    }
-
     deleteColumn(colIdx) {
         this.columnManager.delete(colIdx);
-    }
-
-    updateColumnReferencesAfterDelete(deletedIdx) {
-        this.columnManager.updateReferencesAfterDelete(deletedIdx);
     }
 
     syncSortSelectsFromState() {
@@ -1189,7 +1136,7 @@ class CSVEditor {
             td.addEventListener('dblclick', () => this.startEditing(td, idx, colIdx));
             tr.appendChild(td);
         });
-        
+
         // Determine if row should be highlighted based on AND/OR logic
         let rowHasHighlight = false;
         if (this.highlightTerms && this.highlightTerms.length > 0) {
@@ -1558,7 +1505,7 @@ class CSVEditor {
 
                 tr.appendChild(td);
             });
-            
+
             target.appendChild(tr);
         });
     }
@@ -1710,10 +1657,6 @@ class CSVEditor {
         return data;
     }
 
-    applyFilters() {
-        this.renderTable();
-    }
-
     applySort() {
         this.renderTable();
     }
@@ -1815,6 +1758,9 @@ class CSVEditor {
 
         this.updateModificationDisplay();
         this.updateStats(); // Update the title to reflect modifications
+
+        // Notify TabManager to update tab modified state
+        this.tabManager.markCurrentTabModified();
     }
 
     updateModificationDisplay() {
@@ -1868,18 +1814,6 @@ class CSVEditor {
         }
     }
 
-    handleImportClick() {
-        if (this.isModified) {
-            this.confirmImportModal.classList.remove('hidden');
-        } else {
-            this.fileInput.click();
-        }
-    }
-
-    hideConfirmImportModal() {
-        this.confirmImportModal.classList.add('hidden');
-    }
-
     undoChanges() {
         if (!this.isModified) return;
 
@@ -1911,30 +1845,66 @@ class CSVEditor {
         this.renderTable();
         this.updateSelectionUI();
         this.updateStats(); // Update title to reflect no modifications
+
+        // Notify TabManager to update tab modified state
+        this.tabManager.saveTabState(this.tabManager.getCurrentTabId());
+
         showToast('All changes have been undone', 'success');
     }
 
-    exportCSV(exportType = 'all') {
+    showExportModal(exportType) {
+        this.pendingExportType = exportType;
+
+        // Generate default filename based on original filename and export type
+        let defaultName = this.fileName ? this.fileName.replace(/\.csv$/i, '') : 'data';
+        if (exportType === 'selected') {
+            defaultName += '_selected';
+        } else if (exportType === 'deselected') {
+            defaultName += '_deselected';
+        }
+        defaultName += '.csv';
+
+        this.exportFilenameInput.value = defaultName;
+        this.exportFilenameModal.classList.remove('hidden');
+        this.exportFilenameInput.focus();
+        this.exportFilenameInput.select();
+    }
+
+    hideExportModal() {
+        this.exportFilenameModal.classList.add('hidden');
+        this.pendingExportType = null;
+    }
+
+    confirmExport() {
+        let filename = this.exportFilenameInput.value.trim();
+        if (!filename) {
+            filename = 'exported_data.csv';
+        }
+        // Ensure .csv extension
+        if (!filename.toLowerCase().endsWith('.csv')) {
+            filename += '.csv';
+        }
+        this.hideExportModal();
+        this.exportCSV(this.pendingExportType, filename);
+    }
+
+    exportCSV(exportType = 'all', filename = 'exported_data.csv') {
         const escapeCSV = (value) => {
             const str = String(value);
             return '"' + str.replace(/"/g, '""') + '"';
         };
 
         let dataToExport;
-        let filename;
-        
+
         switch (exportType) {
             case 'selected':
                 dataToExport = this.currentData.filter((_, idx) => this.selectedRows.has(idx));
-                filename = 'exported_selected.csv';
                 break;
             case 'deselected':
                 dataToExport = this.currentData.filter((_, idx) => !this.selectedRows.has(idx));
-                filename = 'exported_deselected.csv';
                 break;
             default:
                 dataToExport = this.currentData;
-                filename = 'exported_data.csv';
         }
 
         let csv = this.headers.map(escapeCSV).join(',') + '\n';
@@ -1967,10 +1937,6 @@ class CSVEditor {
 
     addColumn() {
         this.columnManager.add();
-    }
-
-    updateColumnReferencesAfterInsert(insertIdx) {
-        this.columnManager.updateReferencesAfterInsert(insertIdx);
     }
 
     setDensity(density) {

@@ -1,4 +1,4 @@
-// Initialize the CSV Editor
+// Initialize the Tab Manager which creates and manages CSV Editors
 document.addEventListener('DOMContentLoaded', () => {
-    new CSVEditor();
+    window.tabManager = new TabManager();
 });

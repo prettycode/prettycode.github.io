@@ -25,11 +25,24 @@
             </div>
         </header>
 
+        <div class="tab-bar" id="tabBar">
+            <div class="tab-list" id="tabList"></div>
+            <button class="tab-add-btn" id="addTabBtn" title="New tab">+</button>
+        </div>
+
         <div class="upload-zone hidden" id="uploadZone">
-            <h2>Import CSV File</h2>
-            <p>Drag and drop your CSV file here, or click to browse</p>
-            <button class="btn btn-primary" id="browseBtn">Browse Files</button>
-            <input type="file" id="fileInput" accept=".csv">
+            <div class="upload-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <line x1="9" y1="15" x2="12" y2="12"/>
+                    <line x1="15" y1="15" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <h2>Drop your CSV files here</h2>
+            <p>or click anywhere to browse</p>
+            <input type="file" id="fileInput" accept=".csv" multiple>
         </div>
 
         <div id="editorSection" class="">
@@ -40,9 +53,6 @@
                         <div class="table-title-text" id="tableTitleText"></div>
                         <button class="aggregate-toggle hidden" id="undoChangesBtn" title="Undo all changes">
                             <span class="aggregate-toggle-icon">↺</span>
-                        </button>
-                        <button class="btn btn-compact" id="importBtn">
-                            <span>↑</span> Import CSV
                         </button>
                         <div class="export-dropdown">
                             <button class="btn btn-compact" id="exportBtn" disabled>
@@ -233,19 +243,36 @@
             </div>
         </div>
 
-        <!-- Confirm Import Modal -->
-        <div class="modal-overlay hidden" id="confirmImportModal">
+        <!-- Export Filename Modal -->
+        <div class="modal-overlay hidden" id="exportFilenameModal">
+            <div class="modal">
+                <h3>↓ Export CSV</h3>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="exportFilename">Filename</label>
+                        <input type="text" id="exportFilename" placeholder="Enter filename...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" id="cancelExport">Cancel</button>
+                    <button class="btn btn-primary" id="confirmExport">Export</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Close Tab Modal -->
+        <div class="modal-overlay hidden" id="confirmCloseTabModal">
             <div class="modal">
                 <h3>⚠️ Unsaved Changes</h3>
                 <div class="modal-body">
                     <p style="color: var(--text-secondary); line-height: 1.6;">
-                        You have unsaved changes that will be lost if you import a new file.
+                        This tab has unsaved changes that will be lost if you close it.
                         Would you like to continue?
                     </p>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn" id="cancelImport">Cancel</button>
-                    <button class="btn btn-danger" id="confirmImport">Import Anyway</button>
+                    <button class="btn" id="cancelCloseTab">Cancel</button>
+                    <button class="btn btn-danger" id="confirmCloseTab">Close Anyway</button>
                 </div>
             </div>
         </div>
@@ -260,6 +287,7 @@
     <script src="js/managers/SearchManager.js"></script>
     <script src="js/managers/ColumnManager.js"></script>
     <script src="js/managers/SelectionManager.js"></script>
+    <script src="js/managers/TabManager.js"></script>
     <script src="js/CSVEditor.js"></script>
     <script src="js/main.js"></script>
 </body>

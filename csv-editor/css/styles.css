@@ -192,35 +192,57 @@
 
         .upload-zone {
             border: 2px dashed var(--border-color);
-            border-radius: 16px;
-            padding: 60px;
+            border-radius: 0 16px;
+            padding: 48px 60px;
             text-align: center;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             background: var(--bg-secondary);
+            margin-top: 1px;
             margin-bottom: 24px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
             flex-shrink: 0;
+            cursor: pointer;
         }
 
         .upload-zone:hover,
         .upload-zone.drag-over {
             border-color: var(--accent-blue);
-            background: rgba(37, 99, 235, 0.05);
+            background: rgba(37, 99, 235, 0.04);
+        }
+
+        .upload-zone:hover .upload-icon {
+            color: var(--accent-blue);
+            transform: translateY(-2px);
         }
 
         .upload-zone.drag-over {
             transform: scale(1.01);
+            border-style: solid;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        }
+
+        .upload-zone.drag-over .upload-icon {
+            color: var(--accent-blue);
+            transform: translateY(-4px) scale(1.1);
+        }
+
+        .upload-icon {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            transition: all 0.2s ease;
         }
 
         .upload-zone h2 {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            color: var(--text-primary);
         }
 
         .upload-zone p {
             color: var(--text-secondary);
-            margin-bottom: 20px;
+            font-size: 14px;
+            margin-bottom: 16px;
         }
 
         .upload-zone input[type="file"] {
@@ -620,9 +642,9 @@
             align-items: center;
             justify-content: space-between;
             padding: 10px 16px;
-            background: var(--bg-tertiary);
+            background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
-            border-radius: 12px 12px 0 0;
+            border-radius: 0 12px 0 0;
             font-size: 13px;
             color: var(--text-secondary);
             gap: 16px;
@@ -850,7 +872,7 @@
 
         .table-container {
             background: var(--bg-secondary);
-            border-radius: 12px;
+            border-radius: 0 12px 0 0;
             border: 1px solid var(--border-color);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
             display: flex;
@@ -863,9 +885,6 @@
             overflow-x: auto;
             overflow-y: auto;
             flex: 1;
-            min-height: 0;
-            background: var(--bg-tertiary);
-            border-radius: 0 0 12px 12px;
         }
 
         table {
@@ -1053,6 +1072,19 @@
 
         th.line-num-col:hover .col-inserter {
             opacity: 1;
+        }
+
+        /* Last data column: keep controls inside to avoid horizontal overflow */
+        th.draggable:last-of-type .col-inserter {
+            right: 5px;
+        }
+
+        th.draggable:last-of-type .col-inserter:hover {
+            transform: translateY(-50%) scale(1.15);
+        }
+
+        th.draggable:last-of-type .header-controls {
+            margin-right: 15px;
         }
 
         th .sort-indicator {
@@ -1778,4 +1810,140 @@
             letter-spacing: 0.5px;
             box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
             opacity: 0.95;
+        }
+
+        /* Tab bar styles */
+        .tab-bar {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .tab-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .tab-bar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .tab-bar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 2px;
+        }
+
+        .tab-list {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+        }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            max-width: 200px;
+            min-width: 100px;
+            position: relative;
+            user-select: none;
+            margin-bottom: -1px;
+        }
+
+        .tab:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--bg-secondary);
+            z-index: 1;
+        }
+
+        .tab.modified .tab-title::after {
+            content: ' •';
+            color: var(--accent-orange);
+        }
+
+        .tab-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tab.empty .tab-title {
+            color: var(--text-muted);
+        }
+
+        .tab-close {
+            width: 18px;
+            height: 18px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .tab:hover .tab-close,
+        .tab.active .tab-close {
+            opacity: 1;
+        }
+
+        .tab-close:hover {
+            background: rgba(220, 38, 38, 0.15);
+            color: var(--accent-red);
+        }
+
+        .tab-add-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px dashed var(--border-color);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 18px;
+            font-weight: 400;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+            margin-bottom: 4px; /* Same as .tab-bar gap */
+        }
+
+        .tab-add-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        /* Tab drag styles */
+        .tab.dragging {
+            opacity: 0.5;
+        }
+
+        .tab.drag-over {
+            border-color: var(--accent-blue);
         }
