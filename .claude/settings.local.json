@@ -8,7 +8,8 @@
       "Bash(powershell:*)",
       "Bash(find:*)",
       "Bash(sort:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
