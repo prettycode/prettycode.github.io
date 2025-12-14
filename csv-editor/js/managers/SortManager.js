@@ -1,7 +1,11 @@
 // ============================================
 // SortManager - Handles sort controls and logic
 // ============================================
-class SortManager {
+
+import { SORT_DIR, TOAST_TYPE } from '../constants.js';
+import { createIndicator, createRemoveButton, populateColumnOptions, showToast } from '../utils.js';
+
+export class SortManager {
     constructor(editor) {
         this.editor = editor;
     }

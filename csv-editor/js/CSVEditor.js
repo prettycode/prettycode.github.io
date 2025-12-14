@@ -1,4 +1,20 @@
-class CSVEditor {
+// ============================================
+// CSVEditor - Main editor class
+// ============================================
+
+import {
+    LOGIC, SORT_DIR, FILTER_VALUES, UI, CSS, THEME, PLACEHOLDER,
+    FILE_EXT, MIME_TYPE, STORAGE_KEYS, TOAST_TYPE, EMPTY_CELL_MARKER, DOM_ID
+} from './constants.js';
+import { deepClone, createModStats, isEmpty, createRemoveButton, createIndicator, showToast } from './utils.js';
+import { FilterManager } from './managers/FilterManager.js';
+import { SortManager } from './managers/SortManager.js';
+import { GroupManager } from './managers/GroupManager.js';
+import { SearchManager } from './managers/SearchManager.js';
+import { ColumnManager } from './managers/ColumnManager.js';
+import { SelectionManager } from './managers/SelectionManager.js';
+
+export class CSVEditor {
     constructor(tabManager) {
         this.tabManager = tabManager;
         this.originalData = [];
@@ -62,76 +78,75 @@ class CSVEditor {
     }
 
     initializeElements() {
-        this.uploadZone = document.getElementById('uploadZone');
-        this.fileInput = document.getElementById('fileInput');
-        this.editorSection = document.getElementById('editorSection');
-        this.tableHead = document.getElementById('tableHead');
-        this.tableBody = document.getElementById('tableBody');
-        this.tableFoot = document.getElementById('tableFoot');
-        this.filterControls = document.getElementById('filterControls');
+        this.uploadZone = document.getElementById(DOM_ID.UPLOAD_ZONE);
+        this.fileInput = document.getElementById(DOM_ID.FILE_INPUT);
+        this.editorSection = document.getElementById(DOM_ID.EDITOR_SECTION);
+        this.tableHead = document.getElementById(DOM_ID.TABLE_HEAD);
+        this.tableBody = document.getElementById(DOM_ID.TABLE_BODY);
+        this.tableFoot = document.getElementById(DOM_ID.TABLE_FOOT);
+        this.filterControls = document.getElementById(DOM_ID.FILTER_CONTROLS);
         this.filterSelectsContainer = this.filterControls.querySelector('.filter-selects');
-        this.addFilterBtn = document.getElementById('addFilterBtn');
-        this.filterModeBtns = document.querySelectorAll('#filterModeSelector .density-btn');
-        this.sortControls = document.getElementById('sortControls');
+        this.addFilterBtn = document.getElementById(DOM_ID.ADD_FILTER_BTN);
+        this.filterModeBtns = document.querySelectorAll(`#${DOM_ID.FILTER_MODE_SELECTOR} .density-btn`);
+        this.sortControls = document.getElementById(DOM_ID.SORT_CONTROLS);
         this.sortSelectsContainer = this.sortControls.querySelector('.sort-selects');
-        this.addSortBtn = document.getElementById('addSortBtn');
-        this.groupControls = document.getElementById('groupControls');
+        this.addSortBtn = document.getElementById(DOM_ID.ADD_SORT_BTN);
+        this.groupControls = document.getElementById(DOM_ID.GROUP_CONTROLS);
         this.groupSelectsContainer = this.groupControls.querySelector('.group-selects');
-        this.addGroupBtn = document.getElementById('addGroupBtn');
-        this.searchControls = document.getElementById('searchControls');
+        this.addGroupBtn = document.getElementById(DOM_ID.ADD_GROUP_BTN);
+        this.searchControls = document.getElementById(DOM_ID.SEARCH_CONTROLS);
         this.searchSelectsContainer = this.searchControls.querySelector('.search-selects');
-        this.addSearchBtn = document.getElementById('addSearchBtn');
-        this.searchHighlightModeBtns = document.querySelectorAll('#searchHighlightModeSelector .density-btn');
+        this.addSearchBtn = document.getElementById(DOM_ID.ADD_SEARCH_BTN);
+        this.searchHighlightModeBtns = document.querySelectorAll(`#${DOM_ID.SEARCH_HIGHLIGHT_MODE_SELECTOR} .density-btn`);
 
         // Aggregate toggle
-        this.aggregateToggle = document.getElementById('aggregateToggle');
-        this.emptyDashToggle = document.getElementById('emptyDashToggle');
-        this.rainbowBgToggle = document.getElementById('rainbowBgToggle');
-        this.rainbowTextToggle = document.getElementById('rainbowTextToggle');
-        this.controlsToggle = document.getElementById('controlsToggle');
-        this.controlsPanel = document.getElementById('controlsPanel');
+        this.aggregateToggle = document.getElementById(DOM_ID.AGGREGATE_TOGGLE);
+        this.emptyDashToggle = document.getElementById(DOM_ID.EMPTY_DASH_TOGGLE);
+        this.rainbowBgToggle = document.getElementById(DOM_ID.RAINBOW_BG_TOGGLE);
+        this.rainbowTextToggle = document.getElementById(DOM_ID.RAINBOW_TEXT_TOGGLE);
+        this.controlsToggle = document.getElementById(DOM_ID.CONTROLS_TOGGLE);
+        this.controlsPanel = document.getElementById(DOM_ID.CONTROLS_PANEL);
 
         // Navigation arrows
-        this.tableScroll = document.getElementById('tableScroll');
-        this.rowNavUp = document.getElementById('rowNavUp');
-        this.rowNavDown = document.getElementById('rowNavDown');
-        this.rowNavUpCount = document.getElementById('rowNavUpCount');
-        this.rowNavDownCount = document.getElementById('rowNavDownCount');
-        this.clearSelectionBtn = document.getElementById('clearSelectionBtn');
-        this.deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-        this.undoChangesBtn = document.getElementById('undoChangesBtn');
-        this.exportBtn = document.getElementById('exportBtn');
-        this.exportMenu = document.getElementById('exportMenu');
-        this.exportSelectedOption = document.getElementById('exportSelectedOption');
-        this.exportDeselectedOption = document.getElementById('exportDeselectedOption');
-        this.tableTitleText = document.getElementById('tableTitleText');
-        this.tableRowCount = document.getElementById('tableRowCount');
-        this.selectedRowsSpan = document.getElementById('selectedRows');
-        this.selectedDisplay = document.getElementById('selectedDisplay');
-        this.selectionActions = document.getElementById('selectionActions');
-        this.modificationIndicator = document.getElementById('modificationIndicator');
+        this.tableScroll = document.getElementById(DOM_ID.TABLE_SCROLL);
+        this.rowNavUp = document.getElementById(DOM_ID.ROW_NAV_UP);
+        this.rowNavDown = document.getElementById(DOM_ID.ROW_NAV_DOWN);
+        this.rowNavUpCount = document.getElementById(DOM_ID.ROW_NAV_UP_COUNT);
+        this.rowNavDownCount = document.getElementById(DOM_ID.ROW_NAV_DOWN_COUNT);
+        this.clearSelectionBtn = document.getElementById(DOM_ID.CLEAR_SELECTION_BTN);
+        this.deleteSelectedBtn = document.getElementById(DOM_ID.DELETE_SELECTED_BTN);
+        this.undoChangesBtn = document.getElementById(DOM_ID.UNDO_CHANGES_BTN);
+        this.exportBtn = document.getElementById(DOM_ID.EXPORT_BTN);
+        this.exportMenu = document.getElementById(DOM_ID.EXPORT_MENU);
+        this.exportSelectedOption = document.getElementById(DOM_ID.EXPORT_SELECTED_OPTION);
+        this.exportDeselectedOption = document.getElementById(DOM_ID.EXPORT_DESELECTED_OPTION);
+        this.tableTitleText = document.getElementById(DOM_ID.TABLE_TITLE_TEXT);
+        this.tableRowCount = document.getElementById(DOM_ID.TABLE_ROW_COUNT);
+        this.selectedRowsSpan = document.getElementById(DOM_ID.SELECTED_ROWS);
+        this.selectedDisplay = document.getElementById(DOM_ID.SELECTED_DISPLAY);
+        this.selectionActions = document.getElementById(DOM_ID.SELECTION_ACTIONS);
+        this.modificationIndicator = document.getElementById(DOM_ID.MODIFICATION_INDICATOR);
         this.densityBtns = document.querySelectorAll('.density-btn[data-density]');
         this.tableElement = document.querySelector('table');
 
         // Add column modal elements
-        this.addColumnModal = document.getElementById('addColumnModal');
-        this.newColumnNameInput = document.getElementById('newColumnName');
-        this.newColumnDefaultInput = document.getElementById('newColumnDefault');
-        this.cancelAddColumnBtn = document.getElementById('cancelAddColumn');
-        this.confirmAddColumnBtn = document.getElementById('confirmAddColumn');
+        this.addColumnModal = document.getElementById(DOM_ID.ADD_COLUMN_MODAL);
+        this.newColumnNameInput = document.getElementById(DOM_ID.NEW_COLUMN_NAME);
+        this.newColumnDefaultInput = document.getElementById(DOM_ID.NEW_COLUMN_DEFAULT);
+        this.cancelAddColumnBtn = document.getElementById(DOM_ID.CANCEL_ADD_COLUMN);
+        this.confirmAddColumnBtn = document.getElementById(DOM_ID.CONFIRM_ADD_COLUMN);
 
         // Export filename modal elements
-        this.exportFilenameModal = document.getElementById('exportFilenameModal');
-        this.exportFilenameInput = document.getElementById('exportFilename');
-        this.cancelExportBtn = document.getElementById('cancelExport');
-        this.confirmExportBtn = document.getElementById('confirmExport');
+        this.exportFilenameModal = document.getElementById(DOM_ID.EXPORT_FILENAME_MODAL);
+        this.exportFilenameInput = document.getElementById(DOM_ID.EXPORT_FILENAME);
+        this.cancelExportBtn = document.getElementById(DOM_ID.CANCEL_EXPORT);
+        this.confirmExportBtn = document.getElementById(DOM_ID.CONFIRM_EXPORT);
 
         // Theme toggle
-        this.themeToggle = document.getElementById('themeToggle');
-        this.themeIcon = this.themeToggle.querySelector('.theme-icon');
+        this.themeToggle = document.getElementById(DOM_ID.THEME_TOGGLE);
 
         // Full-width toggle
-        this.fullWidthToggle = document.getElementById('fullWidthToggle');
+        this.fullWidthToggle = document.getElementById(DOM_ID.FULL_WIDTH_TOGGLE);
         this.appContainer = document.querySelector('.app-container');
     }
 
@@ -752,7 +767,7 @@ class CSVEditor {
         thCheckbox.className = 'checkbox-col';
         thCheckbox.innerHTML = `
             <div class="th-content">
-                <input type="checkbox" id="headerCheckbox">
+                <input type="checkbox" id="${DOM_ID.HEADER_CHECKBOX}">
             </div>
         `;
         tr.appendChild(thCheckbox);
@@ -869,7 +884,7 @@ class CSVEditor {
         this.tableHead.appendChild(tr);
 
         // Header checkbox event
-        document.getElementById('headerCheckbox').addEventListener('change', (e) => {
+        document.getElementById(DOM_ID.HEADER_CHECKBOX).addEventListener('change', (e) => {
             if (e.target.checked) {
                 this.selectAll();
             } else {
@@ -1770,11 +1785,11 @@ class CSVEditor {
             this.modificationIndicator.classList.remove(CSS.HIDDEN);
 
             // Update each stat
-            const rowsDeletedEl = document.getElementById('modRowsDeleted');
-            const rowsChangedEl = document.getElementById('modRowsChanged');
-            const colsAddedEl = document.getElementById('modColsAdded');
-            const colsDeletedEl = document.getElementById('modColsDeleted');
-            const colsReorderedEl = document.getElementById('modColsReordered');
+            const rowsDeletedEl = document.getElementById(DOM_ID.MOD_ROWS_DELETED);
+            const rowsChangedEl = document.getElementById(DOM_ID.MOD_ROWS_CHANGED);
+            const colsAddedEl = document.getElementById(DOM_ID.MOD_COLS_ADDED);
+            const colsDeletedEl = document.getElementById(DOM_ID.MOD_COLS_DELETED);
+            const colsReorderedEl = document.getElementById(DOM_ID.MOD_COLS_REORDERED);
 
             if (this.modStats.rowsDeleted > 0) {
                 rowsDeletedEl.classList.remove(CSS.HIDDEN);
@@ -1969,10 +1984,8 @@ class CSVEditor {
 
         if (theme === THEME.DARK) {
             document.documentElement.setAttribute('data-theme', THEME.DARK);
-            this.themeIcon.textContent = '☀️';
         } else {
             document.documentElement.removeAttribute('data-theme');
-            this.themeIcon.textContent = '🌙';
         }
     }
 
@@ -1981,11 +1994,9 @@ class CSVEditor {
 
         if (isDark) {
             document.documentElement.removeAttribute('data-theme');
-            this.themeIcon.textContent = '🌙';
             localStorage.setItem(STORAGE_KEYS.THEME, THEME.LIGHT);
         } else {
             document.documentElement.setAttribute('data-theme', THEME.DARK);
-            this.themeIcon.textContent = '☀️';
             localStorage.setItem(STORAGE_KEYS.THEME, THEME.DARK);
         }
     }
@@ -1995,6 +2006,7 @@ class CSVEditor {
         if (savedFullWidth === 'true') {
             this.isFullWidth = true;
             this.appContainer.classList.add(CSS.FULL_WIDTH);
+            this.fullWidthToggle.classList.add(CSS.ACTIVE);
         }
     }
 
@@ -2003,9 +2015,11 @@ class CSVEditor {
 
         if (this.isFullWidth) {
             this.appContainer.classList.add(CSS.FULL_WIDTH);
+            this.fullWidthToggle.classList.add(CSS.ACTIVE);
             localStorage.setItem(STORAGE_KEYS.FULLWIDTH, 'true');
         } else {
             this.appContainer.classList.remove(CSS.FULL_WIDTH);
+            this.fullWidthToggle.classList.remove(CSS.ACTIVE);
             localStorage.setItem(STORAGE_KEYS.FULLWIDTH, 'false');
         }
     }

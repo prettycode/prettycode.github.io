@@ -1,7 +1,11 @@
 // ============================================
 // GroupManager - Handles group controls and logic
 // ============================================
-class GroupManager {
+
+import { PLACEHOLDER, TOAST_TYPE } from '../constants.js';
+import { createIndicator, createRemoveButton, populateColumnOptions, showToast } from '../utils.js';
+
+export class GroupManager {
     constructor(editor) {
         this.editor = editor;
     }

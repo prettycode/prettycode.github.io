@@ -1,7 +1,11 @@
 // ============================================
 // SearchManager - Handles search controls and logic
 // ============================================
-class SearchManager {
+
+import { UI, LOGIC, CSS, TOAST_TYPE, EMPTY_CELL_MARKER } from '../constants.js';
+import { createRemoveButton, showToast } from '../utils.js';
+
+export class SearchManager {
     constructor(editor) {
         this.editor = editor;
     }

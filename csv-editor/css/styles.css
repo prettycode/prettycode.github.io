@@ -111,26 +111,43 @@
             align-items: center;
         }
 
-        .theme-toggle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+        .header-toggle {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
             border: 1px solid var(--border-color);
             background: var(--bg-secondary);
-            color: var(--text-secondary);
+            color: var(--text-muted);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
             transition: all 0.2s ease;
         }
 
-        .theme-toggle:hover {
+        .header-toggle:hover {
             background: var(--bg-hover);
             border-color: var(--text-muted);
             color: var(--text-primary);
         }
+
+        .header-toggle.active {
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+            background: var(--selection-bg);
+        }
+
+        /* Theme toggle: show sun in dark mode, moon in light mode */
+        .header-toggle .icon-sun { display: none; }
+        .header-toggle .icon-moon { display: block; }
+        [data-theme="dark"] .header-toggle .icon-sun { display: block; }
+        [data-theme="dark"] .header-toggle .icon-moon { display: none; }
+
+        /* Full-width toggle: show expand by default, collapse when active */
+        .header-toggle .icon-expand { display: block; }
+        .header-toggle .icon-collapse { display: none; }
+        .header-toggle.active .icon-expand { display: none; }
+        .header-toggle.active .icon-collapse { display: block; }
 
         .btn {
             font-family: 'Outfit', sans-serif;

@@ -1,4 +1,12 @@
-class TabManager {
+// ============================================
+// TabManager - Handles tab creation, switching, and state management
+// ============================================
+
+import { CSS, PLACEHOLDER, FILE_EXT, TOAST_TYPE, LOGIC, EMPTY_CELL_MARKER, DOM_ID } from '../constants.js';
+import { deepClone, showToast } from '../utils.js';
+import { CSVEditor } from '../CSVEditor.js';
+
+export class TabManager {
     constructor() {
         this.tabs = new Map();
         this.activeTabId = null;
@@ -6,17 +14,17 @@ class TabManager {
         this.editor = null;
         this.pendingCloseTabId = null;
 
-        this.tabBar = document.getElementById('tabBar');
-        this.tabList = document.getElementById('tabList');
-        this.addTabBtn = document.getElementById('addTabBtn');
-        this.uploadZone = document.getElementById('uploadZone');
-        this.fileInput = document.getElementById('fileInput');
-        this.editorSection = document.getElementById('editorSection');
+        this.tabBar = document.getElementById(DOM_ID.TAB_BAR);
+        this.tabList = document.getElementById(DOM_ID.TAB_LIST);
+        this.addTabBtn = document.getElementById(DOM_ID.ADD_TAB_BTN);
+        this.uploadZone = document.getElementById(DOM_ID.UPLOAD_ZONE);
+        this.fileInput = document.getElementById(DOM_ID.FILE_INPUT);
+        this.editorSection = document.getElementById(DOM_ID.EDITOR_SECTION);
 
         // Close tab confirmation modal
-        this.confirmCloseTabModal = document.getElementById('confirmCloseTabModal');
-        this.cancelCloseTabBtn = document.getElementById('cancelCloseTab');
-        this.confirmCloseTabBtn = document.getElementById('confirmCloseTab');
+        this.confirmCloseTabModal = document.getElementById(DOM_ID.CONFIRM_CLOSE_TAB_MODAL);
+        this.cancelCloseTabBtn = document.getElementById(DOM_ID.CANCEL_CLOSE_TAB);
+        this.confirmCloseTabBtn = document.getElementById(DOM_ID.CONFIRM_CLOSE_TAB);
 
         this.attachEventListeners();
         this.createTab();

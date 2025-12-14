@@ -2,18 +2,20 @@
 // Helper Functions
 // ============================================
 
+import { UI, TOAST_TYPE, TOAST_ICONS, CSS, TIMING } from './constants.js';
+
 /**
  * Deep clones an object using JSON serialization.
  * Note: Does not preserve functions, undefined, Symbol, or circular references.
  */
-function deepClone(obj) {
+export function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
 
 /**
  * Creates a fresh modification stats object
  */
-function createModStats() {
+export function createModStats() {
     return {
         rowsAdded: 0,
         rowsDeleted: 0,
@@ -27,14 +29,14 @@ function createModStats() {
 /**
  * Checks if a value is empty (undefined, null, or empty string)
  */
-function isEmpty(val) {
+export function isEmpty(val) {
     return val === undefined || val === null || val === '';
 }
 
 /**
  * Adjusts a column index after a column move operation
  */
-function adjustIndexAfterMove(idx, fromIdx, toIdx) {
+export function adjustIndexAfterMove(idx, fromIdx, toIdx) {
     if (idx === fromIdx) return toIdx;
     if (fromIdx < toIdx) {
         return (idx > fromIdx && idx <= toIdx) ? idx - 1 : idx;
@@ -46,7 +48,7 @@ function adjustIndexAfterMove(idx, fromIdx, toIdx) {
 /**
  * Adjusts a column index after a column delete operation
  */
-function adjustIndexAfterDelete(idx, deletedIdx) {
+export function adjustIndexAfterDelete(idx, deletedIdx) {
     if (idx === deletedIdx) return null;
     return idx > deletedIdx ? idx - 1 : idx;
 }
@@ -54,14 +56,14 @@ function adjustIndexAfterDelete(idx, deletedIdx) {
 /**
  * Adjusts a column index after a column insert operation
  */
-function adjustIndexAfterInsert(idx, insertIdx) {
+export function adjustIndexAfterInsert(idx, insertIdx) {
     return idx >= insertIdx ? idx + 1 : idx;
 }
 
 /**
  * Creates a remove button element
  */
-function createRemoveButton(className, title) {
+export function createRemoveButton(className, title) {
     const btn = document.createElement('button');
     btn.className = className;
     btn.innerHTML = UI.REMOVE_BTN_CHAR;
@@ -72,7 +74,7 @@ function createRemoveButton(className, title) {
 /**
  * Creates an indicator span element
  */
-function createIndicator(className, text) {
+export function createIndicator(className, text) {
     const indicator = document.createElement('span');
     indicator.className = className;
     indicator.textContent = text;
@@ -82,7 +84,7 @@ function createIndicator(className, text) {
 /**
  * Populates a select element with column options
  */
-function populateColumnOptions(select, headers, placeholderText) {
+export function populateColumnOptions(select, headers, placeholderText) {
     select.innerHTML = `<option value="">${placeholderText}</option>`;
     headers.forEach((header, idx) => {
         const option = document.createElement('option');
@@ -95,7 +97,7 @@ function populateColumnOptions(select, headers, placeholderText) {
 /**
  * Shows a toast notification
  */
-function showToast(message, type = TOAST_TYPE.INFO) {
+export function showToast(message, type = TOAST_TYPE.INFO) {
     const existingToast = document.querySelector('.toast');
     if (existingToast) {
         existingToast.remove();

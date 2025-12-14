@@ -1,7 +1,11 @@
 // ============================================
 // ColumnManager - Handles column operations (drag, move, delete, add)
 // ============================================
-class ColumnManager {
+
+import { CSS, TOAST_TYPE } from '../constants.js';
+import { adjustIndexAfterMove, adjustIndexAfterDelete, adjustIndexAfterInsert, showToast } from '../utils.js';
+
+export class ColumnManager {
     constructor(editor) {
         this.editor = editor;
     }

@@ -14,11 +14,31 @@
                 <h1>CSV <span>Editor</span></h1>
             </div>
             <div class="header-actions" id="headerActions">
-                <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
-                    <span class="theme-icon">🌙</span>
+                <button class="header-toggle" id="themeToggle" title="Toggle dark mode">
+                    <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
                 </button>
-                <button class="theme-toggle" id="fullWidthToggle" title="Toggle full-width mode">
-                    <span class="fullwidth-icon">⇔</span>
+                <button class="header-toggle" id="fullWidthToggle" title="Toggle full-width mode">
+                    <svg class="icon-expand" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="8 4 4 4 4 20 8 20"/>
+                        <polyline points="16 4 20 4 20 20 16 20"/>
+                    </svg>
+                    <svg class="icon-collapse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="4 4 8 4 8 20 4 20"/>
+                        <polyline points="20 4 16 4 16 20 20 20"/>
+                    </svg>
                 </button>
             </div>
         </header>
@@ -278,17 +298,6 @@
         </div>
     </div>
 
-    <!-- Scripts in dependency order -->
-    <script src="js/constants.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/managers/FilterManager.js"></script>
-    <script src="js/managers/SortManager.js"></script>
-    <script src="js/managers/GroupManager.js"></script>
-    <script src="js/managers/SearchManager.js"></script>
-    <script src="js/managers/ColumnManager.js"></script>
-    <script src="js/managers/SelectionManager.js"></script>
-    <script src="js/managers/TabManager.js"></script>
-    <script src="js/CSVEditor.js"></script>
-    <script src="js/main.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -1,7 +1,11 @@
 // ============================================
 // SelectionManager - Handles row selection and navigation
 // ============================================
-class SelectionManager {
+
+import { CSS, TIMING, TOAST_TYPE, DOM_ID } from '../constants.js';
+import { showToast } from '../utils.js';
+
+export class SelectionManager {
     constructor(editor) {
         this.editor = editor;
     }
@@ -103,7 +107,7 @@ class SelectionManager {
             this.editor.exportMenu.classList.add(CSS.HIDDEN);
         }
 
-        const headerCheckbox = document.getElementById('headerCheckbox');
+        const headerCheckbox = document.getElementById(DOM_ID.HEADER_CHECKBOX);
         if (headerCheckbox) {
             const filteredData = this.editor.getFilteredData();
             const allSelected = filteredData.length > 0 &&

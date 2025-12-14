@@ -1,7 +1,11 @@
 // ============================================
 // FilterManager - Handles filter controls and logic
 // ============================================
-class FilterManager {
+
+import { FILTER_VALUES, LOGIC, PLACEHOLDER, CSS, TOAST_TYPE } from '../constants.js';
+import { isEmpty, createRemoveButton, populateColumnOptions, showToast } from '../utils.js';
+
+export class FilterManager {
     constructor(editor) {
         this.editor = editor;
     }
