@@ -142,6 +142,7 @@ export const DOM_ID = {
     EMPTY_DASH_TOGGLE: 'emptyDashToggle',
     RAINBOW_BG_TOGGLE: 'rainbowBgToggle',
     RAINBOW_TEXT_TOGGLE: 'rainbowTextToggle',
+    HIDE_EMPTY_COLS_TOGGLE: 'hideEmptyColsToggle',
     THEME_TOGGLE: 'themeToggle',
     FULL_WIDTH_TOGGLE: 'fullWidthToggle',
 
@@ -157,6 +158,7 @@ export const DOM_ID = {
     SELECTED_ROWS: 'selectedRows',
     CLEAR_SELECTION_BTN: 'clearSelectionBtn',
     DELETE_SELECTED_BTN: 'deleteSelectedBtn',
+    MOVE_TO_TAB_BTN: 'moveToTabBtn',
 
     // Header actions
     UNDO_CHANGES_BTN: 'undoChangesBtn',
@@ -190,6 +192,14 @@ export const DOM_ID = {
     CONFIRM_CLOSE_TAB_MODAL: 'confirmCloseTabModal',
     CANCEL_CLOSE_TAB: 'cancelCloseTab',
     CONFIRM_CLOSE_TAB: 'confirmCloseTab',
+
+    // Move rows to tab modal
+    MOVE_ROWS_MODAL: 'moveRowsModal',
+    MOVE_ROWS_TAB_LIST: 'moveRowsTabList',
+    NEW_TAB_NAME_GROUP: 'newTabNameGroup',
+    NEW_TAB_NAME: 'newTabName',
+    CANCEL_MOVE_ROWS: 'cancelMoveRows',
+    CONFIRM_MOVE_ROWS: 'confirmMoveRows',
 
     // Dynamic elements (created at runtime)
     HEADER_CHECKBOX: 'headerCheckbox'

@@ -38,6 +38,8 @@ export class CSVEditor {
         this.showEmptyAsDash = false;
         this.rainbowBgColumns = false;
         this.rainbowTextColumns = false;
+        this.hideEmptyCols = false;
+        this.hiddenColumns = new Set();
         this.fileName = '';
         this.isFullWidth = false;
 
@@ -104,6 +106,7 @@ export class CSVEditor {
         this.emptyDashToggle = document.getElementById(DOM_ID.EMPTY_DASH_TOGGLE);
         this.rainbowBgToggle = document.getElementById(DOM_ID.RAINBOW_BG_TOGGLE);
         this.rainbowTextToggle = document.getElementById(DOM_ID.RAINBOW_TEXT_TOGGLE);
+        this.hideEmptyColsToggle = document.getElementById(DOM_ID.HIDE_EMPTY_COLS_TOGGLE);
         this.controlsToggle = document.getElementById(DOM_ID.CONTROLS_TOGGLE);
         this.controlsPanel = document.getElementById(DOM_ID.CONTROLS_PANEL);
 
@@ -115,6 +118,7 @@ export class CSVEditor {
         this.rowNavDownCount = document.getElementById(DOM_ID.ROW_NAV_DOWN_COUNT);
         this.clearSelectionBtn = document.getElementById(DOM_ID.CLEAR_SELECTION_BTN);
         this.deleteSelectedBtn = document.getElementById(DOM_ID.DELETE_SELECTED_BTN);
+        this.moveToTabBtn = document.getElementById(DOM_ID.MOVE_TO_TAB_BTN);
         this.undoChangesBtn = document.getElementById(DOM_ID.UNDO_CHANGES_BTN);
         this.exportBtn = document.getElementById(DOM_ID.EXPORT_BTN);
         this.exportMenu = document.getElementById(DOM_ID.EXPORT_MENU);
@@ -141,6 +145,15 @@ export class CSVEditor {
         this.exportFilenameInput = document.getElementById(DOM_ID.EXPORT_FILENAME);
         this.cancelExportBtn = document.getElementById(DOM_ID.CANCEL_EXPORT);
         this.confirmExportBtn = document.getElementById(DOM_ID.CONFIRM_EXPORT);
+
+        // Move rows modal elements
+        this.moveRowsModal = document.getElementById(DOM_ID.MOVE_ROWS_MODAL);
+        this.moveRowsTabList = document.getElementById(DOM_ID.MOVE_ROWS_TAB_LIST);
+        this.newTabNameGroup = document.getElementById(DOM_ID.NEW_TAB_NAME_GROUP);
+        this.newTabNameInput = document.getElementById(DOM_ID.NEW_TAB_NAME);
+        this.cancelMoveRowsBtn = document.getElementById(DOM_ID.CANCEL_MOVE_ROWS);
+        this.confirmMoveRowsBtn = document.getElementById(DOM_ID.CONFIRM_MOVE_ROWS);
+        this.selectedMoveTargetTabId = null;
 
         // Theme toggle
         this.themeToggle = document.getElementById(DOM_ID.THEME_TOGGLE);
@@ -260,12 +273,23 @@ export class CSVEditor {
         this.emptyDashToggle.addEventListener('click', () => this.toggleEmptyAsDash());
         this.rainbowBgToggle.addEventListener('click', () => this.toggleRainbowBg());
         this.rainbowTextToggle.addEventListener('click', () => this.toggleRainbowText());
+        this.hideEmptyColsToggle.addEventListener('click', () => this.toggleHideEmptyCols());
         this.controlsToggle.addEventListener('click', () => this.toggleControlsPanel());
         window.addEventListener('resize', () => this.updateNavArrows());
 
         // Selection buttons
         this.clearSelectionBtn.addEventListener('click', () => this.deselectAll());
         this.deleteSelectedBtn.addEventListener('click', () => this.deleteSelected());
+        this.moveToTabBtn.addEventListener('click', () => this.showMoveRowsModal());
+
+        // Move rows modal
+        this.cancelMoveRowsBtn.addEventListener('click', () => this.hideMoveRowsModal());
+        this.confirmMoveRowsBtn.addEventListener('click', () => this.confirmMoveRows());
+        this.moveRowsModal.addEventListener('click', (e) => {
+            if (e.target === this.moveRowsModal) {
+                this.hideMoveRowsModal();
+            }
+        });
 
         // Header actions
         this.undoChangesBtn.addEventListener('click', () => this.undoChanges());
@@ -791,6 +815,9 @@ export class CSVEditor {
 
         // Data columns
         this.headers.forEach((header, colIdx) => {
+            // Skip hidden columns
+            if (this.hiddenColumns.has(colIdx)) return;
+
             const th = document.createElement('th');
             th.className = 'draggable';
             if (this.addedColumns.has(colIdx)) {
@@ -990,11 +1017,40 @@ export class CSVEditor {
             const groupPath = parentPath ? `${parentPath}|${groupValue}` : groupValue;
             const isCollapsed = this.collapsedGroups.has(groupPath);
 
+            // Get indices of all rows in this group
+            const groupRowIndices = groupRows.map(row => this.currentData.indexOf(row));
+
             const headerTr = document.createElement('tr');
             headerTr.className = 'group-header';
             headerTr.dataset.level = level;
+
+            // Checkbox cell for group selection
+            const checkboxTd = document.createElement('td');
+            checkboxTd.className = 'checkbox-col';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'group-checkbox';
+
+            // Check if all rows in group are selected
+            const allSelected = groupRowIndices.every(idx => this.selectedRows.has(idx));
+            checkbox.checked = allSelected;
+
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (checkbox.checked) {
+                    groupRowIndices.forEach(idx => this.selectedRows.add(idx));
+                } else {
+                    groupRowIndices.forEach(idx => this.selectedRows.delete(idx));
+                }
+                this.renderTable();
+                this.updateSelectionUI();
+            });
+            checkboxTd.appendChild(checkbox);
+            headerTr.appendChild(checkboxTd);
+
             const headerTd = document.createElement('td');
-            headerTd.colSpan = this.headers.length + 2; // +2 for checkbox and line number columns
+            const visibleColCount = this.headers.length - this.hiddenColumns.size;
+            headerTd.colSpan = visibleColCount + 1; // +1 for line number column (checkbox is separate now)
             headerTd.innerHTML = `
                 <span class="group-toggle" style="padding-left: ${indent}px;">
                     <span class="group-toggle-icon ${isCollapsed ? CSS.COLLAPSED : ''}">▼</span>
@@ -1091,6 +1147,9 @@ export class CSVEditor {
         const termFoundInRow = new Set(); // Which terms have been found anywhere in row
 
         this.headers.forEach((header, colIdx) => {
+            // Skip hidden columns
+            if (this.hiddenColumns.has(colIdx)) return;
+
             const td = document.createElement('td');
             td.className = 'editable-cell';
 
@@ -1230,6 +1289,29 @@ export class CSVEditor {
     toggleRainbowText() {
         this.rainbowTextColumns = !this.rainbowTextColumns;
         this.rainbowTextToggle.classList.toggle(CSS.ACTIVE, this.rainbowTextColumns);
+        this.renderTable();
+    }
+
+    toggleHideEmptyCols() {
+        this.hideEmptyCols = !this.hideEmptyCols;
+        this.hideEmptyColsToggle.classList.toggle(CSS.ACTIVE, this.hideEmptyCols);
+
+        if (this.hideEmptyCols) {
+            // Calculate which columns are empty in all rows
+            this.hiddenColumns = new Set();
+            this.headers.forEach((_, colIdx) => {
+                const allEmpty = this.currentData.every(row => {
+                    const val = row[colIdx];
+                    return val === '' || val === null || val === undefined;
+                });
+                if (allEmpty) {
+                    this.hiddenColumns.add(colIdx);
+                }
+            });
+        } else {
+            this.hiddenColumns.clear();
+        }
+
         this.renderTable();
     }
 
@@ -1499,6 +1581,9 @@ export class CSVEditor {
             
             // Data columns
             this.headers.forEach((header, colIdx) => {
+                // Skip hidden columns
+                if (this.hiddenColumns.has(colIdx)) return;
+
                 const td = document.createElement('td');
 
                 this.applyColumnClasses(td, colIdx);
@@ -1940,6 +2025,84 @@ export class CSVEditor {
         const rowCount = dataToExport.length;
         const typeLabel = exportType === 'all' ? '' : ` (${exportType})`;
         showToast(`Exported ${rowCount} row${rowCount !== 1 ? 's' : ''}${typeLabel}`, TOAST_TYPE.SUCCESS);
+    }
+
+    showMoveRowsModal() {
+        if (this.selectedRows.size === 0) return;
+
+        // Populate the tab list
+        this.moveRowsTabList.innerHTML = '';
+        this.selectedMoveTargetTabId = null;
+        this.confirmMoveRowsBtn.disabled = true;
+        this.newTabNameGroup.classList.add(CSS.HIDDEN);
+        this.newTabNameInput.value = '';
+
+        const currentTabId = this.tabManager.getCurrentTabId();
+
+        // Add "New Tab" option first
+        const newTabItem = document.createElement('label');
+        newTabItem.className = 'move-rows-tab-item is-new-tab';
+        newTabItem.innerHTML = `
+            <div class="move-rows-tab-item-header">
+                <input type="radio" name="moveTarget" value="__new__">
+                <div class="move-rows-tab-item-title">+ New Tab</div>
+            </div>
+            <div class="move-rows-tab-item-meta">Create a new tab with moved rows</div>
+        `;
+        this.moveRowsTabList.appendChild(newTabItem);
+
+        // Add existing tabs (except current)
+        this.tabManager.tabs.forEach((tabData, tabId) => {
+            if (tabId === currentTabId) return;
+
+            const tabItem = document.createElement('label');
+            tabItem.className = 'move-rows-tab-item';
+            tabItem.innerHTML = `
+                <div class="move-rows-tab-item-header">
+                    <input type="radio" name="moveTarget" value="${tabId}">
+                    <div class="move-rows-tab-item-title">${tabData.title || tabData.fileName || '(Empty)'}</div>
+                </div>
+            `;
+            this.moveRowsTabList.appendChild(tabItem);
+        });
+
+        // Handle radio selection
+        this.moveRowsTabList.addEventListener('change', (e) => {
+            if (e.target.type === 'radio') {
+                this.selectedMoveTargetTabId = e.target.value;
+                this.confirmMoveRowsBtn.disabled = false;
+
+                // Show/hide new tab name input based on selection
+                if (e.target.value === '__new__') {
+                    this.newTabNameGroup.classList.remove(CSS.HIDDEN);
+                    this.newTabNameInput.focus();
+                } else {
+                    this.newTabNameGroup.classList.add(CSS.HIDDEN);
+                }
+
+                // Update selected styling
+                this.moveRowsTabList.querySelectorAll('.move-rows-tab-item').forEach(item => {
+                    item.classList.toggle(CSS.SELECTED, item.querySelector('input').checked);
+                });
+            }
+        });
+
+        this.moveRowsModal.classList.remove(CSS.HIDDEN);
+    }
+
+    hideMoveRowsModal() {
+        this.moveRowsModal.classList.add(CSS.HIDDEN);
+        this.selectedMoveTargetTabId = null;
+    }
+
+    confirmMoveRows() {
+        if (!this.selectedMoveTargetTabId) return;
+
+        const customTabName = this.selectedMoveTargetTabId === '__new__'
+            ? this.newTabNameInput.value.trim()
+            : null;
+        this.selectionManager.moveSelectedToTab(this.selectedMoveTargetTabId, customTabName);
+        this.hideMoveRowsModal();
     }
 
     showAddColumnModal() {

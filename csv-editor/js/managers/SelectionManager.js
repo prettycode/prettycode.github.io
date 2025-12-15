@@ -75,13 +75,128 @@ export class SelectionManager {
         this.editor.markAsModified();
         this.editor.renderTable();
         this.updateUI();
+
+        // Update tab display to reflect new row count
+        const tabManager = this.editor.tabManager;
+        tabManager.saveTabState(tabManager.getCurrentTabId());
+
         showToast(`Deleted ${indicesToDelete.length} row${indicesToDelete.length !== 1 ? 's' : ''}`, TOAST_TYPE.SUCCESS);
+    }
+
+    moveSelectedToTab(targetTabId, customTabName = null) {
+        if (this.selectedRows.size === 0) return;
+
+        const tabManager = this.editor.tabManager;
+        const currentTabId = tabManager.getCurrentTabId();
+
+        // Get the rows to move (in order)
+        const indicesToMove = Array.from(this.selectedRows).sort((a, b) => a - b);
+        const rowsToMove = indicesToMove.map(idx => ({ ...this.editor.currentData[idx] }));
+
+        // Handle moving to new tab
+        let actualTargetTabId = targetTabId;
+        if (targetTabId === '__new__') {
+            // Save current tab state first
+            tabManager.saveTabState(currentTabId);
+
+            // Create new tab without switching to it
+            actualTargetTabId = tabManager.createTab(false);
+
+            // Set up the new tab with headers from current tab
+            const newTabData = tabManager.tabs.get(actualTargetTabId);
+            newTabData.headers = [...this.editor.headers];
+            newTabData.originalHeaders = [...this.editor.headers];
+            newTabData.currentData = rowsToMove;
+            newTabData.originalData = rowsToMove.map(row => ({ ...row }));
+            newTabData.title = customTabName || 'Moved';
+
+            // Update tab title in UI
+            tabManager.updateTabTitle(actualTargetTabId, newTabData.title);
+        } else {
+            // Save current tab state first
+            tabManager.saveTabState(currentTabId);
+
+            // Get target tab data
+            const targetTabData = tabManager.tabs.get(actualTargetTabId);
+
+            // Append rows to target tab
+            // If target has no data yet, also copy headers
+            if (targetTabData.currentData.length === 0 && targetTabData.headers.length === 0) {
+                targetTabData.headers = [...this.editor.headers];
+                targetTabData.originalHeaders = [...this.editor.headers];
+            }
+
+            // Map source row columns to target tab's column structure
+            // Use column indices for compatible row transfer
+            rowsToMove.forEach(row => {
+                targetTabData.currentData.push({ ...row });
+            });
+
+            // Mark target tab as modified and refresh display
+            targetTabData.isModified = true;
+            tabManager.updateTabModifiedState(actualTargetTabId);
+            tabManager.refreshTabDisplay(actualTargetTabId);
+        }
+
+        // Now delete the rows from the source (reuse deleteSelected logic)
+        const indicesToDelete = Array.from(this.selectedRows).sort((a, b) => b - a);
+
+        // Update rowsChanged set
+        const newRowsChanged = new Set();
+        for (const changedIdx of this.editor.modStats.rowsChanged) {
+            if (!this.selectedRows.has(changedIdx)) {
+                let adjustment = 0;
+                for (const delIdx of indicesToDelete) {
+                    if (delIdx < changedIdx) adjustment++;
+                }
+                newRowsChanged.add(changedIdx - adjustment);
+            }
+        }
+        this.editor.modStats.rowsChanged = newRowsChanged;
+
+        // Update modifiedCells
+        const newModifiedCells = new Map();
+        for (const [rowIdx, cols] of this.editor.modifiedCells) {
+            if (!this.selectedRows.has(rowIdx)) {
+                let adjustment = 0;
+                for (const delIdx of indicesToDelete) {
+                    if (delIdx < rowIdx) adjustment++;
+                }
+                newModifiedCells.set(rowIdx - adjustment, cols);
+            }
+        }
+        this.editor.modifiedCells = newModifiedCells;
+
+        // Remove rows from current data
+        indicesToDelete.forEach(idx => {
+            this.editor.currentData.splice(idx, 1);
+        });
+
+        this.editor.modStats.rowsDeleted += indicesToDelete.length;
+
+        // Clear selection
+        this.selectedRows.clear();
+        this.lastClickedRowIdx = null;
+
+        // Mark source as modified and re-render
+        this.editor.markAsModified();
+        this.editor.renderTable();
+        this.updateUI();
+
+        // Update current tab display to reflect new row count
+        tabManager.saveTabState(currentTabId);
+
+        const tabDescription = targetTabId === '__new__'
+            ? (customTabName ? `"${customTabName}"` : 'new tab')
+            : 'another tab';
+        showToast(`Moved ${rowsToMove.length} row${rowsToMove.length !== 1 ? 's' : ''} to ${tabDescription}`, TOAST_TYPE.SUCCESS);
     }
 
     updateUI() {
         const hasSelected = this.selectedRows.size > 0;
         this.editor.clearSelectionBtn.disabled = !hasSelected;
         this.editor.deleteSelectedBtn.disabled = !hasSelected;
+        this.editor.moveToTabBtn.disabled = !hasSelected;
         this.editor.selectedRowsSpan.textContent = this.selectedRows.size;
 
         // Show/hide selection actions area

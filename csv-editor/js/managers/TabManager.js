@@ -198,7 +198,9 @@ export class TabManager {
             showAggregates: false,
             showEmptyAsDash: false,
             rainbowBgColumns: false,
-            rainbowTextColumns: false
+            rainbowTextColumns: false,
+            hideEmptyCols: false,
+            hiddenColumns: new Set()
         };
     }
 
@@ -335,9 +337,12 @@ export class TabManager {
         tabData.showEmptyAsDash = this.editor.showEmptyAsDash;
         tabData.rainbowBgColumns = this.editor.rainbowBgColumns;
         tabData.rainbowTextColumns = this.editor.rainbowTextColumns;
+        tabData.hideEmptyCols = this.editor.hideEmptyCols;
+        tabData.hiddenColumns = new Set(this.editor.hiddenColumns);
 
-        // Update modified indicator on tab
+        // Update modified indicator and row count on tab
         this.updateTabModifiedState(tabId);
+        this.refreshTabDisplay(tabId);
     }
 
     restoreTabState(tabData) {
@@ -381,6 +386,8 @@ export class TabManager {
         this.editor.showEmptyAsDash = tabData.showEmptyAsDash;
         this.editor.rainbowBgColumns = tabData.rainbowBgColumns;
         this.editor.rainbowTextColumns = tabData.rainbowTextColumns;
+        this.editor.hideEmptyCols = tabData.hideEmptyCols;
+        this.editor.hiddenColumns = new Set(tabData.hiddenColumns);
 
         // Update UI based on state
         if (tabData.currentData.length > 0) {
@@ -398,6 +405,7 @@ export class TabManager {
         this.editor.emptyDashToggle.classList.toggle(CSS.ACTIVE, tabData.showEmptyAsDash);
         this.editor.rainbowBgToggle.classList.toggle(CSS.ACTIVE, tabData.rainbowBgColumns);
         this.editor.rainbowTextToggle.classList.toggle(CSS.ACTIVE, tabData.rainbowTextColumns);
+        this.editor.hideEmptyColsToggle.classList.toggle(CSS.ACTIVE, tabData.hideEmptyCols);
 
         // Repopulate dropdowns and render
         if (tabData.currentData.length > 0) {
@@ -424,10 +432,20 @@ export class TabManager {
             tabData.title = title;
         }
 
+        this.refreshTabDisplay(tabId);
+    }
+
+    refreshTabDisplay(tabId) {
+        const tabData = this.tabs.get(tabId);
         const tabElement = this.tabList.querySelector(`[data-tab-id="${tabId}"]`);
-        if (tabElement) {
-            tabElement.querySelector('.tab-title').textContent = title;
-            tabElement.classList.remove(CSS.EMPTY);
+
+        if (tabData && tabElement) {
+            const rowCount = tabData.currentData.length;
+            const baseTitle = tabData.title || PLACEHOLDER.EMPTY_TAB;
+            const displayTitle = rowCount > 0 ? `${baseTitle} (${rowCount})` : baseTitle;
+
+            tabElement.querySelector('.tab-title').textContent = displayTitle;
+            tabElement.classList.toggle(CSS.EMPTY, rowCount === 0 && !tabData.title);
         }
     }
 

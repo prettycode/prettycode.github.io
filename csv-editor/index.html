@@ -115,6 +115,9 @@
                             <button class="aggregate-toggle" id="rainbowTextToggle" title="Rainbow column text">
                                 <span class="aggregate-toggle-icon">A</span>
                             </button>
+                            <button class="aggregate-toggle" id="hideEmptyColsToggle" title="Hide columns that are empty in all rows">
+                                <span class="aggregate-toggle-icon">∅</span>
+                            </button>
                             <button class="aggregate-toggle active" id="controlsToggle" title="Toggle filters, sort, group, and search controls">
                                 <span class="aggregate-toggle-icon">⚙</span>
                             </button>
@@ -202,7 +205,8 @@
                             <span class="selected-dot"></span>
                             <strong id="selectedRows">0</strong> selected
                         </span>
-                        <button class="btn-inline" id="clearSelectionBtn" disabled>✕ Clear</button>
+                        <button class="btn-inline" id="clearSelectionBtn" disabled>× Clear</button>
+                        <button class="btn-inline" id="moveToTabBtn" disabled>↷ Move</button>
                         <button class="btn-inline btn-inline-danger" id="deleteSelectedBtn" disabled>🗑 Delete</button>
                     </div>
                 </div>
@@ -293,6 +297,27 @@
                 <div class="modal-footer">
                     <button class="btn" id="cancelCloseTab">Cancel</button>
                     <button class="btn btn-danger" id="confirmCloseTab">Close Anyway</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Move Rows to Tab Modal -->
+        <div class="modal-overlay hidden" id="moveRowsModal">
+            <div class="modal">
+                <h3>↷ Move Rows to Tab</h3>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Select destination tab</label>
+                        <div class="move-rows-tab-list" id="moveRowsTabList"></div>
+                    </div>
+                    <div class="form-group hidden" id="newTabNameGroup">
+                        <label for="newTabName">New Tab Name</label>
+                        <input type="text" id="newTabName" placeholder="Enter tab name...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" id="cancelMoveRows">Cancel</button>
+                    <button class="btn btn-primary" id="confirmMoveRows" disabled>Move Rows</button>
                 </div>
             </div>
         </div>
