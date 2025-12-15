@@ -78,10 +78,10 @@ export class TabManager {
         // Close tab confirmation modal
         this.cancelCloseTabBtn.addEventListener('click', () => this.hideCloseTabModal());
         this.confirmCloseTabBtn.addEventListener('click', () => {
+            const tabIdToClose = this.pendingCloseTabId;
             this.hideCloseTabModal();
-            if (this.pendingCloseTabId) {
-                this.forceCloseTab(this.pendingCloseTabId);
-                this.pendingCloseTabId = null;
+            if (tabIdToClose) {
+                this.forceCloseTab(tabIdToClose);
             }
         });
         this.confirmCloseTabModal.addEventListener('click', (e) => {
