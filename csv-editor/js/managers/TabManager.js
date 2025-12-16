@@ -445,7 +445,7 @@ export class TabManager {
             const displayTitle = rowCount > 0 ? `${baseTitle} (${rowCount})` : baseTitle;
 
             tabElement.querySelector('.tab-title').textContent = displayTitle;
-            tabElement.classList.toggle(CSS.EMPTY, rowCount === 0 && !tabData.title);
+            tabElement.classList.toggle(CSS.EMPTY, tabData.originalData.length === 0);
         }
     }
 
