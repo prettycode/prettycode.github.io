@@ -30,7 +30,7 @@ export class SearchManager {
         valueInput.type = 'text';
         valueInput.className = 'search-value-input';
         valueInput.dataset.level = level;
-        valueInput.placeholder = `${UI.MIN_SEARCH_CHARS}+ chars, "x" for 1, "" for empty`;
+        valueInput.placeholder = `Search term`;
         wrapper.appendChild(valueInput);
 
         // Add count badge (hidden by default, shown when search is active)
