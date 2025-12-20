@@ -3,8 +3,8 @@
 // ============================================
 
 import {
-    LOGIC, SORT_DIR, FILTER_VALUES, UI, CSS, THEME, PLACEHOLDER,
-    FILE_EXT, MIME_TYPE, STORAGE_KEYS, TOAST_TYPE, EMPTY_CELL_MARKER, DOM_ID
+    LOGIC, SORT_DIR, FILTER_VALUES, NO_VALUE_OPERATORS, DROPDOWN_OPERATORS,
+    UI, CSS, THEME, PLACEHOLDER, FILE_EXT, MIME_TYPE, STORAGE_KEYS, TOAST_TYPE, EMPTY_CELL_MARKER, DOM_ID
 } from './constants.js';
 import { deepClone, createModStats, isEmpty, createRemoveButton, createIndicator, showToast } from './utils.js';
 import { FilterManager } from './managers/FilterManager.js';
@@ -170,11 +170,24 @@ export class CSVEditor {
         // Filter controls
         this.filterSelectsContainer.addEventListener('change', (e) => {
             if (e.target.classList.contains('filter-column-select')) {
-                this.populateFilterValueSelect(e.target);
+                this.filterManager.populateOperatorSelect(e.target);
+                this.updateFilters();
+            }
+            if (e.target.classList.contains('filter-operator-select')) {
+                this.filterManager.handleOperatorChange(e.target);
                 this.updateFilters();
             }
             if (e.target.classList.contains('filter-value-select')) {
                 this.updateFilters();
+            }
+        });
+        // Debounced input handler for filter text input
+        this.filterSelectsContainer.addEventListener('input', (e) => {
+            if (e.target.classList.contains('filter-value-input')) {
+                clearTimeout(this.filterInputTimeout);
+                this.filterInputTimeout = setTimeout(() => {
+                    this.updateFilters();
+                }, 300);
             }
         });
         this.filterSelectsContainer.addEventListener('click', (e) => {
@@ -597,6 +610,16 @@ export class CSVEditor {
                 if (extraSelect) extraSelect.dataset.level = idx;
             }
 
+            // Update filter-specific element levels
+            if (type === 'filter') {
+                const opSelect = wrapper.querySelector('.filter-operator-select');
+                const valueInput = wrapper.querySelector('.filter-value-input');
+                const countBadge = wrapper.querySelector('.filter-count-badge');
+                if (opSelect) opSelect.dataset.level = idx;
+                if (valueInput) valueInput.dataset.level = idx;
+                if (countBadge) countBadge.dataset.level = idx;
+            }
+
             // Update placeholder text
             const firstOption = colSelect.querySelector('option[value=""]');
             if (firstOption) {
@@ -631,10 +654,26 @@ export class CSVEditor {
                 let isComplete = false;
 
                 if (type === 'filter') {
-                    const valueSelect = wrapper.querySelector(`.${extraSelectClass}`);
-                    isComplete = colSelect.value !== '' &&
-                        valueSelect && !valueSelect.disabled &&
-                        valueSelect.value !== FILTER_VALUES.PLACEHOLDER;
+                    const opSelect = wrapper.querySelector('.filter-operator-select');
+                    const valueSelect = wrapper.querySelector('.filter-value-select');
+                    const valueInput = wrapper.querySelector('.filter-value-input');
+
+                    if (colSelect.value !== '' && opSelect && opSelect.value !== '') {
+                        const operator = opSelect.value;
+                        const columnType = opSelect.dataset.columnType || 'text';
+
+                        if (NO_VALUE_OPERATORS.includes(operator)) {
+                            // No value needed for isEmpty/isNotEmpty
+                            isComplete = true;
+                        } else if (columnType === 'text' && DROPDOWN_OPERATORS.includes(operator)) {
+                            // Value from dropdown
+                            isComplete = valueSelect && !valueSelect.disabled &&
+                                valueSelect.value !== FILTER_VALUES.PLACEHOLDER;
+                        } else {
+                            // Value from text input
+                            isComplete = valueInput && valueInput.value.trim() !== '';
+                        }
+                    }
                 } else if (type === 'sort' || type === 'group') {
                     isComplete = colSelect.value !== '';
                 } else if (type === 'search') {
@@ -1245,11 +1284,8 @@ export class CSVEditor {
         // Apply filter highlighting when in highlight mode
         if (this.filterAsHighlight && this.filters.length > 0) {
             const matchFunction = filterConfig => {
-                const cellValue = String(row[filterConfig.column] || '');
-                if (filterConfig.isEmpty) {
-                    return cellValue === '';
-                }
-                return cellValue === filterConfig.value;
+                const cellStr = String(row[filterConfig.column] || '');
+                return this.evaluateFilter(filterConfig, cellStr);
             };
 
             let filterMatches;
@@ -1679,6 +1715,90 @@ export class CSVEditor {
         this.editingCell = null;
     }
 
+    // Filter evaluation methods
+    evaluateFilter(filterConfig, cellStr) {
+        const { columnType, operator, value } = filterConfig;
+
+        // Handle empty/not-empty operators first
+        if (operator === 'isEmpty') {
+            return cellStr === '';
+        }
+        if (operator === 'isNotEmpty') {
+            return cellStr !== '';
+        }
+
+        // Handle empty cells for value-based operators
+        if (cellStr === '') {
+            return false; // Empty cells don't match value comparisons
+        }
+
+        // Type-specific matching
+        switch (columnType) {
+            case 'numeric':
+                return this.evaluateNumericFilter(cellStr, operator, value);
+            case 'date':
+                return this.evaluateDateFilter(cellStr, operator, value);
+            case 'text':
+            default:
+                return this.evaluateTextFilter(cellStr, operator, value);
+        }
+    }
+
+    evaluateNumericFilter(cellStr, operator, value) {
+        const cellNum = parseFloat(cellStr);
+        const filterNum = parseFloat(value);
+
+        if (isNaN(cellNum) || isNaN(filterNum)) {
+            return false; // Invalid number comparison
+        }
+
+        switch (operator) {
+            case 'equals': return cellNum === filterNum;
+            case 'notEquals': return cellNum !== filterNum;
+            case 'gt': return cellNum > filterNum;
+            case 'gte': return cellNum >= filterNum;
+            case 'lt': return cellNum < filterNum;
+            case 'lte': return cellNum <= filterNum;
+            default: return false;
+        }
+    }
+
+    evaluateDateFilter(cellStr, operator, value) {
+        const cellDate = this.parseTimestamp(cellStr);
+        const filterDate = this.parseTimestamp(value);
+
+        if (!cellDate || !filterDate) {
+            return false; // Invalid date comparison
+        }
+
+        const cellTime = cellDate.getTime();
+        const filterTime = filterDate.getTime();
+
+        switch (operator) {
+            case 'equals': return cellTime === filterTime;
+            case 'notEquals': return cellTime !== filterTime;
+            case 'gt': return cellTime > filterTime;  // after
+            case 'gte': return cellTime >= filterTime; // on or after
+            case 'lt': return cellTime < filterTime;   // before
+            case 'lte': return cellTime <= filterTime; // on or before
+            default: return false;
+        }
+    }
+
+    evaluateTextFilter(cellStr, operator, value) {
+        const cellLower = cellStr.toLowerCase();
+        const valueLower = (value || '').toLowerCase();
+
+        switch (operator) {
+            case 'equals': return cellStr === value;
+            case 'notEquals': return cellStr !== value;
+            case 'contains': return cellLower.includes(valueLower);
+            case 'startsWith': return cellLower.startsWith(valueLower);
+            case 'endsWith': return cellLower.endsWith(valueLower);
+            default: return false;
+        }
+    }
+
     getFilteredData() {
         let data = [...this.currentData];
 
@@ -1686,12 +1806,8 @@ export class CSVEditor {
         if (this.filters.length > 0 && !this.filterAsHighlight) {
             data = data.filter(row => {
                 const matchFunction = filterConfig => {
-                    const cellValue = String(row[filterConfig.column] || '');
-                    if (filterConfig.isEmpty) {
-                        // Match empty cells
-                        return cellValue === '';
-                    }
-                    return cellValue === filterConfig.value;
+                    const cellStr = String(row[filterConfig.column] || '');
+                    return this.evaluateFilter(filterConfig, cellStr);
                 };
 
                 if (this.filterLogic === LOGIC.OR) {

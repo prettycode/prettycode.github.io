@@ -2,7 +2,7 @@
 // FilterManager - Handles filter controls and logic
 // ============================================
 
-import { FILTER_VALUES, LOGIC, PLACEHOLDER, CSS, TOAST_TYPE } from '../constants.js';
+import { FILTER_VALUES, FILTER_OPERATORS, NO_VALUE_OPERATORS, DROPDOWN_OPERATORS, LOGIC, PLACEHOLDER, CSS, TOAST_TYPE } from '../constants.js';
 import { isEmpty, createRemoveButton, populateColumnOptions, showToast } from '../utils.js';
 
 export class FilterManager {
@@ -32,12 +32,32 @@ export class FilterManager {
         populateColumnOptions(colSelect, this.editor.headers, level === 0 ? 'No filter' : 'Select column');
         wrapper.appendChild(colSelect);
 
+        // Operator select (populated when column is selected)
+        const opSelect = document.createElement('select');
+        opSelect.className = 'filter-operator-select';
+        opSelect.dataset.level = level;
+        opSelect.innerHTML = '<option value="">Select operator...</option>';
+        opSelect.disabled = true;
+        wrapper.appendChild(opSelect);
+
+        // Value dropdown (for text equals/notEquals)
         const valueSelect = document.createElement('select');
         valueSelect.className = 'filter-value-select';
         valueSelect.dataset.level = level;
         valueSelect.innerHTML = `<option value="${FILTER_VALUES.PLACEHOLDER}">Select value...</option>`;
         valueSelect.disabled = true;
+        valueSelect.style.display = 'none';
         wrapper.appendChild(valueSelect);
+
+        // Value input (for numeric/date/text patterns)
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.className = 'filter-value-input';
+        valueInput.dataset.level = level;
+        valueInput.placeholder = 'Enter value...';
+        valueInput.disabled = true;
+        valueInput.style.display = 'none';
+        wrapper.appendChild(valueInput);
 
         // Add count badge (hidden by default, shown when filter is active)
         const countBadge = document.createElement('span');
@@ -114,16 +134,123 @@ export class FilterManager {
         valueSelect.disabled = false;
     }
 
+    detectColumnType(colIdx) {
+        const colIdxNum = parseInt(colIdx);
+        if (this.editor.numericColumnsCache && this.editor.numericColumnsCache.has(colIdxNum)) {
+            return 'numeric';
+        }
+        if (this.editor.timestampColumnsCache && this.editor.timestampColumnsCache.has(colIdxNum)) {
+            return 'date';
+        }
+        return 'text';
+    }
+
+    populateOperatorSelect(colSelect) {
+        const wrapper = colSelect.closest('.filter-select-wrapper');
+        const opSelect = wrapper.querySelector('.filter-operator-select');
+        const valueSelect = wrapper.querySelector('.filter-value-select');
+        const valueInput = wrapper.querySelector('.filter-value-input');
+        const colIdx = colSelect.value;
+
+        // Hide value inputs
+        valueSelect.style.display = 'none';
+        valueSelect.disabled = true;
+        valueInput.style.display = 'none';
+        valueInput.disabled = true;
+
+        if (colIdx === '') {
+            opSelect.innerHTML = '<option value="">Select operator...</option>';
+            opSelect.disabled = true;
+            opSelect.dataset.columnType = '';
+            return;
+        }
+
+        const columnType = this.detectColumnType(colIdx);
+        const operators = FILTER_OPERATORS[columnType.toUpperCase()];
+
+        opSelect.innerHTML = '<option value="">Select operator...</option>';
+        operators.forEach(op => {
+            const option = document.createElement('option');
+            option.value = op.value;
+            option.textContent = op.label;
+            opSelect.appendChild(option);
+        });
+
+        opSelect.disabled = false;
+        opSelect.dataset.columnType = columnType;
+    }
+
+    handleOperatorChange(opSelect) {
+        const wrapper = opSelect.closest('.filter-select-wrapper');
+        const colSelect = wrapper.querySelector('.filter-column-select');
+        const valueSelect = wrapper.querySelector('.filter-value-select');
+        const valueInput = wrapper.querySelector('.filter-value-input');
+        const operator = opSelect.value;
+        const columnType = opSelect.dataset.columnType;
+
+        // Hide both inputs initially
+        valueSelect.style.display = 'none';
+        valueSelect.disabled = true;
+        valueInput.style.display = 'none';
+        valueInput.disabled = true;
+        valueInput.value = '';
+
+        if (!operator || NO_VALUE_OPERATORS.includes(operator)) {
+            // No value needed for isEmpty/isNotEmpty
+            return;
+        }
+
+        if (columnType === 'text' && DROPDOWN_OPERATORS.includes(operator)) {
+            // Text equals/notEquals: show dropdown
+            this.populateValueSelect(colSelect);
+            valueSelect.style.display = '';
+            valueSelect.disabled = false;
+        } else {
+            // All other cases: show text input
+            valueInput.style.display = '';
+            valueInput.disabled = false;
+
+            // Set placeholder based on type
+            if (columnType === 'numeric') {
+                valueInput.placeholder = 'Enter number...';
+            } else if (columnType === 'date') {
+                valueInput.placeholder = 'Enter date...';
+            } else {
+                valueInput.placeholder = 'Enter text...';
+            }
+        }
+    }
+
     addLevel() {
         const container = this.editor.filterSelectsContainer;
         const colSelects = container.querySelectorAll('.filter-column-select');
         const lastWrapper = colSelects[colSelects.length - 1].closest('.filter-select-wrapper');
-        const lastSelect = lastWrapper.querySelector('.filter-column-select');
+        const lastColSelect = lastWrapper.querySelector('.filter-column-select');
+        const lastOpSelect = lastWrapper.querySelector('.filter-operator-select');
         const lastValueSelect = lastWrapper.querySelector('.filter-value-select');
+        const lastValueInput = lastWrapper.querySelector('.filter-value-input');
 
-        if (!lastSelect.value || lastValueSelect.value === FILTER_VALUES.PLACEHOLDER) {
+        // Check if filter is complete
+        if (!lastColSelect.value || !lastOpSelect.value) {
             showToast('Complete the current filter first', TOAST_TYPE.ERROR);
             return;
+        }
+
+        const operator = lastOpSelect.value;
+        // Check if value is required and provided
+        if (!NO_VALUE_OPERATORS.includes(operator)) {
+            const columnType = lastOpSelect.dataset.columnType;
+            if (columnType === 'text' && DROPDOWN_OPERATORS.includes(operator)) {
+                if (lastValueSelect.value === FILTER_VALUES.PLACEHOLDER) {
+                    showToast('Complete the current filter first', TOAST_TYPE.ERROR);
+                    return;
+                }
+            } else {
+                if (!lastValueInput.value.trim()) {
+                    showToast('Complete the current filter first', TOAST_TYPE.ERROR);
+                    return;
+                }
+            }
         }
 
         const newLevel = colSelects.length;
@@ -138,16 +265,44 @@ export class FilterManager {
 
         wrappers.forEach(wrapper => {
             const colSelect = wrapper.querySelector('.filter-column-select');
+            const opSelect = wrapper.querySelector('.filter-operator-select');
             const valueSelect = wrapper.querySelector('.filter-value-select');
+            const valueInput = wrapper.querySelector('.filter-value-input');
 
-            // Check if a column is selected and a valid value is selected (not the placeholder)
-            if (colSelect.value !== '' && valueSelect.value !== FILTER_VALUES.PLACEHOLDER) {
-                this.filters.push({
-                    column: colSelect.value,
-                    value: valueSelect.value === FILTER_VALUES.EMPTY ? '' : valueSelect.value,
-                    isEmpty: valueSelect.value === FILTER_VALUES.EMPTY
-                });
+            // Check if column and operator are selected
+            if (colSelect.value === '' || !opSelect || opSelect.value === '') {
+                return; // Incomplete filter
             }
+
+            const operator = opSelect.value;
+            const columnType = opSelect.dataset.columnType || 'text';
+
+            // Determine the value based on operator type
+            let value = null;
+
+            if (NO_VALUE_OPERATORS.includes(operator)) {
+                // No value needed
+                value = null;
+            } else if (columnType === 'text' && DROPDOWN_OPERATORS.includes(operator)) {
+                // Value from dropdown
+                if (valueSelect.value === FILTER_VALUES.PLACEHOLDER) {
+                    return; // Incomplete filter
+                }
+                value = valueSelect.value === FILTER_VALUES.EMPTY ? '' : valueSelect.value;
+            } else {
+                // Value from text input
+                value = valueInput.value.trim();
+                if (value === '') {
+                    return; // Incomplete filter
+                }
+            }
+
+            this.filters.push({
+                column: colSelect.value,
+                columnType: columnType,
+                operator: operator,
+                value: value
+            });
         });
 
         // Deselect rows that are no longer visible due to filtering
@@ -187,20 +342,43 @@ export class FilterManager {
         const activeFilters = [];
         wrappers.forEach((wrapper, level) => {
             const colSelect = wrapper.querySelector('.filter-column-select');
+            const opSelect = wrapper.querySelector('.filter-operator-select');
             const valueSelect = wrapper.querySelector('.filter-value-select');
+            const valueInput = wrapper.querySelector('.filter-value-input');
             const badge = badges[level];
 
-            if (!colSelect || !valueSelect || colSelect.value === '' ||
-                valueSelect.value === FILTER_VALUES.PLACEHOLDER || valueSelect.disabled) {
+            // Check if filter is complete
+            if (!colSelect || colSelect.value === '' || !opSelect || opSelect.value === '') {
                 if (badge) badge.style.display = 'none';
                 return;
             }
 
-            // Add this filter to active filters
+            const operator = opSelect.value;
+            const columnType = opSelect.dataset.columnType || 'text';
+
+            // Build filter config
+            let value = null;
+            if (!NO_VALUE_OPERATORS.includes(operator)) {
+                if (columnType === 'text' && DROPDOWN_OPERATORS.includes(operator)) {
+                    if (!valueSelect || valueSelect.value === FILTER_VALUES.PLACEHOLDER) {
+                        if (badge) badge.style.display = 'none';
+                        return;
+                    }
+                    value = valueSelect.value === FILTER_VALUES.EMPTY ? '' : valueSelect.value;
+                } else {
+                    if (!valueInput || valueInput.value.trim() === '') {
+                        if (badge) badge.style.display = 'none';
+                        return;
+                    }
+                    value = valueInput.value.trim();
+                }
+            }
+
             const filterConfig = {
                 column: parseInt(colSelect.value),
-                value: valueSelect.value,
-                isEmpty: valueSelect.value === FILTER_VALUES.EMPTY
+                columnType: columnType,
+                operator: operator,
+                value: value
             };
             activeFilters.push(filterConfig);
 
@@ -210,11 +388,8 @@ export class FilterManager {
 
             this.editor.currentData.forEach(row => {
                 const matchFunction = fc => {
-                    const cellValue = String(row[fc.column] || '');
-                    if (fc.isEmpty) {
-                        return cellValue === '';
-                    }
-                    return cellValue === fc.value;
+                    const cellStr = String(row[fc.column] || '');
+                    return this.editor.evaluateFilter(fc, cellStr);
                 };
 
                 let matches;

@@ -23,6 +23,45 @@ export const FILTER_VALUES = {
     EMPTY: '__empty__'
 };
 
+// Filter operators by column type
+export const FILTER_OPERATORS = {
+    NUMERIC: [
+        { value: 'equals', label: '=' },
+        { value: 'notEquals', label: '≠' },
+        { value: 'gt', label: '>' },
+        { value: 'gte', label: '≥' },
+        { value: 'lt', label: '<' },
+        { value: 'lte', label: '≤' },
+        { value: 'isEmpty', label: 'is empty' },
+        { value: 'isNotEmpty', label: 'is not empty' }
+    ],
+    DATE: [
+        { value: 'equals', label: '=' },
+        { value: 'notEquals', label: '≠' },
+        { value: 'gt', label: 'after' },
+        { value: 'gte', label: 'on or after' },
+        { value: 'lt', label: 'before' },
+        { value: 'lte', label: 'on or before' },
+        { value: 'isEmpty', label: 'is empty' },
+        { value: 'isNotEmpty', label: 'is not empty' }
+    ],
+    TEXT: [
+        { value: 'equals', label: 'equals' },
+        { value: 'notEquals', label: 'not equals' },
+        { value: 'contains', label: 'contains' },
+        { value: 'startsWith', label: 'starts with' },
+        { value: 'endsWith', label: 'ends with' },
+        { value: 'isEmpty', label: 'is empty' },
+        { value: 'isNotEmpty', label: 'is not empty' }
+    ]
+};
+
+// Operators that don't require a value input
+export const NO_VALUE_OPERATORS = ['isEmpty', 'isNotEmpty'];
+
+// Operators that should use dropdown for text columns
+export const DROPDOWN_OPERATORS = ['equals', 'notEquals'];
+
 export const TIMING = {
     TOAST_DURATION: 3000,
     TOAST_FADE: 300,

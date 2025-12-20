@@ -601,6 +601,40 @@
             cursor: not-allowed;
         }
 
+        .filter-select-wrapper .filter-operator-select {
+            min-width: 90px;
+        }
+
+        .filter-select-wrapper .filter-operator-select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .filter-select-wrapper .filter-value-input {
+            min-width: 120px;
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+        }
+
+        .filter-select-wrapper .filter-value-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .filter-select-wrapper .filter-value-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .filter-select-wrapper .filter-value-input::placeholder {
+            color: var(--text-muted);
+        }
+
         .filter-select-wrapper .remove-filter {
             background: transparent;
             border: none;
