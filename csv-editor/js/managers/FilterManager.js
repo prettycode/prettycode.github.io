@@ -116,21 +116,25 @@ export class FilterManager {
             return String(a).localeCompare(String(b));
         });
 
+        // Build all options in a fragment to minimize reflows
+        const fragment = document.createDocumentFragment();
+
         // Add empty option first if there are empty values
         if (hasEmpty) {
             const emptyOption = document.createElement('option');
             emptyOption.value = FILTER_VALUES.EMPTY;
             emptyOption.textContent = PLACEHOLDER.EMPTY;
-            valueSelect.appendChild(emptyOption);
+            fragment.appendChild(emptyOption);
         }
 
         sortedValues.forEach(val => {
             const option = document.createElement('option');
             option.value = val;
             option.textContent = val;
-            valueSelect.appendChild(option);
+            fragment.appendChild(option);
         });
 
+        valueSelect.appendChild(fragment);
         valueSelect.disabled = false;
     }
 
@@ -168,14 +172,22 @@ export class FilterManager {
         const columnType = this.detectColumnType(colIdx);
         const operators = FILTER_OPERATORS[columnType.toUpperCase()];
 
-        opSelect.innerHTML = '<option value="">Select operator...</option>';
+        // Build all options in a fragment to minimize reflows
+        const fragment = document.createDocumentFragment();
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select operator...';
+        fragment.appendChild(placeholder);
+
         operators.forEach(op => {
             const option = document.createElement('option');
             option.value = op.value;
             option.textContent = op.label;
-            opSelect.appendChild(option);
+            fragment.appendChild(option);
         });
 
+        opSelect.innerHTML = '';
+        opSelect.appendChild(fragment);
         opSelect.disabled = false;
         opSelect.dataset.columnType = columnType;
     }

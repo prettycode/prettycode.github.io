@@ -170,15 +170,25 @@ export class CSVEditor {
         // Filter controls
         this.filterSelectsContainer.addEventListener('change', (e) => {
             if (e.target.classList.contains('filter-column-select')) {
+                const hadFilters = this.filters.length > 0;
                 this.filterManager.populateOperatorSelect(e.target);
-                this.updateFilters();
-            }
-            if (e.target.classList.contains('filter-operator-select')) {
+                // Only update if we had active filters (changing/clearing affects results)
+                if (hadFilters) {
+                    this.updateFilters();
+                }
+            } else if (e.target.classList.contains('filter-operator-select')) {
+                const hadFilters = this.filters.length > 0;
                 this.filterManager.handleOperatorChange(e.target);
-                this.updateFilters();
-            }
-            if (e.target.classList.contains('filter-value-select')) {
-                this.updateFilters();
+                // Update if: filter is complete (isEmpty/isNotEmpty), or we had filters
+                // (changing operator may invalidate existing filter)
+                if (NO_VALUE_OPERATORS.includes(e.target.value) || hadFilters) {
+                    this.updateFilters();
+                }
+            } else if (e.target.classList.contains('filter-value-select')) {
+                // Update when value is selected OR when cleared back to placeholder (if we had filters)
+                if (e.target.value !== FILTER_VALUES.PLACEHOLDER || this.filters.length > 0) {
+                    this.updateFilters();
+                }
             }
         });
         // Debounced input handler for filter text input
