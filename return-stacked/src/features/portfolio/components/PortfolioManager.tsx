@@ -1,21 +1,21 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { Portfolio } from '@/core/domain/Portfolio';
-import type { SerializedPortfolio } from '@/core/domain/SerializedPortfolio';
-import { DEFAULT_PORTFOLIO_NAME, PRECISION_TOLERANCE, ALLOCATION_TOTAL_TARGET } from '@/core/data/constants';
-import { etfCatalog } from '@/core/data/catalogs/EtfCatalog';
-import { examplePortfolios } from '@/core/data/catalogs/PortfolioTemplates';
-import { isPortfolioModified } from '@/core/utils/PortfolioComparison';
-import { logger } from '@/core/utils/Logger';
-import { LocalStorageAdapter } from '@/adapters/storage/LocalStorageAdapter';
-import { usePortfolio } from '@/adapters/react/hooks/UsePortfolio';
-import { usePersistence } from '@/adapters/react/hooks/UsePersistence';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
+import type { SerializedPortfolio } from '@/features/portfolio/core/domain/SerializedPortfolio';
+import { DEFAULT_PORTFOLIO_NAME, PRECISION_TOLERANCE, ALLOCATION_TOTAL_TARGET } from '@/features/portfolio/core/data/constants';
+import { etfCatalog } from '@/features/portfolio/core/data/catalogs/EtfCatalog';
+import { examplePortfolios } from '@/features/portfolio/core/data/catalogs/PortfolioTemplates';
+import { isPortfolioModified } from '@/features/portfolio/core/utils/PortfolioComparison';
+import { logger } from '@/features/portfolio/core/utils/Logger';
+import { LocalStorageAdapter } from '@/features/portfolio/adapters/storage/LocalStorageAdapter';
+import { usePortfolio } from '@/features/portfolio/hooks/UsePortfolio';
+import { usePersistence } from '@/features/portfolio/hooks/UsePersistence';
 import Builder from './components/builder/Builder';
 import SaveModal from './components/builder/SaveModal';
 import Analysis from './components/analysis/Analysis';
-import { useToast } from '@/components/ui/Toast';
-import { serializePortfolio, deserializePortfolio } from '@/core/utils/Serialization';
+import { useToast } from '@/shared/components/ui/Toast';
+import { serializePortfolio, deserializePortfolio } from '@/features/portfolio/core/utils/Serialization';
 
 /**
  * Allocation update for bulk operations

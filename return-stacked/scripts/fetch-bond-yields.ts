@@ -170,7 +170,7 @@ async function fetchETFFundamentals(etf: BondETF, name: string): Promise<ETFYiel
         const roundedYield = Math.round(yieldPercent * 100) / 100;
 
         // Extract expense ratio if available
-        const expenseRatioStr = data.expense_ratio || data.management_fee || data.total_expense_ratio;
+        const expenseRatioStr = data.net_expense_ratio || data.expense_ratio || data.management_fee || data.total_expense_ratio;
         let expenseRatio: number = 0;
         if (expenseRatioStr && expenseRatioStr !== 'None' && expenseRatioStr !== '0') {
             const expensePercent = parseFloat(expenseRatioStr);

@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import type { Portfolio } from '../../../core/domain/Portfolio';
+import type { Portfolio } from '../core/domain/Portfolio';
 import { usePortfolioService } from './UsePortfolioService';
 
 export function usePersistence(): {

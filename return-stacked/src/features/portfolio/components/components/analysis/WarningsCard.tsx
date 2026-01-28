@@ -1,12 +1,12 @@
 import React from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
 import { AlertTriangle, ChevronDown, ChevronRight, Check } from 'lucide-react';
-import { cn } from '@/lib/Utils';
-import { parseExposureKey } from '@/core/utils/ExposureKeys';
-import { etfCatalog } from '@/core/data/catalogs/EtfCatalog';
-import { percentToWeight, weightToPercent } from '@/core/calculators/precision';
-import { analyzePortfolio } from '@/core/calculators/ExposureCalculator';
-import type { Portfolio } from '@/core/domain/Portfolio';
+import { cn } from '@/shared/lib/Utils';
+import { parseExposureKey } from '@/features/portfolio/core/utils/ExposureKeys';
+import { etfCatalog } from '@/features/portfolio/core/data/catalogs/EtfCatalog';
+import { percentToWeight, weightToPercent } from '@/features/portfolio/core/calculators/precision';
+import { analyzePortfolio } from '@/features/portfolio/core/calculators/ExposureCalculator';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
 
 interface PortfolioExposures {
     usEquity: number;

@@ -215,9 +215,9 @@ export class CSVEditor {
             }
         });
         this.addFilterBtn.addEventListener('click', () => this.addFilterLevel());
-        this.filterModeBtns.forEach(btn => {
+        for (const btn of this.filterModeBtns) {
             btn.addEventListener('click', () => this.setFilterMode(btn.dataset.filterMode));
-        });
+        }
 
         // Sort controls
         this.sortSelectsContainer.addEventListener('change', (e) => {
@@ -282,9 +282,9 @@ export class CSVEditor {
             }
         });
         this.addSearchBtn.addEventListener('click', () => this.addSearchLevel());
-        this.searchHighlightModeBtns.forEach(btn => {
+        for (const btn of this.searchHighlightModeBtns) {
             btn.addEventListener('click', () => this.setSearchHighlightMode(btn.dataset.highlightMode));
-        });
+        }
 
         // Navigation arrows
         this.tableScroll.addEventListener('scroll', () => this.updateNavArrows());
@@ -377,9 +377,9 @@ export class CSVEditor {
         });
 
         // Density selector
-        this.densityBtns.forEach(btn => {
+        for (const btn of this.densityBtns) {
             btn.addEventListener('click', () => this.setDensity(btn.dataset.density));
-        });
+        }
         
         // Theme toggle
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
@@ -425,9 +425,9 @@ export class CSVEditor {
         this.filters = [];
         this.filterLogic = LOGIC.AND;
         this.filterAsHighlight = false;
-        this.filterModeBtns.forEach(btn => {
+        for (const btn of this.filterModeBtns) {
             btn.classList.toggle(CSS.ACTIVE, btn.dataset.filterMode === 'filter');
-        });
+        }
         this.highlightTerms = [];
         this.searchLogic = LOGIC.AND;
         this.sortColumns = [];
@@ -470,7 +470,11 @@ export class CSVEditor {
                     currentValue = '';
                 } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
                     currentRow.push(currentValue);
-                    if (currentRow.length > 0 && currentRow.some(v => v.trim() !== '')) {
+                    let hasNonEmpty = false;
+                    for (const v of currentRow) {
+                        if (v.trim() !== '') { hasNonEmpty = true; break; }
+                    }
+                    if (currentRow.length > 0 && hasNonEmpty) {
                         rows.push(currentRow);
                     }
                     currentRow = [];
@@ -484,7 +488,11 @@ export class CSVEditor {
         
         if (currentValue || currentRow.length > 0) {
             currentRow.push(currentValue);
-            if (currentRow.some(v => v.trim() !== '')) {
+            let hasNonEmpty = false;
+            for (const v of currentRow) {
+                if (v.trim() !== '') { hasNonEmpty = true; break; }
+            }
+            if (hasNonEmpty) {
                 rows.push(currentRow);
             }
         }
@@ -573,10 +581,10 @@ export class CSVEditor {
         const container = isFilter ? this.filterSelectsContainer : this.searchSelectsContainer;
         const logic = isFilter ? this.filterLogic : this.searchLogic;
 
-        container.querySelectorAll(`.${type}-logic-toggle`).forEach(toggle => {
+        for (const toggle of container.querySelectorAll(`.${type}-logic-toggle`)) {
             toggle.textContent = logic;
             toggle.classList.toggle('active-or', logic === LOGIC.OR);
-        });
+        }
     }
 
 
@@ -610,7 +618,8 @@ export class CSVEditor {
         } = config;
 
         const wrappers = container.querySelectorAll(`.${wrapperClass}`);
-        wrappers.forEach((wrapper, idx) => {
+        for (let idx = 0; idx < wrappers.length; idx++) {
+            const wrapper = wrappers[idx];
             const colSelect = wrapper.querySelector(`.${colSelectClass}`);
             colSelect.dataset.level = idx;
 
@@ -705,7 +714,7 @@ export class CSVEditor {
                     wrapper.appendChild(createRemoveButton(removeClass, removeTitle));
                 }
             }
-        });
+        }
     }
 
     updateFilterSelectLevels() {
@@ -807,13 +816,13 @@ export class CSVEditor {
         // Cache numeric columns for this render
         this.numericColumnsCache = new Set();
         this.timestampColumnsCache = new Set();
-        this.headers.forEach((_, colIdx) => {
+        for (let colIdx = 0; colIdx < this.headers.length; colIdx++) {
             if (this.isColumnNumeric(colIdx)) {
                 this.numericColumnsCache.add(colIdx);
             } else if (this.isColumnTimestamp(colIdx)) {
                 this.timestampColumnsCache.add(colIdx);
             }
-        });
+        }
 
         // Only render header if we have data
         if (this.currentData.length > 0) {
@@ -863,9 +872,10 @@ export class CSVEditor {
         });
 
         // Data columns
-        this.headers.forEach((header, colIdx) => {
+        for (let colIdx = 0; colIdx < this.headers.length; colIdx++) {
+            const header = this.headers[colIdx];
             // Skip hidden columns
-            if (this.hiddenColumns.has(colIdx)) return;
+            if (this.hiddenColumns.has(colIdx)) continue;
 
             const th = document.createElement('th');
             th.className = 'draggable';
@@ -887,7 +897,10 @@ export class CSVEditor {
             const colIdxStr = String(colIdx);
 
             // Check if this column is in the sort list
-            const sortIndex = this.sortColumns.findIndex(s => s.column === colIdxStr);
+            let sortIndex = -1;
+            for (let si = 0; si < this.sortColumns.length; si++) {
+                if (this.sortColumns[si].column === colIdxStr) { sortIndex = si; break; }
+            }
             
             // Build sort indicator
             let sortIndicator = '';
@@ -955,7 +968,7 @@ export class CSVEditor {
             th.addEventListener('drop', (e) => this.handleDrop(e, colIdx));
 
             tr.appendChild(th);
-        });
+        }
 
         this.tableHead.appendChild(tr);
 
@@ -1004,6 +1017,12 @@ export class CSVEditor {
         this.currentLineNum = 0; // Reset line number counter
         let data = this.getFilteredData();
 
+        // Build row->index map for O(1) lookups instead of O(n) indexOf calls
+        this.rowIndexMap = new Map();
+        for (let idx = 0; idx < this.currentData.length; idx++) {
+            this.rowIndexMap.set(this.currentData[idx], idx);
+        }
+
         // Show empty state message if no data
         if (data.length === 0 && this.currentData.length === 0) {
             const emptyRow = document.createElement('tr');
@@ -1025,11 +1044,11 @@ export class CSVEditor {
                 this.renderAggregateRows(data, 'All', false, this.tableFoot);
             }
         } else {
-            data.forEach((row, idx) => {
-                const originalIdx = this.currentData.indexOf(row);
+            for (const row of data) {
+                const originalIdx = this.rowIndexMap.get(row);
                 this.currentLineNum++;
                 this.tableBody.appendChild(this.createDataRow(row, originalIdx, this.currentLineNum));
-            });
+            }
             // Add aggregate rows to the footer (sticky)
             if (this.showAggregates && data.length > 0) {
                 this.renderAggregateRows(data, '', false, this.tableFoot);
@@ -1039,35 +1058,38 @@ export class CSVEditor {
 
     renderGroupedData(data, level, parentPath) {
         if (level >= this.groupColumns.length) {
-            data.forEach(row => {
-                const originalIdx = this.currentData.indexOf(row);
+            for (const row of data) {
+                const originalIdx = this.rowIndexMap.get(row);
                 this.currentLineNum++;
                 this.tableBody.appendChild(this.createDataRow(row, originalIdx, this.currentLineNum));
-            });
+            }
             return;
         }
 
         const groupCol = this.groupColumns[level];
         const groups = {};
-        data.forEach(row => {
+        for (const row of data) {
             const groupValue = row[groupCol] || PLACEHOLDER.EMPTY;
             if (!groups[groupValue]) {
                 groups[groupValue] = [];
             }
             groups[groupValue].push(row);
-        });
+        }
 
         const sortedGroups = Object.keys(groups).sort();
         const groupHeaderName = this.headers[groupCol];
         const indent = level * UI.GROUP_INDENT_PX;
 
-        sortedGroups.forEach(groupValue => {
+        for (const groupValue of sortedGroups) {
             const groupRows = groups[groupValue];
             const groupPath = parentPath ? `${parentPath}|${groupValue}` : groupValue;
             const isCollapsed = this.collapsedGroups.has(groupPath);
 
-            // Get indices of all rows in this group
-            const groupRowIndices = groupRows.map(row => this.currentData.indexOf(row));
+            // Get indices of all rows in this group (using cached map for O(1) lookups)
+            const groupRowIndices = [];
+            for (const row of groupRows) {
+                groupRowIndices.push(this.rowIndexMap.get(row));
+            }
 
             const headerTr = document.createElement('tr');
             headerTr.className = 'group-header';
@@ -1081,15 +1103,18 @@ export class CSVEditor {
             checkbox.className = 'group-checkbox';
 
             // Check if all rows in group are selected
-            const allSelected = groupRowIndices.every(idx => this.selectedRows.has(idx));
+            let allSelected = true;
+            for (const idx of groupRowIndices) {
+                if (!this.selectedRows.has(idx)) { allSelected = false; break; }
+            }
             checkbox.checked = allSelected;
 
             checkbox.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (checkbox.checked) {
-                    groupRowIndices.forEach(idx => this.selectedRows.add(idx));
+                    for (const idx of groupRowIndices) this.selectedRows.add(idx);
                 } else {
-                    groupRowIndices.forEach(idx => this.selectedRows.delete(idx));
+                    for (const idx of groupRowIndices) this.selectedRows.delete(idx);
                 }
                 this.renderTable();
                 this.updateSelectionUI();
@@ -1120,14 +1145,14 @@ export class CSVEditor {
 
             if (!isCollapsed) {
                 this.renderGroupedData(groupRows, level + 1, groupPath);
-                
+
                 // Add aggregate rows for this group at the deepest level
                 // REQUIREMENT: Do not show aggregates for a group if the count of rows in that group is only 1
                 if (this.showAggregates && level === this.groupColumns.length - 1 && groupRows.length > 1) {
                     this.renderAggregateRows(groupRows, '', true);
                 }
             }
-        });
+        }
     }
 
     createDataRow(row, idx, lineNum) {
@@ -1149,15 +1174,20 @@ export class CSVEditor {
                 const start = Math.min(this.lastClickedRowIdx, idx);
                 const end = Math.max(this.lastClickedRowIdx, idx);
                 const filteredData = this.getFilteredData();
-                const visibleIndices = filteredData.map(r => this.currentData.indexOf(r));
-                
+                // Build map for O(1) lookups
+                const indexMap = new Map();
+                for (let i = 0; i < this.currentData.length; i++) {
+                    indexMap.set(this.currentData[i], i);
+                }
+
                 // Select all visible rows in range
-                for (const visibleIdx of visibleIndices) {
+                for (const r of filteredData) {
+                    const visibleIdx = indexMap.get(r);
                     if (visibleIdx >= start && visibleIdx <= end) {
                         this.selectedRows.add(visibleIdx);
                     }
                 }
-                
+
                 this.renderTable();
                 this.updateSelectionUI();
                 e.preventDefault();
@@ -1195,9 +1225,9 @@ export class CSVEditor {
         const cellMatchesTerms = new Map(); // colIdx -> Set of matching term indices
         const termFoundInRow = new Set(); // Which terms have been found anywhere in row
 
-        this.headers.forEach((header, colIdx) => {
+        for (let colIdx = 0; colIdx < this.headers.length; colIdx++) {
             // Skip hidden columns
-            if (this.hiddenColumns.has(colIdx)) return;
+            if (this.hiddenColumns.has(colIdx)) continue;
 
             const td = document.createElement('td');
             td.className = 'editable-cell';
@@ -1226,13 +1256,14 @@ export class CSVEditor {
             }
             td.dataset.column = colIdx;
             td.dataset.index = idx;
-            
+
             // Check for highlight matches
             if (this.highlightTerms && this.highlightTerms.length > 0) {
                 const cellLower = cellValue.toLowerCase();
                 const matchingTerms = new Set();
 
-                this.highlightTerms.forEach((searchObj, termIdx) => {
+                for (let termIdx = 0; termIdx < this.highlightTerms.length; termIdx++) {
+                    const searchObj = this.highlightTerms[termIdx];
                     // searchObj is { term: string|Symbol, caseSensitive: boolean }
                     let matches;
                     if (searchObj.term === EMPTY_CELL_MARKER) {
@@ -1249,7 +1280,7 @@ export class CSVEditor {
                         matchingTerms.add(termIdx);
                         termFoundInRow.add(termIdx);
                     }
-                });
+                }
 
                 if (matchingTerms.size > 0) {
                     cellMatchesTerms.set(colIdx, matchingTerms);
@@ -1258,7 +1289,7 @@ export class CSVEditor {
 
             td.addEventListener('dblclick', () => this.startEditing(td, idx, colIdx));
             tr.appendChild(td);
-        });
+        }
 
         // Determine if row should be highlighted based on AND/OR logic
         let rowHasHighlight = false;
@@ -1279,11 +1310,11 @@ export class CSVEditor {
 
             // Always highlight matching cells (for text emphasis)
             const cells = tr.querySelectorAll('td.editable-cell');
-            cells.forEach((td, colIdx) => {
+            for (let colIdx = 0; colIdx < cells.length; colIdx++) {
                 if (cellMatchesTerms.has(colIdx)) {
-                    td.classList.add(CSS.CELL_HIGHLIGHTED);
+                    cells[colIdx].classList.add(CSS.CELL_HIGHLIGHTED);
                 }
-            });
+            }
 
             // Row mode: also highlight entire row
             if (this.searchHighlightRow) {
@@ -1293,16 +1324,19 @@ export class CSVEditor {
 
         // Apply filter highlighting when in highlight mode
         if (this.filterAsHighlight && this.filters.length > 0) {
-            const matchFunction = filterConfig => {
-                const cellStr = String(row[filterConfig.column] || '');
-                return this.evaluateFilter(filterConfig, cellStr);
-            };
-
             let filterMatches;
             if (this.filterLogic === LOGIC.OR) {
-                filterMatches = this.filters.some(matchFunction);
+                filterMatches = false;
+                for (const filterConfig of this.filters) {
+                    const cellStr = String(row[filterConfig.column] || '');
+                    if (this.evaluateFilter(filterConfig, cellStr)) { filterMatches = true; break; }
+                }
             } else {
-                filterMatches = this.filters.every(matchFunction);
+                filterMatches = true;
+                for (const filterConfig of this.filters) {
+                    const cellStr = String(row[filterConfig.column] || '');
+                    if (!this.evaluateFilter(filterConfig, cellStr)) { filterMatches = false; break; }
+                }
             }
 
             if (filterMatches) {
@@ -1345,15 +1379,19 @@ export class CSVEditor {
         if (this.hideEmptyCols) {
             // Calculate which columns are empty in all rows
             this.hiddenColumns = new Set();
-            this.headers.forEach((_, colIdx) => {
-                const allEmpty = this.currentData.every(row => {
+            for (let colIdx = 0; colIdx < this.headers.length; colIdx++) {
+                let allEmpty = true;
+                for (const row of this.currentData) {
                     const val = row[colIdx];
-                    return val === '' || val === null || val === undefined;
-                });
+                    if (val !== '' && val !== null && val !== undefined) {
+                        allEmpty = false;
+                        break;
+                    }
+                }
                 if (allEmpty) {
                     this.hiddenColumns.add(colIdx);
                 }
-            });
+            }
         } else {
             this.hiddenColumns.clear();
         }
@@ -1509,49 +1547,67 @@ export class CSVEditor {
     calculateAggregates(data) {
         const aggregates = {};
         
-        this.headers.forEach((header, colIdx) => {
+        for (let colIdx = 0; colIdx < this.headers.length; colIdx++) {
             if (this.numericColumnsCache && this.numericColumnsCache.has(colIdx)) {
-                const rawValues = data
-                    .map(row => row[colIdx])
-                    .filter(val => !isEmpty(val));
-                
-                // Calculate max decimal precision from original string values
+                // Collect non-empty values and calculate precision in one pass
+                const rawValues = [];
                 let maxPrecision = 0;
-                rawValues.forEach(val => {
-                    const str = String(val);
-                    const decimalIdx = str.indexOf('.');
-                    if (decimalIdx !== -1) {
-                        const precision = str.length - decimalIdx - 1;
-                        maxPrecision = Math.max(maxPrecision, precision);
+                for (const row of data) {
+                    const val = row[colIdx];
+                    if (!isEmpty(val)) {
+                        rawValues.push(val);
+                        const str = String(val);
+                        const decimalIdx = str.indexOf('.');
+                        if (decimalIdx !== -1) {
+                            const precision = str.length - decimalIdx - 1;
+                            if (precision > maxPrecision) maxPrecision = precision;
+                        }
                     }
-                });
-                
-                const values = rawValues.map(val => parseFloat(val));
-                
-                if (values.length > 0) {
-                    const sum = values.reduce((a, b) => a + b, 0);
+                }
+
+                if (rawValues.length > 0) {
+                    let sum = 0;
+                    let min = Infinity;
+                    let max = -Infinity;
+                    for (const val of rawValues) {
+                        const num = parseFloat(val);
+                        sum += num;
+                        if (num < min) min = num;
+                        if (num > max) max = num;
+                    }
                     aggregates[colIdx] = {
                         type: 'numeric',
                         precision: maxPrecision,
                         total: sum,
-                        min: Math.min(...values),
-                        max: Math.max(...values),
-                        avg: sum / values.length,
-                        count: values.length
+                        min: min,
+                        max: max,
+                        avg: sum / rawValues.length,
+                        count: rawValues.length
                     };
                 }
             } else if (this.timestampColumnsCache && this.timestampColumnsCache.has(colIdx)) {
-                const dates = data
-                    .map(row => row[colIdx])
-                    .filter(val => !isEmpty(val))
-                    .map(val => this.parseTimestamp(val))
-                    .filter(d => d !== null);
+                // Collect valid timestamps in one pass
+                const timestamps = [];
+                for (const row of data) {
+                    const val = row[colIdx];
+                    if (!isEmpty(val)) {
+                        const parsed = this.parseTimestamp(val);
+                        if (parsed !== null) {
+                            timestamps.push(parsed.getTime());
+                        }
+                    }
+                }
 
-                if (dates.length > 0) {
-                    const timestamps = dates.map(d => d.getTime());
-                    const minTime = Math.min(...timestamps);
-                    const maxTime = Math.max(...timestamps);
-                    const avgTime = timestamps.reduce((a, b) => a + b, 0) / timestamps.length;
+                if (timestamps.length > 0) {
+                    let minTime = Infinity;
+                    let maxTime = -Infinity;
+                    let sumTime = 0;
+                    for (const t of timestamps) {
+                        if (t < minTime) minTime = t;
+                        if (t > maxTime) maxTime = t;
+                        sumTime += t;
+                    }
+                    const avgTime = sumTime / timestamps.length;
                     const elapsedMs = maxTime - minTime;
 
                     aggregates[colIdx] = {
@@ -1560,18 +1616,26 @@ export class CSVEditor {
                         min: new Date(minTime).toISOString(),
                         max: new Date(maxTime).toISOString(),
                         avg: new Date(avgTime).toISOString(),
-                        count: dates.length
+                        count: timestamps.length
                     };
                 }
             } else {
                 // REQUIREMENT: For non-numeric and non-date aggregate row values, if all
                 // the group's rows have the same value, display that value in the aggregate
-                const values = data.map(row => row[colIdx]);
-                const nonEmptyValues = values.filter(val => !isEmpty(val));
+                const nonEmptyValues = [];
+                for (const row of data) {
+                    const val = row[colIdx];
+                    if (!isEmpty(val)) {
+                        nonEmptyValues.push(val);
+                    }
+                }
 
                 if (nonEmptyValues.length > 0) {
                     const firstValue = nonEmptyValues[0];
-                    const allSame = nonEmptyValues.every(val => val === firstValue);
+                    let allSame = true;
+                    for (const val of nonEmptyValues) {
+                        if (val !== firstValue) { allSame = false; break; }
+                    }
 
                     if (allSame) {
                         aggregates[colIdx] = {
@@ -1581,8 +1645,8 @@ export class CSVEditor {
                     }
                 }
             }
-        });
-        
+        }
+
         return aggregates;
     }
 
@@ -1611,24 +1675,24 @@ export class CSVEditor {
             { key: 'max', label: 'Max' }
         ];
         
-        aggregateTypes.forEach(({ key, label: typeLabel }) => {
+        for (const { key, label: typeLabel } of aggregateTypes) {
             const tr = document.createElement('tr');
             tr.className = 'aggregate-row';
             if (isGroupAggregate) {
                 tr.classList.add('group-aggregate');
             }
-            
+
             // Label column spanning checkbox and line number columns
             const tdLabel = document.createElement('td');
             tdLabel.className = 'aggregate-label';
             tdLabel.colSpan = 2;
             tdLabel.textContent = label ? `${label} ${typeLabel}` : typeLabel;
             tr.appendChild(tdLabel);
-            
+
             // Data columns
-            this.headers.forEach((header, colIdx) => {
+            for (let colIdx = 0; colIdx < this.headers.length; colIdx++) {
                 // Skip hidden columns
-                if (this.hiddenColumns.has(colIdx)) return;
+                if (this.hiddenColumns.has(colIdx)) continue;
 
                 const td = document.createElement('td');
 
@@ -1650,10 +1714,10 @@ export class CSVEditor {
                 }
 
                 tr.appendChild(td);
-            });
+            }
 
             target.appendChild(tr);
-        });
+        }
     }
 
     startEditing(td, rowIdx, column) {
@@ -1814,18 +1878,25 @@ export class CSVEditor {
 
         // Only filter when not in highlight mode
         if (this.filters.length > 0 && !this.filterAsHighlight) {
-            data = data.filter(row => {
-                const matchFunction = filterConfig => {
-                    const cellStr = String(row[filterConfig.column] || '');
-                    return this.evaluateFilter(filterConfig, cellStr);
-                };
-
+            const filtered = [];
+            for (const row of data) {
+                let matches;
                 if (this.filterLogic === LOGIC.OR) {
-                    return this.filters.some(matchFunction);
+                    matches = false;
+                    for (const filterConfig of this.filters) {
+                        const cellStr = String(row[filterConfig.column] || '');
+                        if (this.evaluateFilter(filterConfig, cellStr)) { matches = true; break; }
+                    }
                 } else {
-                    return this.filters.every(matchFunction);
+                    matches = true;
+                    for (const filterConfig of this.filters) {
+                        const cellStr = String(row[filterConfig.column] || '');
+                        if (!this.evaluateFilter(filterConfig, cellStr)) { matches = false; break; }
+                    }
                 }
-            });
+                if (matches) filtered.push(row);
+            }
+            data = filtered;
         }
 
         if (this.sortColumns.length > 0) {
@@ -2056,9 +2127,9 @@ export class CSVEditor {
         this.filters = [];
         this.filterLogic = LOGIC.AND;
         this.filterAsHighlight = false;
-        this.filterModeBtns.forEach(btn => {
+        for (const btn of this.filterModeBtns) {
             btn.classList.toggle(CSS.ACTIVE, btn.dataset.filterMode === 'filter');
-        });
+        }
         this.highlightTerms = [];
         this.searchLogic = LOGIC.AND;
         this.searchSelectsContainer.innerHTML = '';
@@ -2124,19 +2195,37 @@ export class CSVEditor {
 
         switch (exportType) {
             case 'selected':
-                dataToExport = this.currentData.filter((_, idx) => this.selectedRows.has(idx));
+                dataToExport = [];
+                for (let idx = 0; idx < this.currentData.length; idx++) {
+                    if (this.selectedRows.has(idx)) dataToExport.push(this.currentData[idx]);
+                }
                 break;
             case 'deselected':
-                dataToExport = this.currentData.filter((_, idx) => !this.selectedRows.has(idx));
+                dataToExport = [];
+                for (let idx = 0; idx < this.currentData.length; idx++) {
+                    if (!this.selectedRows.has(idx)) dataToExport.push(this.currentData[idx]);
+                }
                 break;
             default:
                 dataToExport = this.currentData;
         }
 
-        let csv = this.headers.map(escapeCSV).join(',') + '\n';
-        dataToExport.forEach(row => {
-            csv += this.headers.map((_, colIdx) => escapeCSV(row[colIdx])).join(',') + '\n';
-        });
+        // Build CSV header
+        let csv = '';
+        for (let i = 0; i < this.headers.length; i++) {
+            if (i > 0) csv += ',';
+            csv += escapeCSV(this.headers[i]);
+        }
+        csv += '\n';
+
+        // Build CSV rows
+        for (const row of dataToExport) {
+            for (let colIdx = 0; colIdx < this.headers.length; colIdx++) {
+                if (colIdx > 0) csv += ',';
+                csv += escapeCSV(row[colIdx]);
+            }
+            csv += '\n';
+        }
 
         const blob = new Blob([csv], { type: MIME_TYPE.CSV });
         const url = URL.createObjectURL(blob);
@@ -2178,8 +2267,8 @@ export class CSVEditor {
         this.moveRowsTabList.appendChild(newTabItem);
 
         // Add existing tabs (except current)
-        this.tabManager.tabs.forEach((tabData, tabId) => {
-            if (tabId === currentTabId) return;
+        for (const [tabId, tabData] of this.tabManager.tabs) {
+            if (tabId === currentTabId) continue;
 
             const tabItem = document.createElement('label');
             tabItem.className = 'move-rows-tab-item';
@@ -2190,7 +2279,7 @@ export class CSVEditor {
                 </div>
             `;
             this.moveRowsTabList.appendChild(tabItem);
-        });
+        }
 
         // Handle radio selection
         this.moveRowsTabList.addEventListener('change', (e) => {
@@ -2207,9 +2296,9 @@ export class CSVEditor {
                 }
 
                 // Update selected styling
-                this.moveRowsTabList.querySelectorAll('.move-rows-tab-item').forEach(item => {
+                for (const item of this.moveRowsTabList.querySelectorAll('.move-rows-tab-item')) {
                     item.classList.toggle(CSS.SELECTED, item.querySelector('input').checked);
-                });
+                }
             }
         });
 
@@ -2247,9 +2336,9 @@ export class CSVEditor {
         this.tableDensity = density;
 
         // Update button states
-        this.densityBtns.forEach(btn => {
+        for (const btn of this.densityBtns) {
             btn.classList.toggle(CSS.ACTIVE, btn.dataset.density === density);
-        });
+        }
 
         // Update table class
         this.tableElement.classList.remove('table-compact', 'table-normal');

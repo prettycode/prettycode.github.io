@@ -50,7 +50,10 @@ export class TabManager {
         this.uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
             this.uploadZone.classList.remove(CSS.DRAG_OVER);
-            const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith(FILE_EXT.CSV));
+            const files = [];
+            for (const f of e.dataTransfer.files) {
+                if (f.name.endsWith(FILE_EXT.CSV)) files.push(f);
+            }
             if (files.length > 0) {
                 this.loadFiles(files);
             } else {
@@ -68,7 +71,10 @@ export class TabManager {
         document.addEventListener('drop', (e) => {
             if (e.dataTransfer.types.includes('Files') && !e.target.closest('.upload-zone')) {
                 e.preventDefault();
-                const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith(FILE_EXT.CSV));
+                const files = [];
+                for (const f of e.dataTransfer.files) {
+                    if (f.name.endsWith(FILE_EXT.CSV)) files.push(f);
+                }
                 if (files.length > 0) {
                     this.loadFiles(files);
                 }
@@ -102,7 +108,10 @@ export class TabManager {
     }
 
     handleFileSelect(e) {
-        const files = Array.from(e.target.files).filter(f => f.name.endsWith(FILE_EXT.CSV));
+        const files = [];
+        for (const f of e.target.files) {
+            if (f.name.endsWith(FILE_EXT.CSV)) files.push(f);
+        }
         if (files.length > 0) {
             this.loadFiles(files);
         }
@@ -111,7 +120,8 @@ export class TabManager {
     }
 
     loadFiles(files) {
-        files.forEach((file, index) => {
+        for (let index = 0; index < files.length; index++) {
+            const file = files[index];
             if (index === 0 && !this.hasDataInCurrentTab()) {
                 // Load into current tab if it's empty
                 this.loadFileIntoTab(this.activeTabId, file);
@@ -120,7 +130,7 @@ export class TabManager {
                 const tabId = this.createTab(false);
                 this.loadFileIntoTab(tabId, file);
             }
-        });
+        }
     }
 
     hasDataInCurrentTab() {
@@ -277,9 +287,9 @@ export class TabManager {
         }
 
         // Update tab UI
-        this.tabList.querySelectorAll('.tab').forEach(tab => {
+        for (const tab of this.tabList.querySelectorAll('.tab')) {
             tab.classList.toggle(CSS.ACTIVE, tab.dataset.tabId === tabId);
-        });
+        }
 
         this.activeTabId = tabId;
         const tabData = this.tabs.get(tabId);
@@ -311,10 +321,14 @@ export class TabManager {
         tabData.sortColumns = deepClone(this.editor.sortColumns);
         tabData.groupColumns = [...this.editor.groupColumns];
         // highlightTerms may contain Symbols, so we need to serialize them specially
-        tabData.highlightTerms = this.editor.highlightTerms.map(term => ({
-            term: term.term === EMPTY_CELL_MARKER ? '__EMPTY_CELL_MARKER__' : term.term,
-            caseSensitive: term.caseSensitive
-        }));
+        const serializedTerms = [];
+        for (const term of this.editor.highlightTerms) {
+            serializedTerms.push({
+                term: term.term === EMPTY_CELL_MARKER ? '__EMPTY_CELL_MARKER__' : term.term,
+                caseSensitive: term.caseSensitive
+            });
+        }
+        tabData.highlightTerms = serializedTerms;
         tabData.searchLogic = this.editor.searchLogic;
         tabData.searchHighlightRow = this.editor.searchHighlightRow;
         tabData.collapsedGroups = new Set(this.editor.collapsedGroups);
@@ -329,9 +343,9 @@ export class TabManager {
         };
         // modifiedCells is Map<number, Set<number>>, need to deep copy
         tabData.modifiedCells = new Map();
-        this.editor.modifiedCells.forEach((colSet, rowIdx) => {
+        for (const [rowIdx, colSet] of this.editor.modifiedCells) {
             tabData.modifiedCells.set(rowIdx, new Set(colSet));
-        });
+        }
         tabData.addedColumns = new Set(this.editor.addedColumns);
         tabData.showAggregates = this.editor.showAggregates;
         tabData.showEmptyAsDash = this.editor.showEmptyAsDash;
@@ -360,10 +374,14 @@ export class TabManager {
         this.editor.sortColumns = deepClone(tabData.sortColumns);
         this.editor.groupColumns = [...tabData.groupColumns];
         // Restore highlightTerms with Symbol handling
-        this.editor.highlightTerms = tabData.highlightTerms.map(term => ({
-            term: term.term === '__EMPTY_CELL_MARKER__' ? EMPTY_CELL_MARKER : term.term,
-            caseSensitive: term.caseSensitive
-        }));
+        const restoredTerms = [];
+        for (const term of tabData.highlightTerms) {
+            restoredTerms.push({
+                term: term.term === '__EMPTY_CELL_MARKER__' ? EMPTY_CELL_MARKER : term.term,
+                caseSensitive: term.caseSensitive
+            });
+        }
+        this.editor.highlightTerms = restoredTerms;
         this.editor.searchLogic = tabData.searchLogic;
         this.editor.searchHighlightRow = tabData.searchHighlightRow;
         this.editor.collapsedGroups = new Set(tabData.collapsedGroups);
@@ -378,9 +396,9 @@ export class TabManager {
         };
         // Restore modifiedCells with deep copy
         this.editor.modifiedCells = new Map();
-        tabData.modifiedCells.forEach((colSet, rowIdx) => {
+        for (const [rowIdx, colSet] of tabData.modifiedCells) {
             this.editor.modifiedCells.set(rowIdx, new Set(colSet));
-        });
+        }
         this.editor.addedColumns = new Set(tabData.addedColumns);
         this.editor.showAggregates = tabData.showAggregates;
         this.editor.showEmptyAsDash = tabData.showEmptyAsDash;
@@ -507,9 +525,9 @@ export class TabManager {
     updateTabCloseButtons() {
         const closeButtons = this.tabList.querySelectorAll('.tab-close');
         const shouldShow = this.tabs.size > 1;
-        closeButtons.forEach(btn => {
+        for (const btn of closeButtons) {
             btn.style.display = shouldShow ? '' : 'none';
-        });
+        }
     }
 
     markCurrentTabModified() {

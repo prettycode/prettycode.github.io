@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Portfolio } from '@/core/domain/Portfolio';
-import type { ETF } from '@/core/domain/ETF';
-import type { SerializedPortfolio } from '@/core/domain/SerializedPortfolio';
-import type { Holding } from '@/core/domain/Holding';
-import { deserializePortfolio } from '@/core/utils/Serialization';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
+import type { ETF } from '@/features/portfolio/core/domain/ETF';
+import type { SerializedPortfolio } from '@/features/portfolio/core/domain/SerializedPortfolio';
+import type { Holding } from '@/features/portfolio/core/domain/Holding';
+import { deserializePortfolio } from '@/features/portfolio/core/utils/Serialization';
 import TickerOrTemplateSelectionTable from './TickerOrTemplateSelectionTable';
 import CompositionPanel from './CompositionPanel';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/shared/components/ui/Button';
 import { Download, Upload } from 'lucide-react';
 
 interface AllocationUpdate {
@@ -219,6 +219,9 @@ const Builder: React.FC<BuilderProps> = ({
                 setShowPortfolioNameInput={() => {}}
                 onResetToTemplate={onResetToTemplate}
                 isTemplateModified={isTemplateModified}
+                onLoadPortfolio={loadPortfolio}
+                examplePortfolios={examplePortfolios}
+                savedPortfolios={savedPortfolios}
             />
 
             {/* Introduction Message */}

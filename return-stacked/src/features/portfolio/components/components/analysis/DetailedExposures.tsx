@@ -1,19 +1,19 @@
 import React from 'react';
-import { parseExposureKey } from '@/core/utils/ExposureKeys';
-import { assetClassColors } from '@/core/data/constants/AssetClassColors';
-import { weightToPercent, calculateRelativePercent } from '@/core/calculators/precision';
-import { AnalysisService } from '@/core/services/AnalysisService';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Progress } from '@/components/ui/Progress';
-import { cn } from '@/lib/Utils';
+import { parseExposureKey } from '@/features/portfolio/core/utils/ExposureKeys';
+import { assetClassColors } from '@/features/portfolio/core/data/constants/AssetClassColors';
+import { weightToPercent, calculateRelativePercent } from '@/features/portfolio/core/calculators/precision';
+import { AnalysisService } from '@/features/portfolio/core/services/AnalysisService';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/Card';
+import { Progress } from '@/shared/components/ui/Progress';
+import { cn } from '@/shared/lib/Utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import ExposureCard from './ExposureCard';
-import type { Portfolio } from '@/core/domain/Portfolio';
-import type { ColorMap } from '@/core/domain/ColorMap';
-import type { AssetClass } from '@/core/domain/AssetClass';
-import type { MarketRegion } from '@/core/domain/MarketRegion';
-import type { FactorStyle } from '@/core/domain/FactorStyle';
-import type { SizeFactor } from '@/core/domain/SizeFactor';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
+import type { ColorMap } from '@/features/portfolio/core/domain/ColorMap';
+import type { AssetClass } from '@/features/portfolio/core/domain/AssetClass';
+import type { MarketRegion } from '@/features/portfolio/core/domain/MarketRegion';
+import type { FactorStyle } from '@/features/portfolio/core/domain/FactorStyle';
+import type { SizeFactor } from '@/features/portfolio/core/domain/SizeFactor';
 
 interface ExpandedCategories {
     assetClass: boolean;

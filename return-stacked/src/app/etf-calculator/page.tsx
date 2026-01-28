@@ -1,6 +1,6 @@
 'use client';
 
-import ETFTaxYieldCalculator from '@/components/etf-tax-yield-calculator';
+import ETFTaxYieldCalculator from '@/features/etf-tax-calculator/components/etf-tax-yield-calculator';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

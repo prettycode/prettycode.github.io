@@ -25,6 +25,7 @@ export const DURATION_LABELS: Record<Duration, string> = {
 
 // Tax-Exempt Municipal Bond ETFs
 export const TAX_EXEMPT_MUNI_ETFS: BondETF[] = [
+    { ticker: 'SUB', duration: 'short', managementStyle: 'passive' },
     { ticker: 'VTES', duration: 'short', managementStyle: 'passive' },
     { ticker: 'VTEI', duration: 'intermediate', managementStyle: 'passive' },
     { ticker: 'VWIUX', duration: 'intermediate', managementStyle: 'passive' },
@@ -48,6 +49,7 @@ export const TAXABLE_TREASURY_ETFS: BondETF[] = [
     { ticker: 'VGIT', duration: 'intermediate', managementStyle: 'passive' },
     { ticker: 'VGLT', duration: 'long', managementStyle: 'passive' },
     { ticker: 'EDV', duration: 'extended', managementStyle: 'passive' },
+    { ticker: 'GOVZ', duration: 'extended', managementStyle: 'passive' },
 ];
 
 // All ETFs combined (for fetching data)

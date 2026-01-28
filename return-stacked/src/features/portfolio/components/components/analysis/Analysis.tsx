@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import AssetClassExposureBar from './AssetClassExposureBar';
 import DetailedExposures from './DetailedExposures';
 import WarningsCard from './WarningsCard';
-import { Card, CardContent } from '@/components/ui/Card';
-import { ViewToggle } from '@/components/ui/ViewToggle';
+import { Card, CardContent } from '@/shared/components/ui/Card';
+import { ViewToggle } from '@/shared/components/ui/ViewToggle';
 import { AlertCircle, SlidersHorizontal, Percent, ArrowDown10, Filter, LayoutGrid, AlertTriangle } from 'lucide-react';
-import type { Portfolio } from '@/core/domain/Portfolio';
-import type { ExpandedCategories } from '@/core/domain/ExpandedCategories';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
+import type { ExpandedCategories } from '@/features/portfolio/core/domain/ExpandedCategories';
 
 interface AnalysisProps {
     portfolio: Portfolio;

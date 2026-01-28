@@ -1,15 +1,15 @@
 import React from 'react';
-import type { Portfolio } from '@/core/domain/Portfolio';
-import type { ETF } from '@/core/domain/ETF';
-import { parseExposureKey } from '@/core/utils/ExposureKeys';
-import { weightToPercent } from '@/core/calculators/precision';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
-import { Slider } from '@/components/ui/Slider';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
+import type { ETF } from '@/features/portfolio/core/domain/ETF';
+import { parseExposureKey } from '@/features/portfolio/core/utils/ExposureKeys';
+import { weightToPercent } from '@/features/portfolio/core/calculators/precision';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/Table';
+import { Slider } from '@/shared/components/ui/Slider';
+import { Input } from '@/shared/components/ui/Input';
+import { Button } from '@/shared/components/ui/Button';
+import { Badge } from '@/shared/components/ui/Badge';
 import { Lock, Unlock, Eye, EyeOff, Trash2, Info } from 'lucide-react';
-import { cn } from '@/lib/Utils';
+import { cn } from '@/shared/lib/Utils';
 
 interface HoldingsTableProps {
     customPortfolio: Portfolio;

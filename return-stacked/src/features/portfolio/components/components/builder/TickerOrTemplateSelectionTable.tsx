@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { Portfolio } from '@/core/domain/Portfolio';
-import type { ETF } from '@/core/domain/ETF';
-import type { AssetClass } from '@/core/domain/AssetClass';
-import type { TemplateDetails } from '@/core/domain/TemplateDetails';
-import type { SerializedPortfolio } from '@/core/domain/SerializedPortfolio';
-import { parseExposureKey } from '@/core/utils/ExposureKeys';
-import { AnalysisService } from '@/core/services/AnalysisService';
-import { percentToWeight, roundToWholePercent, calculateRelativePercent } from '@/core/calculators/precision';
-import { deserializePortfolio } from '@/core/utils/Serialization';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
+import type { ETF } from '@/features/portfolio/core/domain/ETF';
+import type { AssetClass } from '@/features/portfolio/core/domain/AssetClass';
+import type { TemplateDetails } from '@/features/portfolio/core/domain/TemplateDetails';
+import type { SerializedPortfolio } from '@/features/portfolio/core/domain/SerializedPortfolio';
+import { parseExposureKey } from '@/features/portfolio/core/utils/ExposureKeys';
+import { AnalysisService } from '@/features/portfolio/core/services/AnalysisService';
+import { percentToWeight, roundToWholePercent, calculateRelativePercent } from '@/features/portfolio/core/calculators/precision';
+import { deserializePortfolio } from '@/features/portfolio/core/utils/Serialization';
+import { Input } from '@/shared/components/ui/Input';
+import { Button } from '@/shared/components/ui/Button';
+import { Badge } from '@/shared/components/ui/Badge';
+import { Card } from '@/shared/components/ui/Card';
+import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/Tabs';
 import { SearchIcon, FilterIcon, ChevronDown, ChevronUp, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
-import { cn } from '@/lib/Utils';
+import { cn } from '@/shared/lib/Utils';
 
 interface TickerOrTemplateSelectionTableProps {
     etfCatalog: ETF[];

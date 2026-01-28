@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { roundForDisplay } from '@/core/calculators/precision';
-import { assetClassColors } from '@/core/data/constants/AssetClassColors';
-import { AnalysisService } from '@/core/services/AnalysisService';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { cn } from '@/lib/Utils';
-import type { Portfolio } from '@/core/domain/Portfolio';
-import type { ColorMap } from '@/core/domain/ColorMap';
+import { roundForDisplay } from '@/features/portfolio/core/calculators/precision';
+import { assetClassColors } from '@/features/portfolio/core/data/constants/AssetClassColors';
+import { AnalysisService } from '@/features/portfolio/core/services/AnalysisService';
+import { Card, CardContent, CardHeader } from '@/shared/components/ui/Card';
+import { Badge } from '@/shared/components/ui/Badge';
+import { cn } from '@/shared/lib/Utils';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
+import type { ColorMap } from '@/features/portfolio/core/domain/ColorMap';
 
 interface ExposureCardProps {
     portfolio?: Portfolio;

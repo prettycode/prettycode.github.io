@@ -1,10 +1,10 @@
 import React from 'react';
-import { assetClassColors } from '@/core/data/constants/AssetClassColors';
-import { weightToPercent, calculateRelativePercent } from '@/core/calculators/precision';
-import { AnalysisService } from '@/core/services/AnalysisService';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import type { Portfolio } from '@/core/domain/Portfolio';
+import { assetClassColors } from '@/features/portfolio/core/data/constants/AssetClassColors';
+import { weightToPercent, calculateRelativePercent } from '@/features/portfolio/core/calculators/precision';
+import { AnalysisService } from '@/features/portfolio/core/services/AnalysisService';
+import { Card, CardContent } from '@/shared/components/ui/Card';
+import { Badge } from '@/shared/components/ui/Badge';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
 
 interface AssetClassExposureBarProps {
     portfolio: Portfolio;

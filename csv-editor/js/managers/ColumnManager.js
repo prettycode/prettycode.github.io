@@ -45,9 +45,9 @@ export class ColumnManager {
         }
 
         // Remove all drag-over classes
-        document.querySelectorAll('.' + CSS.DRAG_OVER_LEFT + ', .' + CSS.DRAG_OVER_RIGHT).forEach(el => {
+        for (const el of document.querySelectorAll('.' + CSS.DRAG_OVER_LEFT + ', .' + CSS.DRAG_OVER_RIGHT)) {
             el.classList.remove(CSS.DRAG_OVER_LEFT, CSS.DRAG_OVER_RIGHT);
-        });
+        }
     }
 
     handleDragOver(e, colIdx) {
@@ -99,7 +99,8 @@ export class ColumnManager {
         this.editor.headers.splice(targetIdx, 0, header);
 
         // Move data in all rows
-        this.editor.currentData = this.editor.currentData.map(row => {
+        const newData = [];
+        for (const row of this.editor.currentData) {
             const newRow = {};
             const values = [];
 
@@ -115,12 +116,13 @@ export class ColumnManager {
             values.splice(targetIdx, 0, movedValue);
 
             // Rebuild row with new indices
-            values.forEach((val, idx) => {
-                newRow[idx] = val;
-            });
+            for (let idx = 0; idx < values.length; idx++) {
+                newRow[idx] = values[idx];
+            }
 
-            return newRow;
-        });
+            newData.push(newRow);
+        }
+        this.editor.currentData = newData;
 
         // Update sort columns, filters, and group columns to reflect new indices
         this.updateReferences(fromIdx, targetIdx);
@@ -135,9 +137,11 @@ export class ColumnManager {
         }
 
         // Update addedColumns indices
-        this.addedColumns = new Set(
-            Array.from(this.addedColumns).map(col => adjustIndexAfterMove(col, fromIdx, targetIdx))
-        );
+        const newAddedColumns = new Set();
+        for (const col of this.addedColumns) {
+            newAddedColumns.add(adjustIndexAfterMove(col, fromIdx, targetIdx));
+        }
+        this.addedColumns = newAddedColumns;
 
         this.editor.modStats.columnsReordered++;
 
@@ -149,19 +153,25 @@ export class ColumnManager {
 
     updateReferences(fromIdx, toIdx) {
         // Update sort columns
-        this.editor.sortColumns = this.editor.sortColumns.map(s => ({
-            ...s,
-            column: String(adjustIndexAfterMove(parseInt(s.column), fromIdx, toIdx))
-        }));
+        const newSortColumns = [];
+        for (const s of this.editor.sortColumns) {
+            newSortColumns.push({ ...s, column: String(adjustIndexAfterMove(parseInt(s.column), fromIdx, toIdx)) });
+        }
+        this.editor.sortColumns = newSortColumns;
 
         // Update filters
-        this.editor.filters = this.editor.filters.map(f => ({
-            ...f,
-            column: String(adjustIndexAfterMove(parseInt(f.column), fromIdx, toIdx))
-        }));
+        const newFilters = [];
+        for (const f of this.editor.filters) {
+            newFilters.push({ ...f, column: String(adjustIndexAfterMove(parseInt(f.column), fromIdx, toIdx)) });
+        }
+        this.editor.filters = newFilters;
 
         // Update group columns
-        this.editor.groupColumns = this.editor.groupColumns.map(col => adjustIndexAfterMove(col, fromIdx, toIdx));
+        const newGroupColumns = [];
+        for (const col of this.editor.groupColumns) {
+            newGroupColumns.push(adjustIndexAfterMove(col, fromIdx, toIdx));
+        }
+        this.editor.groupColumns = newGroupColumns;
     }
 
     delete(colIdx) {
@@ -176,7 +186,8 @@ export class ColumnManager {
         this.editor.headers.splice(colIdx, 1);
 
         // Remove from data and reindex
-        this.editor.currentData = this.editor.currentData.map(row => {
+        const newData = [];
+        for (const row of this.editor.currentData) {
             const newRow = {};
             let newIdx = 0;
             for (let i = 0; i < this.editor.headers.length + 1; i++) {
@@ -185,8 +196,9 @@ export class ColumnManager {
                     newIdx++;
                 }
             }
-            return newRow;
-        });
+            newData.push(newRow);
+        }
+        this.editor.currentData = newData;
 
         // Update modifiedCells - remove deleted column and adjust remaining indices
         for (const [rowIdx, cols] of this.editor.modifiedCells) {
@@ -223,21 +235,34 @@ export class ColumnManager {
 
     updateReferencesAfterDelete(deletedIdx) {
         // Update sort columns
-        this.editor.sortColumns = this.editor.sortColumns
-            .map(s => ({ ...s, column: adjustIndexAfterDelete(parseInt(s.column), deletedIdx) }))
-            .filter(s => s.column !== null)
-            .map(s => ({ ...s, column: String(s.column) }));
+        const newSortColumns = [];
+        for (const s of this.editor.sortColumns) {
+            const adjusted = adjustIndexAfterDelete(parseInt(s.column), deletedIdx);
+            if (adjusted !== null) {
+                newSortColumns.push({ ...s, column: String(adjusted) });
+            }
+        }
+        this.editor.sortColumns = newSortColumns;
 
         // Update filters
-        this.editor.filters = this.editor.filters
-            .map(f => ({ ...f, column: adjustIndexAfterDelete(parseInt(f.column), deletedIdx) }))
-            .filter(f => f.column !== null)
-            .map(f => ({ ...f, column: String(f.column) }));
+        const newFilters = [];
+        for (const f of this.editor.filters) {
+            const adjusted = adjustIndexAfterDelete(parseInt(f.column), deletedIdx);
+            if (adjusted !== null) {
+                newFilters.push({ ...f, column: String(adjusted) });
+            }
+        }
+        this.editor.filters = newFilters;
 
         // Update group columns
-        this.editor.groupColumns = this.editor.groupColumns
-            .map(col => adjustIndexAfterDelete(col, deletedIdx))
-            .filter(col => col !== null);
+        const newGroupColumns = [];
+        for (const col of this.editor.groupColumns) {
+            const adjusted = adjustIndexAfterDelete(col, deletedIdx);
+            if (adjusted !== null) {
+                newGroupColumns.push(adjusted);
+            }
+        }
+        this.editor.groupColumns = newGroupColumns;
     }
 
     showAddModal() {
@@ -284,7 +309,11 @@ export class ColumnManager {
         this.editor.headers.splice(insertIdx, 0, columnName);
 
         // Shift data indices in all rows
-        this.editor.currentData = this.editor.currentData.map(row => shiftRowIndices(row, insertIdx));
+        const newData = [];
+        for (const row of this.editor.currentData) {
+            newData.push(shiftRowIndices(row, insertIdx));
+        }
+        this.editor.currentData = newData;
 
         // Update references for columns after insert
         this.updateReferencesAfterInsert(insertIdx);
@@ -299,10 +328,12 @@ export class ColumnManager {
         }
 
         // Update addedColumns indices and add new column
-        this.addedColumns = new Set(
-            Array.from(this.addedColumns).map(col => adjustIndexAfterInsert(col, insertIdx))
-        );
-        this.addedColumns.add(insertIdx);
+        const newAddedColumns = new Set();
+        for (const col of this.addedColumns) {
+            newAddedColumns.add(adjustIndexAfterInsert(col, insertIdx));
+        }
+        newAddedColumns.add(insertIdx);
+        this.addedColumns = newAddedColumns;
 
         this.editor.modStats.columnsAdded++;
 
@@ -315,18 +346,24 @@ export class ColumnManager {
 
     updateReferencesAfterInsert(insertIdx) {
         // Update sort columns
-        this.editor.sortColumns = this.editor.sortColumns.map(s => ({
-            ...s,
-            column: String(adjustIndexAfterInsert(parseInt(s.column), insertIdx))
-        }));
+        const newSortColumns = [];
+        for (const s of this.editor.sortColumns) {
+            newSortColumns.push({ ...s, column: String(adjustIndexAfterInsert(parseInt(s.column), insertIdx)) });
+        }
+        this.editor.sortColumns = newSortColumns;
 
         // Update filters
-        this.editor.filters = this.editor.filters.map(f => ({
-            ...f,
-            column: String(adjustIndexAfterInsert(parseInt(f.column), insertIdx))
-        }));
+        const newFilters = [];
+        for (const f of this.editor.filters) {
+            newFilters.push({ ...f, column: String(adjustIndexAfterInsert(parseInt(f.column), insertIdx)) });
+        }
+        this.editor.filters = newFilters;
 
         // Update group columns
-        this.editor.groupColumns = this.editor.groupColumns.map(col => adjustIndexAfterInsert(col, insertIdx));
+        const newGroupColumns = [];
+        for (const col of this.editor.groupColumns) {
+            newGroupColumns.push(adjustIndexAfterInsert(col, insertIdx));
+        }
+        this.editor.groupColumns = newGroupColumns;
     }
 }

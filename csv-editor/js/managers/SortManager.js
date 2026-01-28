@@ -64,7 +64,7 @@ export class SortManager {
         const wrappers = container.querySelectorAll('.sort-select-wrapper');
         this.sortColumns = [];
 
-        wrappers.forEach(wrapper => {
+        for (const wrapper of wrappers) {
             const colSelect = wrapper.querySelector('.sort-column-select');
             const dirSelect = wrapper.querySelector('.sort-direction-select');
             if (colSelect.value !== '') {
@@ -73,7 +73,7 @@ export class SortManager {
                     direction: dirSelect.value
                 });
             }
-        });
+        }
 
         this.editor.renderTable();
         this.updateLevels();
@@ -101,14 +101,15 @@ export class SortManager {
             const wrapper = this.createSelect(0);
             container.appendChild(wrapper);
         } else {
-            this.sortColumns.forEach((sortConfig, idx) => {
+            for (let idx = 0; idx < this.sortColumns.length; idx++) {
+                const sortConfig = this.sortColumns[idx];
                 const wrapper = this.createSelect(idx, idx > 0);
                 const colSelect = wrapper.querySelector('.sort-column-select');
                 const dirSelect = wrapper.querySelector('.sort-direction-select');
                 colSelect.value = sortConfig.column;
                 dirSelect.value = sortConfig.direction;
                 container.appendChild(wrapper);
-            });
+            }
         }
     }
 

@@ -1,11 +1,11 @@
 {
     "permissions": {
         "allow": [
-            "Bash(npx tsc:*)",
+            "Bash(npx:*)",
             "Bash(dir:*)",
             "Bash(del:*)",
             "Bash(grep:*)",
-            "Bash(npm run:*)",
+            "Bash(npm:*)",
             "Bash(git config:*)",
             "Bash(tree:*)",
             "Bash(copy:*)",
@@ -13,12 +13,12 @@
             "Bash(git mv:*)",
             "Bash(findstr:*)",
             "Read(//c/GitHub/prettycode.github.io/retirement-calc/**)",
-            "Bash(npm install)",
             "Bash(tee:*)",
-            "Bash(npm install:*)",
-            "Bash(npm uninstall:*)",
-            "Bash(timeout 90 npm run fetch-yields:*)",
-            "Bash(curl:*)"
+            "Bash(timeout:*)",
+            "Bash(curl:*)",
+            "Bash(find:*)",
+            "Bash(netstat:*)",
+            "Bash(taskkill:*)"
         ],
         "deny": [],
         "ask": []

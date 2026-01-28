@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { CheckCircle, XCircle, Info, X } from 'lucide-react';
-import { cn } from '@/lib/Utils';
+import { cn } from '@/shared/lib/Utils';
 
 type ToastType = 'success' | 'error' | 'info';
 

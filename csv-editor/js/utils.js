@@ -86,12 +86,12 @@ export function createIndicator(className, text) {
  */
 export function populateColumnOptions(select, headers, placeholderText) {
     select.innerHTML = `<option value="">${placeholderText}</option>`;
-    headers.forEach((header, idx) => {
+    for (let idx = 0; idx < headers.length; idx++) {
         const option = document.createElement('option');
         option.value = idx;
-        option.textContent = header;
+        option.textContent = headers[idx];
         select.appendChild(option);
-    });
+    }
 }
 
 /**

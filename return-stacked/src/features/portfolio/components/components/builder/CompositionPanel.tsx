@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import type { Portfolio } from '@/core/domain/Portfolio';
-import type { ETF } from '@/core/domain/ETF';
-import { Card, CardContent } from '@/components/ui/Card';
-import { AlertCircle, ChevronDown, ChevronUp, RotateCcw, Save, Scale, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Switch } from '@/components/ui/Switch';
-import { cn } from '@/lib/Utils';
-import { percentToBasisPoints, basisPointsToPercent } from '@/core/calculators/precision';
+import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
+import type { ETF } from '@/features/portfolio/core/domain/ETF';
+import { Card, CardContent } from '@/shared/components/ui/Card';
+import { AlertCircle, ChevronDown, ChevronUp, FolderOpen, RotateCcw, Save, Scale, Trash2 } from 'lucide-react';
+import { Button } from '@/shared/components/ui/Button';
+import { Switch } from '@/shared/components/ui/Switch';
+import { cn } from '@/shared/lib/Utils';
+import { percentToBasisPoints, basisPointsToPercent } from '@/features/portfolio/core/calculators/precision';
 import HoldingsTable from './HoldingsTable';
+import TickerOrTemplateSelectionTable from './TickerOrTemplateSelectionTable';
 
 interface AllocationUpdate {
     ticker: string;
@@ -37,6 +38,9 @@ interface CompositionPanelProps {
     setShowPortfolioNameInput: (show: boolean) => void;
     onResetToTemplate?: () => void;
     isTemplateModified?: boolean;
+    onLoadPortfolio?: (portfolio: any) => void;
+    examplePortfolios?: any[];
+    savedPortfolios?: any[];
 }
 
 // Animation duration for expand/collapse transition
@@ -65,8 +69,12 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
     setShowPortfolioNameInput,
     onResetToTemplate,
     isTemplateModified,
+    onLoadPortfolio,
+    examplePortfolios,
+    savedPortfolios,
 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
+    const [showPortfolioSelector, setShowPortfolioSelector] = useState(false);
 
     const toggleExpand = (): void => {
         setIsExpanded(!isExpanded);
@@ -178,15 +186,44 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
     return (
         <>
             {isPortfolioEmpty ? (
-                <Card className="border border-border/40 py-0">
-                    <CardContent className="p-6 flex flex-col items-center justify-center h-[220px] text-center">
-                        <AlertCircle className="h-10 w-10 text-muted-foreground/60 mb-4" />
-                        <h3 className="text-lg font-medium text-foreground mb-2">This Portfolio is Empty</h3>
-                        <p className="text-sm text-muted-foreground max-w-md mb-4">
-                            Select a portfolio above, or add ETFs from the table below.
-                        </p>
-                    </CardContent>
-                </Card>
+                <div className="space-y-3">
+                    <Card className="border border-border/40 py-0">
+                        <CardContent className="p-6 flex flex-col items-center justify-center min-h-[220px] text-center">
+                            <AlertCircle className="h-10 w-10 text-muted-foreground/60 mb-4" />
+                            <h3 className="text-lg font-medium text-foreground mb-2">This Portfolio is Empty</h3>
+                            <p className="text-sm text-muted-foreground max-w-md mb-4">
+                                Load a portfolio from templates or saved portfolios, or add ETFs individually.
+                            </p>
+                            {onLoadPortfolio && examplePortfolios && savedPortfolios && !showPortfolioSelector && (
+                                <Button
+                                    onClick={() => setShowPortfolioSelector(true)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="cursor-pointer"
+                                >
+                                    <FolderOpen className="h-4 w-4 mr-2" />
+                                    Load Portfolio
+                                </Button>
+                            )}
+                        </CardContent>
+                    </Card>
+                    {showPortfolioSelector && onLoadPortfolio && examplePortfolios && savedPortfolios && (
+                        <div className="space-y-2">
+                            <TickerOrTemplateSelectionTable
+                                mode="templates-and-saved"
+                                templates={examplePortfolios}
+                                savedPortfolios={savedPortfolios}
+                                onSelect={(item) => {
+                                    onLoadPortfolio(item);
+                                    setShowPortfolioSelector(false);
+                                }}
+                                title="Search Templates and Saved Portfolios..."
+                                etfCatalog={etfCatalog}
+                                initiallyExpanded={true}
+                            />
+                        </div>
+                    )}
+                </div>
             ) : (
                 <Card className="border shadow-sm py-0 gap-0 overflow-hidden">
                     <div className={cn('p-3 space-y-3', isExpanded ? 'border-b' : '')}>

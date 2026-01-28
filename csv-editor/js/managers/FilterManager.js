@@ -89,14 +89,14 @@ export class FilterManager {
         // Get unique values from this column
         const uniqueValues = new Set();
         let hasEmpty = false;
-        this.editor.currentData.forEach(row => {
+        for (const row of this.editor.currentData) {
             const val = row[colIdx];
             if (isEmpty(val)) {
                 hasEmpty = true;
             } else {
                 uniqueValues.add(val);
             }
-        });
+        }
 
         // Sort values based on column type
         const colIdxNum = parseInt(colIdx);
@@ -127,12 +127,12 @@ export class FilterManager {
             fragment.appendChild(emptyOption);
         }
 
-        sortedValues.forEach(val => {
+        for (const val of sortedValues) {
             const option = document.createElement('option');
             option.value = val;
             option.textContent = val;
             fragment.appendChild(option);
-        });
+        }
 
         valueSelect.appendChild(fragment);
         valueSelect.disabled = false;
@@ -179,12 +179,12 @@ export class FilterManager {
         placeholder.textContent = 'Select operator...';
         fragment.appendChild(placeholder);
 
-        operators.forEach(op => {
+        for (const op of operators) {
             const option = document.createElement('option');
             option.value = op.value;
             option.textContent = op.label;
             fragment.appendChild(option);
-        });
+        }
 
         opSelect.innerHTML = '';
         opSelect.appendChild(fragment);
@@ -275,7 +275,7 @@ export class FilterManager {
         const wrappers = container.querySelectorAll('.filter-select-wrapper');
         this.filters = [];
 
-        wrappers.forEach(wrapper => {
+        for (const wrapper of wrappers) {
             const colSelect = wrapper.querySelector('.filter-column-select');
             const opSelect = wrapper.querySelector('.filter-operator-select');
             const valueSelect = wrapper.querySelector('.filter-value-select');
@@ -283,7 +283,7 @@ export class FilterManager {
 
             // Check if column and operator are selected
             if (colSelect.value === '' || !opSelect || opSelect.value === '') {
-                return; // Incomplete filter
+                continue; // Incomplete filter
             }
 
             const operator = opSelect.value;
@@ -298,14 +298,14 @@ export class FilterManager {
             } else if (columnType === 'text' && DROPDOWN_OPERATORS.includes(operator)) {
                 // Value from dropdown
                 if (valueSelect.value === FILTER_VALUES.PLACEHOLDER) {
-                    return; // Incomplete filter
+                    continue; // Incomplete filter
                 }
                 value = valueSelect.value === FILTER_VALUES.EMPTY ? '' : valueSelect.value;
             } else {
                 // Value from text input
                 value = valueInput.value.trim();
                 if (value === '') {
-                    return; // Incomplete filter
+                    continue; // Incomplete filter
                 }
             }
 
@@ -315,11 +315,19 @@ export class FilterManager {
                 operator: operator,
                 value: value
             });
-        });
+        }
 
         // Deselect rows that are no longer visible due to filtering
         const filteredData = this.editor.getFilteredData();
-        const visibleIndices = new Set(filteredData.map(row => this.editor.currentData.indexOf(row)));
+        // Build row->index map for O(1) lookups
+        const rowIndexMap = new Map();
+        for (let idx = 0; idx < this.editor.currentData.length; idx++) {
+            rowIndexMap.set(this.editor.currentData[idx], idx);
+        }
+        const visibleIndices = new Set();
+        for (const row of filteredData) {
+            visibleIndices.add(rowIndexMap.get(row));
+        }
         for (const idx of this.editor.selectedRows) {
             if (!visibleIndices.has(idx)) {
                 this.editor.selectedRows.delete(idx);
@@ -352,7 +360,8 @@ export class FilterManager {
 
         // Build list of active filters up to each level
         const activeFilters = [];
-        wrappers.forEach((wrapper, level) => {
+        for (let level = 0; level < wrappers.length; level++) {
+            const wrapper = wrappers[level];
             const colSelect = wrapper.querySelector('.filter-column-select');
             const opSelect = wrapper.querySelector('.filter-operator-select');
             const valueSelect = wrapper.querySelector('.filter-value-select');
@@ -362,7 +371,7 @@ export class FilterManager {
             // Check if filter is complete
             if (!colSelect || colSelect.value === '' || !opSelect || opSelect.value === '') {
                 if (badge) badge.style.display = 'none';
-                return;
+                continue;
             }
 
             const operator = opSelect.value;
@@ -374,13 +383,13 @@ export class FilterManager {
                 if (columnType === 'text' && DROPDOWN_OPERATORS.includes(operator)) {
                     if (!valueSelect || valueSelect.value === FILTER_VALUES.PLACEHOLDER) {
                         if (badge) badge.style.display = 'none';
-                        return;
+                        continue;
                     }
                     value = valueSelect.value === FILTER_VALUES.EMPTY ? '' : valueSelect.value;
                 } else {
                     if (!valueInput || valueInput.value.trim() === '') {
                         if (badge) badge.style.display = 'none';
-                        return;
+                        continue;
                     }
                     value = valueInput.value.trim();
                 }
@@ -398,34 +407,43 @@ export class FilterManager {
             const filtersUpToHere = [...activeFilters];
             let count = 0;
 
-            this.editor.currentData.forEach(row => {
-                const matchFunction = fc => {
-                    const cellStr = String(row[fc.column] || '');
-                    return this.editor.evaluateFilter(fc, cellStr);
-                };
-
+            for (const row of this.editor.currentData) {
                 let matches;
                 if (this.filterLogic === LOGIC.OR) {
-                    matches = filtersUpToHere.some(matchFunction);
+                    matches = false;
+                    for (const fc of filtersUpToHere) {
+                        const cellStr = String(row[fc.column] || '');
+                        if (this.editor.evaluateFilter(fc, cellStr)) {
+                            matches = true;
+                            break;
+                        }
+                    }
                 } else {
-                    matches = filtersUpToHere.every(matchFunction);
+                    matches = true;
+                    for (const fc of filtersUpToHere) {
+                        const cellStr = String(row[fc.column] || '');
+                        if (!this.editor.evaluateFilter(fc, cellStr)) {
+                            matches = false;
+                            break;
+                        }
+                    }
                 }
 
                 if (matches) count++;
-            });
+            }
 
             if (badge) {
                 badge.innerHTML = `(<span class="count-num">${count}</span>)`;
                 badge.style.display = 'inline';
             }
-        });
+        }
     }
 
     setMode(mode) {
         this.filterAsHighlight = mode === 'highlight';
-        this.editor.filterModeBtns.forEach(btn => {
+        for (const btn of this.editor.filterModeBtns) {
             btn.classList.toggle(CSS.ACTIVE, btn.dataset.filterMode === mode);
-        });
+        }
         this.editor.renderTable();
     }
 

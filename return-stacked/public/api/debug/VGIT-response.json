@@ -1,3 +1,10 @@
 {
-  "Information": "We have detected your API key as 9DDECO96GHZWFE9K and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits."
+  "net_assets": "44000000000",
+  "net_expense_ratio": "0.0003",
+  "portfolio_turnover": "0.55",
+  "dividend_yield": "0.0373",
+  "inception_date": "2009-11-19",
+  "leveraged": "NO",
+  "sectors": [],
+  "holdings": []
 }

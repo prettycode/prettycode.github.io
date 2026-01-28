@@ -63,11 +63,11 @@ export class GroupManager {
         const selects = container.querySelectorAll('.group-column-select');
         this.groupColumns = [];
 
-        selects.forEach(select => {
+        for (const select of selects) {
             if (select.value !== '') {
                 this.groupColumns.push(parseInt(select.value));
             }
-        });
+        }
 
         this.collapsedGroups.clear();
         this.editor.renderTable();
@@ -93,11 +93,12 @@ export class GroupManager {
         const selects = container.querySelectorAll('.group-column-select');
         const filteredData = this.editor.getFilteredData();
 
-        badges.forEach((badge, level) => {
+        for (let level = 0; level < badges.length; level++) {
+            const badge = badges[level];
             const select = selects[level];
             if (!select || select.value === '') {
                 badge.style.display = 'none';
-                return;
+                continue;
             }
 
             // Calculate unique groups at this level
@@ -109,15 +110,15 @@ export class GroupManager {
             if (level === 0) {
                 // Simple count of unique values in this column
                 const uniqueValues = new Set();
-                filteredData.forEach(row => {
+                for (const row of filteredData) {
                     uniqueValues.add(row[colIdx] || PLACEHOLDER.EMPTY);
-                });
+                }
                 count = uniqueValues.size;
             } else {
                 // Count unique groups at this level across all parent group combinations
                 // Build a set of all unique group paths up to this level
                 const uniquePaths = new Set();
-                filteredData.forEach(row => {
+                for (const row of filteredData) {
                     let path = '';
                     for (let i = 0; i <= level; i++) {
                         const groupColIdx = parseInt(selects[i].value);
@@ -126,13 +127,13 @@ export class GroupManager {
                         path += (i > 0 ? '|' : '') + val;
                     }
                     uniquePaths.add(path);
-                });
+                }
                 count = uniquePaths.size;
             }
 
             badge.innerHTML = `(<span class="count-num">${count}</span>)`;
             badge.style.display = 'inline';
-        });
+        }
     }
 
     // Called when a group is removed via click

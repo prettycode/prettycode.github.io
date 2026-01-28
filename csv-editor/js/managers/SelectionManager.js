@@ -17,10 +17,15 @@ export class SelectionManager {
 
     selectAll() {
         const filteredData = this.editor.getFilteredData();
-        filteredData.forEach(row => {
-            const idx = this.editor.currentData.indexOf(row);
+        // Build map for O(1) lookups
+        const indexMap = new Map();
+        for (let i = 0; i < this.editor.currentData.length; i++) {
+            indexMap.set(this.editor.currentData[i], i);
+        }
+        for (const row of filteredData) {
+            const idx = indexMap.get(row);
             this.selectedRows.add(idx);
-        });
+        }
         this.editor.renderTable();
         this.updateUI();
     }
@@ -64,9 +69,9 @@ export class SelectionManager {
         }
         this.editor.modifiedCells = newModifiedCells;
 
-        indicesToDelete.forEach(idx => {
+        for (const idx of indicesToDelete) {
             this.editor.currentData.splice(idx, 1);
-        });
+        }
 
         this.editor.modStats.rowsDeleted += indicesToDelete.length;
 
@@ -91,7 +96,10 @@ export class SelectionManager {
 
         // Get the rows to move (in order)
         const indicesToMove = Array.from(this.selectedRows).sort((a, b) => a - b);
-        const rowsToMove = indicesToMove.map(idx => ({ ...this.editor.currentData[idx] }));
+        const rowsToMove = [];
+        for (const idx of indicesToMove) {
+            rowsToMove.push({ ...this.editor.currentData[idx] });
+        }
 
         // Handle moving to new tab
         let actualTargetTabId = targetTabId;
@@ -107,7 +115,11 @@ export class SelectionManager {
             newTabData.headers = [...this.editor.headers];
             newTabData.originalHeaders = [...this.editor.headers];
             newTabData.currentData = rowsToMove;
-            newTabData.originalData = rowsToMove.map(row => ({ ...row }));
+            const originalData = [];
+            for (const row of rowsToMove) {
+                originalData.push({ ...row });
+            }
+            newTabData.originalData = originalData;
             newTabData.title = customTabName || 'Moved';
 
             // Update tab title in UI
@@ -128,9 +140,9 @@ export class SelectionManager {
 
             // Map source row columns to target tab's column structure
             // Use column indices for compatible row transfer
-            rowsToMove.forEach(row => {
+            for (const row of rowsToMove) {
                 targetTabData.currentData.push({ ...row });
-            });
+            }
 
             // Mark target tab as modified and refresh display
             targetTabData.isModified = true;
@@ -168,9 +180,9 @@ export class SelectionManager {
         this.editor.modifiedCells = newModifiedCells;
 
         // Remove rows from current data
-        indicesToDelete.forEach(idx => {
+        for (const idx of indicesToDelete) {
             this.editor.currentData.splice(idx, 1);
-        });
+        }
 
         this.editor.modStats.rowsDeleted += indicesToDelete.length;
 
@@ -225,8 +237,17 @@ export class SelectionManager {
         const headerCheckbox = document.getElementById(DOM_ID.HEADER_CHECKBOX);
         if (headerCheckbox) {
             const filteredData = this.editor.getFilteredData();
-            const allSelected = filteredData.length > 0 &&
-                filteredData.every(row => this.selectedRows.has(this.editor.currentData.indexOf(row)));
+            // Build map for O(1) lookups
+            const indexMap = new Map();
+            for (let i = 0; i < this.editor.currentData.length; i++) {
+                indexMap.set(this.editor.currentData[i], i);
+            }
+            let allSelected = filteredData.length > 0;
+            if (allSelected) {
+                for (const row of filteredData) {
+                    if (!this.selectedRows.has(indexMap.get(row))) { allSelected = false; break; }
+                }
+            }
             headerCheckbox.checked = allSelected;
         }
 
@@ -259,7 +280,7 @@ export class SelectionManager {
         let aboveCount = 0;
         let belowCount = 0;
 
-        matchingRows.forEach(row => {
+        for (const row of matchingRows) {
             const rowRect = row.getBoundingClientRect();
 
             if (rowRect.bottom < viewTop) {
@@ -267,7 +288,7 @@ export class SelectionManager {
             } else if (rowRect.top > viewBottom) {
                 belowCount++;
             }
-        });
+        }
 
         if (aboveCount > 0) {
             this.editor.rowNavUp.classList.remove(CSS.HIDDEN);

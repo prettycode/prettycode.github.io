@@ -93,12 +93,12 @@ export class SearchManager {
         const inputs = container.querySelectorAll('.search-value-input');
         this.highlightTerms = [];
 
-        inputs.forEach(input => {
+        for (const input of inputs) {
             const term = input.value.trim();
             if (this.isValidSearchTerm(term)) {
                 this.highlightTerms.push(this.parseSearchTerm(term));
             }
-        });
+        }
 
         this.editor.renderTable();
         this.updateLevels();
@@ -134,19 +134,20 @@ export class SearchManager {
 
         // Build list of active search terms up to each level
         const activeTerms = [];
-        wrappers.forEach((wrapper, level) => {
+        for (let level = 0; level < wrappers.length; level++) {
+            const wrapper = wrappers[level];
             const input = wrapper.querySelector('.search-value-input');
             const badge = badges[level];
 
             if (!input) {
                 if (badge) badge.style.display = 'none';
-                return;
+                continue;
             }
 
             const term = input.value.trim();
             if (!this.isValidSearchTerm(term)) {
                 if (badge) badge.style.display = 'none';
-                return;
+                continue;
             }
 
             // Add this term to active terms (convert to search format)
@@ -157,13 +158,14 @@ export class SearchManager {
             const termsUpToHere = [...activeTerms];
             let count = 0;
 
-            filteredData.forEach(row => {
+            for (const row of filteredData) {
                 const termFoundInRow = new Set();
 
-                this.editor.headers.forEach((_, colIdx) => {
+                for (let colIdx = 0; colIdx < this.editor.headers.length; colIdx++) {
                     const cellValue = String(row[colIdx] || '');
                     const cellLower = cellValue.toLowerCase();
-                    termsUpToHere.forEach((searchObj, termIdx) => {
+                    for (let termIdx = 0; termIdx < termsUpToHere.length; termIdx++) {
+                        const searchObj = termsUpToHere[termIdx];
                         // searchObj is { term: string|Symbol, caseSensitive: boolean }
                         let matches;
                         if (searchObj.term === EMPTY_CELL_MARKER) {
@@ -176,8 +178,8 @@ export class SearchManager {
                         if (matches) {
                             termFoundInRow.add(termIdx);
                         }
-                    });
-                });
+                    }
+                }
 
                 let rowMatches;
                 if (this.searchLogic === LOGIC.AND) {
@@ -187,20 +189,20 @@ export class SearchManager {
                 }
 
                 if (rowMatches) count++;
-            });
+            }
 
             if (badge) {
                 badge.innerHTML = `(<span class="count-num">${count}</span>)`;
                 badge.style.display = 'inline';
             }
-        });
+        }
     }
 
     setMode(mode) {
         this.searchHighlightRow = mode === 'row';
-        this.editor.searchHighlightModeBtns.forEach(btn => {
+        for (const btn of this.editor.searchHighlightModeBtns) {
             btn.classList.toggle(CSS.ACTIVE, btn.dataset.highlightMode === mode);
-        });
+        }
         this.editor.renderTable();
     }
 

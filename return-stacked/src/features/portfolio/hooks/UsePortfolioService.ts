@@ -6,8 +6,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { PortfolioService } from '../../../core/services/PortfolioService';
-import { LocalStorageAdapter } from '../../storage/LocalStorageAdapter';
+import { PortfolioService } from '../core/services/PortfolioService';
+import { LocalStorageAdapter } from '../adapters/storage/LocalStorageAdapter';
 
 /**
  * Creates and returns a memoized PortfolioService instance
