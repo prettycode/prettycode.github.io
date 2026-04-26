@@ -489,6 +489,21 @@
         }
 
         /* Methodology */
+        .schedule-note {
+            background: linear-gradient(135deg, var(--color-info-bg-start) 0%, var(--color-info-bg-end) 100%);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-info-border);
+            margin-bottom: var(--spacing-lg);
+            font-size: 13px;
+            color: var(--color-info-text);
+            line-height: 1.6;
+        }
+
+        .schedule-note strong {
+            color: var(--color-info-text-dark);
+        }
+
         .methodology {
             margin-top: var(--spacing-lg);
             background: linear-gradient(135deg, var(--color-info-bg-start) 0%, var(--color-info-bg-end) 100%);
@@ -924,6 +939,9 @@
 
         <div class="card">
             <div class="card-content">
+                <div class="schedule-note">
+                    <strong>Withdrawal schedule:</strong> On retirement day, take your first withdrawal to fund your next year (or month) of expenses. The remaining balance grows for the period. At the start of each subsequent year (or month), take an inflation-adjusted withdrawal and let the remainder grow again.
+                </div>
                 <div class="controls-grid">
                     <div class="control-section">
                         <h3 class="section-title">Portfolio Settings</h3>
@@ -1227,15 +1245,13 @@
             for (let period = 1; period <= maxPeriods; period++) {
                 const year = period / periodsPerYear;
 
-                if (period === 1) {
-                    currentMedian = Math.max(0, currentMedian - periodWithdrawal);
-                } else {
+                if (period > 1) {
                     periodWithdrawal *= (1 + periodicInflationRate);
-                    const medianValue = currentMedian * Math.exp(periodMu);
-                    currentMedian = Math.max(0, medianValue - periodWithdrawal);
                 }
 
-                // Portfolio depleted
+                const postWithdrawal = Math.max(0, currentMedian - periodWithdrawal);
+                currentMedian = postWithdrawal * Math.exp(periodMu);
+
                 if (currentMedian <= 0) {
                     return year;
                 }
@@ -1312,42 +1328,29 @@
             let currentMedian = state.initialInvestment;
             let currentMean = state.initialInvestment;
 
+            const sigma_5th = Math.exp(periodMu + z_score_5th * periodStdDev);
             const totalPeriods = state.years * periodsPerYear;
             for (let period = 1; period <= totalPeriods; period++) {
                 const year = period / periodsPerYear;
 
-                if (period === 1) {
-                    currentMedian = Math.max(0, currentMedian - periodWithdrawal);
-                    currentMean = Math.max(0, currentMean - periodWithdrawal);
-                    
-                    data.push({
-                        period,
-                        year,
-                        median: Math.max(0, currentMedian),
-                        mean: Math.max(0, currentMean),
-                        fifth_percentile: null,
-                        withdrawal: periodWithdrawal
-                    });
-                } else {
+                if (period > 1) {
                     periodWithdrawal *= (1 + periodicInflationRate);
+                }
 
-                const sigma_5th = Math.exp(periodMu + z_score_5th * periodStdDev);
-                    const medianValue = currentMedian * Math.exp(periodMu);
-                    const meanValue = currentMean * Math.exp(periodGrowthRate);
-                    const fifthPercentileValue = currentMedian * sigma_5th;
+                const postWithdrawalMedian = Math.max(0, currentMedian - periodWithdrawal);
+                const postWithdrawalMean = Math.max(0, currentMean - periodWithdrawal);
 
-                    currentMedian = Math.max(0, medianValue - periodWithdrawal);
-                    currentMean = Math.max(0, meanValue - periodWithdrawal);
+                currentMedian = postWithdrawalMedian * Math.exp(periodMu);
+                currentMean = postWithdrawalMean * Math.exp(periodGrowthRate);
 
                 data.push({
                     period,
                     year,
-                        median: Math.max(0, currentMedian),
-                        mean: Math.max(0, currentMean),
-                        fifth_percentile: Math.max(0, fifthPercentileValue - periodWithdrawal),
+                    median: currentMedian,
+                    mean: currentMean,
+                    fifth_percentile: Math.max(0, postWithdrawalMedian * sigma_5th),
                     withdrawal: periodWithdrawal
                 });
-                }
             }
 
             const processedData = data.map(point => ({
