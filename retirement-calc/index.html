@@ -968,6 +968,14 @@
 
                         <div class="control-group">
                             <label class="control-label">
+                                <span class="control-label-text">Years to Withdrawal Upfront</span>
+                                <span class="control-value" id="firstWithdrawalYearsValue">1 year</span>
+                            </label>
+                            <input type="range" class="slider" id="firstWithdrawalYears" min="1" max="5" step="1" value="1">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
                                 <span class="control-label-text">Anticipated Years in Retirement</span>
                                 <span class="control-value" id="yearsValue">50 years</span>
                             </label>
@@ -996,13 +1004,6 @@
                             </div>
                         </div>
 
-                        <div class="control-group">
-                            <label class="control-label">
-                                <span class="control-label-text">Initial Bulk Withdrawal</span>
-                                <span class="control-value" id="firstWithdrawalYearsValue">1 year</span>
-                            </label>
-                            <input type="range" class="slider" id="firstWithdrawalYears" min="1" max="5" step="1" value="1">
-                        </div>
                     </div>
 
                     <div class="control-section">
@@ -1675,7 +1676,7 @@
                 statusTitle.className = 'status-title warning';
                 statusTitle.textContent = 'Portfolio Depletes Prematurely';
                 statusMessage.className = 'status-message warning';
-                statusMessage.textContent = `Your portfolio will run out in Year ${terminalYear} of your ${state.years} year time horizon (${yearsShort} ${yearsShort === 1 ? 'year' : 'years'} short)`;
+                statusMessage.textContent = `Your portfolio can only sustain full withdrawals through Year ${terminalYear}, falling ${yearsShort} ${yearsShort === 1 ? 'year' : 'years'} short of your ${state.years}-year goal.`;
             }
 
             // Update terminal values
