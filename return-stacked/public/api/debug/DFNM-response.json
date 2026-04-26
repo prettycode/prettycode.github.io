@@ -1,8 +1,8 @@
 {
-  "net_assets": "1800000000",
+  "net_assets": "2100000000",
   "net_expense_ratio": "0.0017",
-  "portfolio_turnover": "0.15",
-  "dividend_yield": "0.03",
+  "portfolio_turnover": "0.42",
+  "dividend_yield": "0.0297",
   "inception_date": "2021-11-15",
   "leveraged": "NO",
   "sectors": [],

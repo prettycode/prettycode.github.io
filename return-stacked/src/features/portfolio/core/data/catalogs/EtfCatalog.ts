@@ -299,6 +299,38 @@ export const etfCatalog: ETF[] = [
         }
     ),
 
+    createETF(
+        'NTSD',
+        [
+            {
+                exposure: {
+                    assetClass: 'Equity',
+                    marketRegion: 'U.S.',
+                    factorStyle: 'Blend',
+                    sizeFactor: 'Large Cap',
+                },
+                amount: 0.9,
+            },
+            {
+                exposure: {
+                    assetClass: 'Equity',
+                    marketRegion: 'International Developed',
+                    factorStyle: 'Blend',
+                    sizeFactor: 'Large Cap',
+                },
+                amount: 0.6,
+            },
+        ],
+        'Stacked',
+        {
+            name: 'WisdomTree Efficient U.S. Plus International Equity Fund',
+            inceptionDate: '2026-03-19',
+            expenseRatio: 0.35,
+            netAssets: '$10M',
+            yield: 0,
+        }
+    ),
+
     createETF('IBIT', [{ exposure: { assetClass: 'Bitcoin' }, amount: 1.0 }]),
     createETF(
         'UPRO',
