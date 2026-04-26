@@ -948,38 +948,38 @@
                         <div class="control-group">
                             <label class="control-label">
                                 <span class="control-label-text">Portfolio Value at Retirement Start</span>
-                                <span class="control-value" id="initialInvestmentValue">$4,000,000</span>
+                                <span class="control-value" id="initialInvestmentValue"></span>
                             </label>
-                            <input type="range" class="slider" id="initialInvestment" min="0" max="10000000" step="100000" value="4000000">
+                            <input type="range" class="slider" id="initialInvestment" min="0" max="10000000" step="100000">
                         </div>
 
                         <div class="control-group">
                             <label class="control-label">
                                 <span class="control-label-text">Annual Withdrawal Rate</span>
                                 <span>
-                                    <span class="control-value" id="withdrawalRateValue">3.8%</span>
+                                    <span class="control-value" id="withdrawalRateValue"></span>
                                     <button class="max-rate-badge" id="maxRateButton" title="Maximum sustainable withdrawal rate - Click to apply this rate">
                                         <span id="maxRateButtonText">0%</span>
                                     </button>
                                 </span>
                             </label>
-                            <input type="range" class="slider" id="withdrawalRate" min="0" max="10" step="0.1" value="3.8">
+                            <input type="range" class="slider" id="withdrawalRate" min="0" max="10" step="0.1">
                         </div>
 
                         <div class="control-group">
                             <label class="control-label">
                                 <span class="control-label-text">Years to Withdrawal Upfront</span>
-                                <span class="control-value" id="firstWithdrawalYearsValue">1 year</span>
+                                <span class="control-value" id="firstWithdrawalYearsValue"></span>
                             </label>
-                            <input type="range" class="slider" id="firstWithdrawalYears" min="1" max="5" step="1" value="1">
+                            <input type="range" class="slider" id="firstWithdrawalYears" min="1" max="5" step="1">
                         </div>
 
                         <div class="control-group">
                             <label class="control-label">
                                 <span class="control-label-text">Anticipated Years in Retirement</span>
-                                <span class="control-value" id="yearsValue">50 years</span>
+                                <span class="control-value" id="yearsValue"></span>
                             </label>
-                            <input type="range" class="slider" id="years" min="1" max="100" step="1" value="50">
+                            <input type="range" class="slider" id="years" min="1" max="100" step="1">
                         </div>
 
                         <div class="control-group">
@@ -998,7 +998,7 @@
                                     <input type="radio" id="frequencyMonthly" name="frequency" value="monthly">
                                     <label for="frequencyMonthly">
                                         <span class="frequency-label-main">Monthly</span>
-                                        <span class="frequency-label-sub" id="monthlyAmount">$12,667/month</span>
+                                        <span class="frequency-label-sub" id="monthlyAmount"></span>
                                     </label>
                                 </div>
                             </div>
@@ -1027,25 +1027,25 @@
                         <div class="control-group">
                             <label class="control-label">
                                 <span class="control-label-text">Expected CAGR</span>
-                                <span class="control-value" id="cagrValue">10.3%</span>
+                                <span class="control-value" id="cagrValue"></span>
                             </label>
-                            <input type="range" class="slider" id="cagr" min="0" max="20" step="0.1" value="10.3">
+                            <input type="range" class="slider" id="cagr" min="0" max="20" step="0.1">
                         </div>
 
                         <div class="control-group">
                             <label class="control-label">
                                 <span class="control-label-text">Annualized Volatility</span>
-                                <span class="control-value" id="volatilityValue">18%</span>
+                                <span class="control-value" id="volatilityValue"></span>
                             </label>
-                            <input type="range" class="slider" id="volatility" min="0" max="100" step="0.1" value="18">
+                            <input type="range" class="slider" id="volatility" min="0" max="100" step="0.1">
                         </div>
 
                         <div class="control-group">
                             <label class="control-label">
                                 <span class="control-label-text">Inflation Rate</span>
-                                <span class="control-value" id="inflationRateValue">3%</span>
+                                <span class="control-value" id="inflationRateValue"></span>
                             </label>
-                            <input type="range" class="slider" id="inflationRate" min="-5" max="20" step="0.1" value="3">
+                            <input type="range" class="slider" id="inflationRate" min="-5" max="20" step="0.1">
                         </div>
                     </div>
                 </div>
@@ -1180,8 +1180,6 @@
             initialInvestment: 4000000,
             inflationRate: 3,
             withdrawalRate: 3.8,
-            cagr: 10.3,
-            volatility: 18.0,
             years: 50,
             isMonthly: false,
             firstWithdrawalYears: 1,
@@ -1191,38 +1189,38 @@
         const portfolioPresets = {
             'aggressive': {
                 name: 'Aggressive (100% U.S. Stocks)',
-                cagr: 10.3,
-                volatility: 18.0,
-                description: 'S&P 500'
+                cagr: 9.8,
+                volatility: 19.5,
+                description: 'U.S. Total Stock Market'
             },
             'mod-aggressive': {
                 name: 'Moderately Aggressive (80/20)',
-                cagr: 9.5,
-                volatility: 14.0,
+                cagr: 8.4,
+                volatility: 15.5,
                 description: '80% Stocks / 20% Bonds'
             },
             'moderate': {
                 name: 'Moderate (60/40)',
-                cagr: 8.8,
-                volatility: 11.0,
+                cagr: 8.1,
+                volatility: 11.8,
                 description: '60% Stocks / 40% Bonds'
             },
             'mod-conservative': {
                 name: 'Moderately Conservative (40/60)',
-                cagr: 7.3,
-                volatility: 8.5,
+                cagr: 7.4,
+                volatility: 9.0,
                 description: '40% Stocks / 60% Bonds'
             },
             'conservative': {
                 name: 'Conservative (20/80)',
-                cagr: 6.1,
-                volatility: 6.5,
+                cagr: 6.5,
+                volatility: 6.8,
                 description: '20% Stocks / 80% Bonds'
             },
             'very-conservative': {
                 name: 'Very Conservative (100% U.S. Bonds)',
-                cagr: 5.3,
-                volatility: 5.5,
+                cagr: 5.1,
+                volatility: 6.2,
                 description: 'U.S. Aggregate Bonds'
             }
         };
@@ -1527,18 +1525,20 @@
                         },
                         y: {
                             type: 'linear',
-                            position: 'left',
+                            position: 'right',
                             title: {
                                 display: true,
                                 text: 'Portfolio Value',
                                 font: {
                                     size: 12
-                                }
+                                },
+                                color: '#667eea'
                             },
                             ticks: {
                                 callback: function(value) {
                                     return '$' + (value / 1000000).toFixed(1) + 'M';
-                                }
+                                },
+                                color: '#667eea'
                             },
                             grid: {
                                 color: '#f0f0f0'
@@ -1546,7 +1546,7 @@
                         },
                         y1: {
                             type: 'linear',
-                            position: 'right',
+                            position: 'left',
                             title: {
                                 display: true,
                                 text: state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal',
@@ -1834,8 +1834,15 @@
             updateDisplay();
         });
 
+        // Initialize sliders from state
+        document.getElementById('initialInvestment').value = state.initialInvestment;
+        document.getElementById('withdrawalRate').value = state.withdrawalRate;
+        document.getElementById('inflationRate').value = state.inflationRate;
+        document.getElementById('years').value = state.years;
+        document.getElementById('firstWithdrawalYears').value = state.firstWithdrawalYears;
+
         // Initial render
-        updateDisplay();
+        applyPreset(state.currentPreset);
     </script>
 </body>
 </html>
