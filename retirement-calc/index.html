@@ -1322,7 +1322,7 @@
                 median: state.initialInvestment,
                 mean: state.initialInvestment,
                 fifth_percentile: null,
-                withdrawal: null
+                withdrawal: periodWithdrawal
             });
 
             let currentMedian = state.initialInvestment;
@@ -1333,15 +1333,13 @@
             for (let period = 1; period <= totalPeriods; period++) {
                 const year = period / periodsPerYear;
 
-                if (period > 1) {
-                    periodWithdrawal *= (1 + periodicInflationRate);
-                }
-
                 const postWithdrawalMedian = Math.max(0, currentMedian - periodWithdrawal);
                 const postWithdrawalMean = Math.max(0, currentMean - periodWithdrawal);
 
                 currentMedian = postWithdrawalMedian * Math.exp(periodMu);
                 currentMean = postWithdrawalMean * Math.exp(periodGrowthRate);
+
+                periodWithdrawal *= (1 + periodicInflationRate);
 
                 data.push({
                     period,
@@ -1395,8 +1393,7 @@
                 chartInstance.destroy();
             }
 
-            // Filter out period 0 from the dataset
-            const filteredData = data.filter(point => point.period !== 0);
+            const filteredData = data;
 
             // Prepare data for Chart.js
             const labels = filteredData.map(point => point.year);
@@ -1582,8 +1579,6 @@
             }
 
             displayData.forEach(point => {
-                if (point.period === 0) return; // Skip initial point
-
                 const row = document.createElement('tr');
 
                 const yearCell = document.createElement('td');
@@ -1632,9 +1627,11 @@
             document.getElementById('withdrawalLegend').textContent =
                 state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal';
 
-            // Find last valid data point
-            const lastValidDataPoint = [...data].reverse().find(point => point.withdrawal !== null);
-            const terminalYear = lastValidDataPoint ? Math.floor(lastValidDataPoint.year) : state.years;
+            // Find last point with a live portfolio (for terminal year and balance display)
+            const lastPortfolioPoint = [...data].reverse().find(point => point.median !== null && point.median > 0);
+            // Find last point with a withdrawal (for final withdrawal display)
+            const lastWithdrawalPoint = [...data].reverse().find(point => point.withdrawal !== null);
+            const terminalYear = lastPortfolioPoint ? Math.floor(lastPortfolioPoint.year) : state.years;
             const portfolioLasts = terminalYear >= state.years;
 
             // Update status banner
@@ -1667,11 +1664,11 @@
             // Update terminal values
             document.getElementById('terminalTitle').textContent = `Final Portfolio Values (Year ${terminalYear})`;
             document.getElementById('statMedianPortfolio').textContent =
-                formatCurrency(lastValidDataPoint?.median);
+                formatCurrency(lastPortfolioPoint?.median);
             document.getElementById('statLowerBound').textContent =
-                formatCurrency(lastValidDataPoint?.fifth_percentile);
+                formatCurrency(lastPortfolioPoint?.fifth_percentile);
             document.getElementById('statFinalWithdrawal').textContent =
-                formatCurrency((lastValidDataPoint?.withdrawal || 0) * (state.isMonthly ? 12 : 1));
+                formatCurrency((lastWithdrawalPoint?.withdrawal || 0) * (state.isMonthly ? 12 : 1));
 
             // Calculate maximum withdrawal rate
             // For annual: deplete at year N+1 (first withdrawal after N years)
