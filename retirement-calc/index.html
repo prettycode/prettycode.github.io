@@ -968,10 +968,10 @@
 
                         <div class="control-group">
                             <label class="control-label">
-                                <span class="control-label-text">Years to Withdrawal Upfront</span>
-                                <span class="control-value" id="firstWithdrawalYearsValue"></span>
+                                <span class="control-label-text">Periods to Withdrawal Upfront</span>
+                                <span class="control-value" id="firstWithdrawalPeriodsValue"></span>
                             </label>
-                            <input type="range" class="slider" id="firstWithdrawalYears" min="1" max="5" step="1">
+                            <input type="range" class="slider" id="firstWithdrawalPeriods" min="1" max="10" step="1">
                         </div>
 
                         <div class="control-group">
@@ -1182,7 +1182,7 @@
             withdrawalRate: 3.8,
             years: 50,
             isMonthly: false,
-            firstWithdrawalYears: 1,
+            firstWithdrawalPeriods: 1,
             currentPreset: 'aggressive'
         };
 
@@ -1246,11 +1246,12 @@
 
             let annualWithdrawal = (state.initialInvestment * withdrawalRate) / 100;
             let periodWithdrawal = annualWithdrawal / periodsPerYear;
-            const firstPeriodWithdrawal = state.firstWithdrawalYears * annualWithdrawal;
+            const firstPeriodWithdrawal = state.firstWithdrawalPeriods * periodWithdrawal;
 
             let currentMedian = state.initialInvestment;
 
             const maxPeriods = (state.years + 10) * periodsPerYear; // Check up to 10 years past time horizon
+            const upfrontPeriods = state.firstWithdrawalPeriods;
             for (let period = 1; period <= maxPeriods; period++) {
                 const year = period / periodsPerYear;
 
@@ -1258,7 +1259,14 @@
                     periodWithdrawal *= (1 + periodicInflationRate);
                 }
 
-                const withdrawal = period === 1 ? firstPeriodWithdrawal : periodWithdrawal;
+                let withdrawal;
+                if (period === 1) {
+                    withdrawal = firstPeriodWithdrawal;
+                } else if (period <= upfrontPeriods) {
+                    withdrawal = 0;
+                } else {
+                    withdrawal = periodWithdrawal;
+                }
                 const postWithdrawal = Math.max(0, currentMedian - withdrawal);
                 currentMedian = postWithdrawal * Math.exp(periodMu);
 
@@ -1327,7 +1335,7 @@
 
             let annualWithdrawal = (state.initialInvestment * state.withdrawalRate) / 100;
             let periodWithdrawal = annualWithdrawal / periodsPerYear;
-            const firstPeriodWithdrawal = state.firstWithdrawalYears * annualWithdrawal;
+            const firstPeriodWithdrawal = state.firstWithdrawalPeriods * periodWithdrawal;
 
             data.push({
                 period: 0,
@@ -1342,10 +1350,18 @@
             let currentMean = state.initialInvestment;
 
             const totalPeriods = state.years * periodsPerYear;
+            const upfrontPeriods = state.firstWithdrawalPeriods;
             for (let period = 1; period <= totalPeriods; period++) {
                 const year = period / periodsPerYear;
 
-                const withdrawal = period === 1 ? firstPeriodWithdrawal : periodWithdrawal;
+                let withdrawal;
+                if (period === 1) {
+                    withdrawal = firstPeriodWithdrawal;
+                } else if (period <= upfrontPeriods) {
+                    withdrawal = 0;
+                } else {
+                    withdrawal = periodWithdrawal;
+                }
                 const postWithdrawalMedian = Math.max(0, currentMedian - withdrawal);
                 const postWithdrawalMean = Math.max(0, currentMean - withdrawal);
 
@@ -1356,13 +1372,15 @@
 
                 const fifthPercentileFactor = Math.exp(z_score_5th * periodStdDev * Math.sqrt(period));
 
+                const displayedWithdrawal = period < upfrontPeriods ? 0 : periodWithdrawal;
+
                 data.push({
                     period,
                     year,
                     median: currentMedian,
                     mean: currentMean,
                     fifth_percentile: Math.max(0, currentMedian * fifthPercentileFactor),
-                    withdrawal: periodWithdrawal
+                    withdrawal: displayedWithdrawal
                 });
             }
 
@@ -1640,9 +1658,11 @@
             document.getElementById('annualAmount').textContent = `${formatCurrency(annualWithdrawal)}/year`;
             document.getElementById('monthlyAmount').textContent = `${formatCurrency(monthlyWithdrawal)}/month`;
 
-            const firstWithdrawalAmount = state.firstWithdrawalYears * annualWithdrawal;
-            const yearsLabel = state.firstWithdrawalYears === 1 ? '1 year' : `${state.firstWithdrawalYears} years`;
-            document.getElementById('firstWithdrawalYearsValue').textContent = `${yearsLabel} (${formatCurrency(firstWithdrawalAmount)})`;
+            const periodAmount = state.isMonthly ? monthlyWithdrawal : annualWithdrawal;
+            const firstWithdrawalAmount = state.firstWithdrawalPeriods * periodAmount;
+            const unit = state.isMonthly ? 'month' : 'year';
+            const periodsLabel = state.firstWithdrawalPeriods === 1 ? `1 ${unit}` : `${state.firstWithdrawalPeriods} ${unit}s`;
+            document.getElementById('firstWithdrawalPeriodsValue').textContent = `${periodsLabel} (${formatCurrency(firstWithdrawalAmount)})`;
 
             // Update withdrawal legend
             document.getElementById('withdrawalLegend').textContent =
@@ -1787,22 +1807,40 @@
             updateDisplay();
         });
 
+        function updateUpfrontPeriodsMax() {
+            const slider = document.getElementById('firstWithdrawalPeriods');
+            const max = state.isMonthly ? 120 : 10;
+            slider.max = max;
+            if (state.firstWithdrawalPeriods > max) {
+                state.firstWithdrawalPeriods = max;
+            }
+            slider.value = state.firstWithdrawalPeriods;
+        }
+
         document.getElementById('frequencyAnnual').addEventListener('change', (e) => {
             if (e.target.checked) {
+                if (state.isMonthly) {
+                    state.firstWithdrawalPeriods = Math.max(1, Math.round(state.firstWithdrawalPeriods / 12));
+                }
                 state.isMonthly = false;
+                updateUpfrontPeriodsMax();
                 updateDisplay();
             }
         });
 
         document.getElementById('frequencyMonthly').addEventListener('change', (e) => {
             if (e.target.checked) {
+                if (!state.isMonthly) {
+                    state.firstWithdrawalPeriods = state.firstWithdrawalPeriods * 12;
+                }
                 state.isMonthly = true;
+                updateUpfrontPeriodsMax();
                 updateDisplay();
             }
         });
 
-        document.getElementById('firstWithdrawalYears').addEventListener('input', (e) => {
-            state.firstWithdrawalYears = parseInt(e.target.value);
+        document.getElementById('firstWithdrawalPeriods').addEventListener('input', (e) => {
+            state.firstWithdrawalPeriods = parseInt(e.target.value);
             updateDisplay();
         });
 
@@ -1839,7 +1877,7 @@
         document.getElementById('withdrawalRate').value = state.withdrawalRate;
         document.getElementById('inflationRate').value = state.inflationRate;
         document.getElementById('years').value = state.years;
-        document.getElementById('firstWithdrawalYears').value = state.firstWithdrawalYears;
+        document.getElementById('firstWithdrawalPeriods').value = state.firstWithdrawalPeriods;
 
         // Initial render
         applyPreset(state.currentPreset);
