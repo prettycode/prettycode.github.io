@@ -358,12 +358,6 @@
             background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
         }
 
-        .legend-color.confidence {
-            background-color: var(--color-danger);
-            background-image: linear-gradient(90deg, var(--color-danger) 50%, transparent 50%);
-            background-size: 8px 4px;
-        }
-
         .legend-color.withdrawal {
             background-color: var(--color-success);
         }
@@ -744,36 +738,6 @@
             }
         }
 
-        /* Max withdrawal rate badge */
-        .max-rate-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: var(--spacing-xs) var(--spacing-md);
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            border: none;
-            border-radius: var(--spacing-xs);
-            color: white;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all var(--transition-base);
-            box-shadow: var(--shadow-sm);
-            touch-action: manipulation;
-            margin-right: var(--spacing-sm);
-            white-space: nowrap;
-        }
-
-        .max-rate-badge:hover {
-            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-            box-shadow: var(--shadow-md);
-            transform: translateY(-1px);
-        }
-
-        .max-rate-badge:active {
-            transform: translateY(0);
-            box-shadow: var(--shadow-sm);
-        }
-
         /* Data table styles */
         .data-table-section {
             margin-top: var(--spacing-lg);
@@ -871,14 +835,10 @@
         }
 
         .data-table th:nth-child(2) {
-            background-position: 33.333% 0%;
+            background-position: 50% 0%;
         }
 
         .data-table th:nth-child(3) {
-            background-position: 66.666% 0%;
-        }
-
-        .data-table th:nth-child(4) {
             background-position: 100% 0%;
         }
 
@@ -956,12 +916,7 @@
                         <div class="control-group">
                             <label class="control-label">
                                 <span class="control-label-text">Annual Withdrawal Rate</span>
-                                <span>
-                                    <span class="control-value" id="withdrawalRateValue"></span>
-                                    <button class="max-rate-badge" id="maxRateButton" title="Maximum sustainable withdrawal rate - Click to apply this rate">
-                                        <span id="maxRateButtonText">0%</span>
-                                    </button>
-                                </span>
+                                <span class="control-value" id="withdrawalRateValue"></span>
                             </label>
                             <input type="range" class="slider" id="withdrawalRate" min="0" max="10" step="0.1">
                         </div>
@@ -1061,10 +1016,6 @@
                             <span>Average Outcome</span>
                         </div>
                         <div class="legend-item">
-                            <div class="legend-color confidence"></div>
-                            <span>95% Confidence Lower Bound</span>
-                        </div>
-                        <div class="legend-item">
                             <div class="legend-color withdrawal"></div>
                             <span id="withdrawalLegend">Annual Withdrawal</span>
                         </div>
@@ -1090,30 +1041,11 @@
                             <span class="stat-value" id="statMedianPortfolio">$0</span>
                         </div>
                         <div class="stat-row">
-                            <span class="stat-label">95% Lower Bound Portfolio Value</span>
-                            <span class="stat-value" id="statLowerBound">$0</span>
-                        </div>
-                        <div class="stat-row">
                             <span class="stat-label">Final Withdrawal</span>
                             <span class="stat-value" id="statFinalWithdrawal">$0</span>
                         </div>
                     </div>
 
-                    <div class="stat-card">
-                        <h4 class="stat-title">Maximum Withdrawal Rate</h4>
-                        <div class="stat-row">
-                            <span class="stat-label">Max Rate (Portfolio depletes Year <span id="maxRateYear">51</span>)</span>
-                            <span class="stat-value" id="statMaxWithdrawalRate">0%</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Annual Withdrawal at Max Rate</span>
-                            <span class="stat-value" id="statMaxAnnualAmount">$0</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Monthly Withdrawal at Max Rate</span>
-                            <span class="stat-value" id="statMaxMonthlyAmount">$0</span>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Data Table Section -->
@@ -1131,7 +1063,6 @@
                                     <tr>
                                         <th>Year</th>
                                         <th>Average Outcome</th>
-                                        <th>95% Lower Bound</th>
                                         <th id="withdrawalHeader">Annual Withdrawal</th>
                                     </tr>
                                 </thead>
@@ -1160,7 +1091,6 @@
                     <p><strong>Sources:</strong> Visual Capitalist (visualcapitalist.com), Four Pillar Freedom analysis of historical U.S. market data (1926-2019).</p>
                     <h4>Understanding the Chart</h4>
                     <p><strong>Average Outcome</strong> represents the typical expected outcome based on the geometric mean of returns. This is calculated using the geometric mean, which accounts for the compounding nature of investment returns over time. Half of all simulations would result in values above this line, and half below, making it a realistic middle-ground projection.</p>
-                    <p><strong>95% Confidence Lower Bound (5th Percentile)</strong> is a more conservative view. It tells you: "There's only a 5% chance your portfolio will be below this value." This is often most useful for retirement planning when you want to understand downside risk rather than typical outcomes.</p>
                     <h4>Methodology</h4>
                     <p>This simulation uses a geometric Brownian motion model with:</p>
                     <ul>
@@ -1231,93 +1161,6 @@
             return '$' + Math.round(value).toLocaleString();
         }
 
-        // Calculate when portfolio depletes (returns the year when portfolio reaches 0)
-        function calculateDepletionYear(withdrawalRate) {
-            const stdDev = state.volatility / 100;
-            const periodsPerYear = state.isMonthly ? 12 : 1;
-
-            const periodGrowthRate = Math.log(1 + state.cagr / 100) / periodsPerYear;
-            const periodStdDev = stdDev / Math.sqrt(periodsPerYear);
-            const periodMu = periodGrowthRate - (periodStdDev * periodStdDev) / 2;
-
-            const periodicInflationRate = state.isMonthly ?
-                Math.pow(1 + state.inflationRate / 100, 1/12) - 1 :
-                state.inflationRate / 100;
-
-            let annualWithdrawal = (state.initialInvestment * withdrawalRate) / 100;
-            let periodWithdrawal = annualWithdrawal / periodsPerYear;
-            const firstPeriodWithdrawal = state.firstWithdrawalPeriods * periodWithdrawal;
-
-            let currentMedian = state.initialInvestment;
-
-            const maxPeriods = (state.years + 10) * periodsPerYear; // Check up to 10 years past time horizon
-            const upfrontPeriods = state.firstWithdrawalPeriods;
-            for (let period = 1; period <= maxPeriods; period++) {
-                const year = period / periodsPerYear;
-
-                if (period > 1) {
-                    periodWithdrawal *= (1 + periodicInflationRate);
-                }
-
-                let withdrawal;
-                if (period === 1) {
-                    withdrawal = firstPeriodWithdrawal;
-                } else if (period <= upfrontPeriods) {
-                    withdrawal = 0;
-                } else {
-                    withdrawal = periodWithdrawal;
-                }
-                const postWithdrawal = Math.max(0, currentMedian - withdrawal);
-                currentMedian = postWithdrawal * Math.exp(periodMu);
-
-                if (currentMedian <= 0) {
-                    return year;
-                }
-            }
-
-            // Portfolio didn't deplete within the checked period
-            return maxPeriods / periodsPerYear;
-        }
-
-        // Find maximum withdrawal rate that depletes portfolio in target year using binary search
-        function findMaxWithdrawalRate(targetYear) {
-            let low = 0;
-            let high = 20; // Start with max of 20%
-            let bestRate = 0;
-            const tolerance = 0.01; // 0.01% precision
-            const maxIterations = 100;
-            const periodsPerYear = state.isMonthly ? 12 : 1;
-            const yearTolerance = 0.5 / periodsPerYear;
-
-            for (let i = 0; i < maxIterations; i++) {
-                const mid = (low + high) / 2;
-                const depletionYear = calculateDepletionYear(mid);
-
-                // Check if we're close enough to target year
-                if (Math.abs(depletionYear - targetYear) < yearTolerance) {
-                    bestRate = mid;
-                    break;
-                }
-
-                if (depletionYear > targetYear) {
-                    // Portfolio lasts too long, increase withdrawal rate
-                    low = mid;
-                    bestRate = mid;
-                } else {
-                    // Portfolio depletes too early, decrease withdrawal rate
-                    high = mid;
-                }
-
-                // Check if we've converged
-                if (high - low < tolerance) {
-                    bestRate = mid;
-                    break;
-                }
-            }
-
-            return bestRate;
-        }
-
         // Calculate portfolio path
         function calculatePortfolioPath() {
             const data = [];
@@ -1327,7 +1170,6 @@
             const periodGrowthRate = Math.log(1 + state.cagr / 100) / periodsPerYear;
             const periodStdDev = stdDev / Math.sqrt(periodsPerYear);
             const periodMu = periodGrowthRate - (periodStdDev * periodStdDev) / 2;
-            const z_score_5th = -1.645;
 
             const periodicInflationRate = state.isMonthly ?
                 Math.pow(1 + state.inflationRate / 100, 1/12) - 1 :
@@ -1342,7 +1184,6 @@
                 year: 0,
                 median: state.initialInvestment,
                 mean: state.initialInvestment,
-                fifth_percentile: null,
                 withdrawal: firstPeriodWithdrawal
             });
 
@@ -1370,8 +1211,6 @@
 
                 periodWithdrawal *= (1 + periodicInflationRate);
 
-                const fifthPercentileFactor = Math.exp(z_score_5th * periodStdDev * Math.sqrt(period));
-
                 const displayedWithdrawal = period < upfrontPeriods ? 0 : periodWithdrawal;
 
                 data.push({
@@ -1379,7 +1218,6 @@
                     year,
                     median: currentMedian,
                     mean: currentMean,
-                    fifth_percentile: Math.max(0, currentMedian * fifthPercentileFactor),
                     withdrawal: displayedWithdrawal
                 });
             }
@@ -1402,7 +1240,6 @@
                             ...point,
                             median: null,
                             mean: null,
-                            fifth_percentile: null,
                             withdrawal: null
                         };
                     }
@@ -1431,7 +1268,6 @@
             // Prepare data for Chart.js
             const labels = filteredData.map(point => point.year);
             const medianData = filteredData.map(point => point.median);
-            const fifthPercentileData = filteredData.map(point => point.fifth_percentile);
             const withdrawalData = filteredData.map(point => point.withdrawal);
 
             // Create Chart.js configuration
@@ -1446,18 +1282,6 @@
                             borderColor: '#667eea',
                             backgroundColor: 'rgba(102, 126, 234, 0.1)',
                             borderWidth: 2.5,
-                            tension: 0,
-                            pointRadius: 0,
-                            pointHoverRadius: 5,
-                            spanGaps: false
-                        },
-                        {
-                            label: '95% Confidence Lower Bound',
-                            data: fifthPercentileData,
-                            borderColor: '#dc2626',
-                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                            borderWidth: 2,
-                            borderDash: [4, 4],
                             tension: 0,
                             pointRadius: 0,
                             pointHoverRadius: 5,
@@ -1622,15 +1446,11 @@
                 const medianCell = document.createElement('td');
                 medianCell.textContent = point.median !== null ? formatCurrency(point.median) : 'N/A';
 
-                const fifthCell = document.createElement('td');
-                fifthCell.textContent = point.fifth_percentile !== null ? formatCurrency(point.fifth_percentile) : 'N/A';
-
                 const withdrawalCell = document.createElement('td');
                 withdrawalCell.textContent = point.withdrawal !== null ? formatCurrency(point.withdrawal) : 'N/A';
 
                 row.appendChild(yearCell);
                 row.appendChild(medianCell);
-                row.appendChild(fifthCell);
                 row.appendChild(withdrawalCell);
 
                 tbody.appendChild(row);
@@ -1706,34 +1526,8 @@
             document.getElementById('terminalTitle').textContent = `Final Portfolio Values (Year ${terminalYear})`;
             document.getElementById('statMedianPortfolio').textContent =
                 formatCurrency(lastPortfolioPoint?.median);
-            document.getElementById('statLowerBound').textContent =
-                formatCurrency(lastPortfolioPoint?.fifth_percentile);
             document.getElementById('statFinalWithdrawal').textContent =
                 formatCurrency((lastWithdrawalPoint?.withdrawal || 0) * (state.isMonthly ? 12 : 1));
-
-            // Calculate maximum withdrawal rate
-            // For annual: deplete at year N+1 (first withdrawal after N years)
-            // For monthly: deplete at first month after N years = (N*12 + 1)/12 years
-            const periodsPerYear = state.isMonthly ? 12 : 1;
-            const totalPeriods = state.years * periodsPerYear;
-            const targetYear = (totalPeriods + 1) / periodsPerYear;
-
-            const maxWithdrawalRate = findMaxWithdrawalRate(targetYear);
-            const maxAnnualWithdrawal = (state.initialInvestment * maxWithdrawalRate) / 100;
-            const maxMonthlyWithdrawal = maxAnnualWithdrawal / 12;
-
-            // Update max withdrawal rate display
-            const displayYear = state.isMonthly ?
-                `${state.years + 1}, Month 1` :
-                targetYear;
-            document.getElementById('maxRateYear').textContent = displayYear;
-            document.getElementById('statMaxWithdrawalRate').textContent = `${maxWithdrawalRate.toFixed(2)}%`;
-            document.getElementById('statMaxAnnualAmount').textContent = formatCurrency(maxAnnualWithdrawal);
-            document.getElementById('statMaxMonthlyAmount').textContent = formatCurrency(maxMonthlyWithdrawal);
-
-            // Update max rate badge
-            document.getElementById('maxRateButtonText').textContent = `${maxWithdrawalRate.toFixed(1)}%`;
-            document.getElementById('maxRateButton').setAttribute('data-max-rate', maxWithdrawalRate);
 
             // Draw chart
             drawChart(data);
@@ -1861,15 +1655,6 @@
                 content.classList.add('expanded');
                 icon.classList.add('expanded');
             }
-        });
-
-        // Max rate badge functionality
-        document.getElementById('maxRateButton').addEventListener('click', () => {
-            const maxRate = parseFloat(document.getElementById('maxRateButton').getAttribute('data-max-rate'));
-            const roundedRate = parseFloat(maxRate.toFixed(1));
-            state.withdrawalRate = roundedRate;
-            document.getElementById('withdrawalRate').value = roundedRate;
-            updateDisplay();
         });
 
         // Initialize sliders from state
