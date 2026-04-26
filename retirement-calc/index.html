@@ -947,7 +947,7 @@
                         <h3 class="section-title">Portfolio Settings</h3>
                         <div class="control-group">
                             <label class="control-label">
-                                <span class="control-label-text">Starting Value</span>
+                                <span class="control-label-text">Portfolio Value at Retirement Start</span>
                                 <span class="control-value" id="initialInvestmentValue">$4,000,000</span>
                             </label>
                             <input type="range" class="slider" id="initialInvestment" min="0" max="10000000" step="100000" value="4000000">
@@ -955,7 +955,7 @@
 
                         <div class="control-group">
                             <label class="control-label">
-                                <span class="control-label-text">Withdrawal Rate</span>
+                                <span class="control-label-text">Annual Withdrawal Rate</span>
                                 <span>
                                     <span class="control-value" id="withdrawalRateValue">3.8%</span>
                                     <button class="max-rate-badge" id="maxRateButton" title="Maximum sustainable withdrawal rate - Click to apply this rate">
@@ -968,7 +968,7 @@
 
                         <div class="control-group">
                             <label class="control-label">
-                                <span class="control-label-text">Time Horizon</span>
+                                <span class="control-label-text">Anticipated Years in Retirement</span>
                                 <span class="control-value" id="yearsValue">50 years</span>
                             </label>
                             <input type="range" class="slider" id="years" min="1" max="100" step="1" value="50">
@@ -994,6 +994,14 @@
                                     </label>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span class="control-label-text">Initial Bulk Withdrawal</span>
+                                <span class="control-value" id="firstWithdrawalYearsValue">1 year</span>
+                            </label>
+                            <input type="range" class="slider" id="firstWithdrawalYears" min="1" max="5" step="1" value="1">
                         </div>
                     </div>
 
@@ -1175,6 +1183,7 @@
             volatility: 18.0,
             years: 50,
             isMonthly: false,
+            firstWithdrawalYears: 1,
             currentPreset: 'aggressive'
         };
 
@@ -1238,6 +1247,7 @@
 
             let annualWithdrawal = (state.initialInvestment * withdrawalRate) / 100;
             let periodWithdrawal = annualWithdrawal / periodsPerYear;
+            const firstPeriodWithdrawal = state.firstWithdrawalYears * annualWithdrawal;
 
             let currentMedian = state.initialInvestment;
 
@@ -1249,7 +1259,8 @@
                     periodWithdrawal *= (1 + periodicInflationRate);
                 }
 
-                const postWithdrawal = Math.max(0, currentMedian - periodWithdrawal);
+                const withdrawal = period === 1 ? firstPeriodWithdrawal : periodWithdrawal;
+                const postWithdrawal = Math.max(0, currentMedian - withdrawal);
                 currentMedian = postWithdrawal * Math.exp(periodMu);
 
                 if (currentMedian <= 0) {
@@ -1315,6 +1326,7 @@
 
             let annualWithdrawal = (state.initialInvestment * state.withdrawalRate) / 100;
             let periodWithdrawal = annualWithdrawal / periodsPerYear;
+            const firstPeriodWithdrawal = state.firstWithdrawalYears * annualWithdrawal;
 
             data.push({
                 period: 0,
@@ -1322,7 +1334,7 @@
                 median: state.initialInvestment,
                 mean: state.initialInvestment,
                 fifth_percentile: null,
-                withdrawal: periodWithdrawal
+                withdrawal: firstPeriodWithdrawal
             });
 
             let currentMedian = state.initialInvestment;
@@ -1333,8 +1345,9 @@
             for (let period = 1; period <= totalPeriods; period++) {
                 const year = period / periodsPerYear;
 
-                const postWithdrawalMedian = Math.max(0, currentMedian - periodWithdrawal);
-                const postWithdrawalMean = Math.max(0, currentMean - periodWithdrawal);
+                const withdrawal = period === 1 ? firstPeriodWithdrawal : periodWithdrawal;
+                const postWithdrawalMedian = Math.max(0, currentMedian - withdrawal);
+                const postWithdrawalMean = Math.max(0, currentMean - withdrawal);
 
                 currentMedian = postWithdrawalMedian * Math.exp(periodMu);
                 currentMean = postWithdrawalMean * Math.exp(periodGrowthRate);
@@ -1623,6 +1636,10 @@
             document.getElementById('annualAmount').textContent = `${formatCurrency(annualWithdrawal)}/year`;
             document.getElementById('monthlyAmount').textContent = `${formatCurrency(monthlyWithdrawal)}/month`;
 
+            const firstWithdrawalAmount = state.firstWithdrawalYears * annualWithdrawal;
+            const yearsLabel = state.firstWithdrawalYears === 1 ? '1 year' : `${state.firstWithdrawalYears} years`;
+            document.getElementById('firstWithdrawalYearsValue').textContent = `${yearsLabel} (${formatCurrency(firstWithdrawalAmount)})`;
+
             // Update withdrawal legend
             document.getElementById('withdrawalLegend').textContent =
                 state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal';
@@ -1778,6 +1795,11 @@
                 state.isMonthly = true;
                 updateDisplay();
             }
+        });
+
+        document.getElementById('firstWithdrawalYears').addEventListener('input', (e) => {
+            state.firstWithdrawalYears = parseInt(e.target.value);
+            updateDisplay();
         });
 
         // Handle window resize
