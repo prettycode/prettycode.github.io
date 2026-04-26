@@ -1280,13 +1280,15 @@
             let bestRate = 0;
             const tolerance = 0.01; // 0.01% precision
             const maxIterations = 100;
+            const periodsPerYear = state.isMonthly ? 12 : 1;
+            const yearTolerance = 0.5 / periodsPerYear;
 
             for (let i = 0; i < maxIterations; i++) {
                 const mid = (low + high) / 2;
                 const depletionYear = calculateDepletionYear(mid);
 
                 // Check if we're close enough to target year
-                if (Math.abs(depletionYear - targetYear) < 0.1) {
+                if (Math.abs(depletionYear - targetYear) < yearTolerance) {
                     bestRate = mid;
                     break;
                 }
@@ -1341,7 +1343,6 @@
             let currentMedian = state.initialInvestment;
             let currentMean = state.initialInvestment;
 
-            const sigma_5th = Math.exp(periodMu + z_score_5th * periodStdDev);
             const totalPeriods = state.years * periodsPerYear;
             for (let period = 1; period <= totalPeriods; period++) {
                 const year = period / periodsPerYear;
@@ -1355,12 +1356,14 @@
 
                 periodWithdrawal *= (1 + periodicInflationRate);
 
+                const fifthPercentileFactor = Math.exp(z_score_5th * periodStdDev * Math.sqrt(period));
+
                 data.push({
                     period,
                     year,
                     median: currentMedian,
                     mean: currentMean,
-                    fifth_percentile: Math.max(0, postWithdrawalMedian * sigma_5th),
+                    fifth_percentile: Math.max(0, currentMedian * fifthPercentileFactor),
                     withdrawal: periodWithdrawal
                 });
             }
@@ -1701,7 +1704,7 @@
 
             // Update max withdrawal rate display
             const displayYear = state.isMonthly ?
-                `${Math.floor(targetYear)}, Month ${Math.round((targetYear % 1) * 12) + 1}` :
+                `${state.years + 1}, Month 1` :
                 targetYear;
             document.getElementById('maxRateYear').textContent = displayYear;
             document.getElementById('statMaxWithdrawalRate').textContent = `${maxWithdrawalRate.toFixed(2)}%`;
