@@ -33,7 +33,7 @@ let state = {
     initialInvestment: 4000000,
     inflationRate: 3,
     withdrawalRate: 3.8,
-    years: 50,
+    years: 40,
     isMonthly: false,
     firstWithdrawalPeriods: 1,
     currentPreset: 'aggressive'
@@ -278,13 +278,17 @@ function drawChart(data) {
                     type: 'linear',
                     title: {
                         display: true,
-                        text: 'Years',
+                        text: 'Year',
                         font: {
-                            size: 12
+                            size: 13,
+                            weight: 'bold'
                         }
                     },
                     ticks: {
                         stepSize: 1,
+                        autoSkip: true,
+                        maxRotation: 45,
+                        minRotation: 0,
                         callback: function(value) {
                             return Math.floor(value);
                         }
@@ -300,7 +304,8 @@ function drawChart(data) {
                         display: true,
                         text: 'Portfolio Value',
                         font: {
-                            size: 12
+                            size: 13,
+                            weight: 'bold'
                         },
                         color: '#667eea'
                     },
@@ -321,7 +326,8 @@ function drawChart(data) {
                         display: true,
                         text: state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal',
                         font: {
-                            size: 12
+                            size: 13,
+                            weight: 'bold'
                         },
                         color: '#059669'
                     },
