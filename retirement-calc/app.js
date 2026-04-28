@@ -418,10 +418,7 @@ function updateDisplay() {
     document.getElementById('withdrawalLegend').textContent =
         state.isMonthly ? 'Monthly Withdrawal' : 'Annual Withdrawal';
 
-    // Last point with a live portfolio (terminal year + closing balance)
     const lastPortfolioPoint = [...data].reverse().find(point => point.median !== null && point.median > 0);
-    // Last point with a withdrawal (final withdrawal display)
-    const lastWithdrawalPoint = [...data].reverse().find(point => point.withdrawal !== null);
     const terminalYear = lastPortfolioPoint ? Math.floor(lastPortfolioPoint.year) : state.years;
     const portfolioLasts = terminalYear >= state.years;
 
@@ -448,12 +445,6 @@ function updateDisplay() {
         statusMessage.className = 'status-message warning';
         statusMessage.textContent = `Your portfolio can only sustain full withdrawals through Year ${terminalYear}, falling ${yearsShort} ${yearsShort === 1 ? 'year' : 'years'} short of your ${state.years}-year goal.`;
     }
-
-    document.getElementById('terminalTitle').textContent = `Final Portfolio Values (Year ${terminalYear})`;
-    document.getElementById('statMedianPortfolio').textContent =
-        formatCurrency(lastPortfolioPoint?.median);
-    document.getElementById('statFinalWithdrawal').textContent =
-        formatCurrency((lastWithdrawalPoint?.withdrawal || 0) * (state.isMonthly ? 12 : 1));
 
     drawChart(data);
     populateDataTable(data);
@@ -572,30 +563,24 @@ window.addEventListener('resize', () => {
     updateDisplay();
 });
 
-document.getElementById('dataTableToggle').addEventListener('click', () => {
+document.getElementById('dataTableToggle').addEventListener('click', (event) => {
+    const header = event.currentTarget;
     const content = document.getElementById('dataTableContent');
     const icon = document.getElementById('toggleIcon');
 
-    if (content.classList.contains('expanded')) {
-        content.classList.remove('expanded');
-        icon.classList.remove('expanded');
-    } else {
-        content.classList.add('expanded');
-        icon.classList.add('expanded');
-    }
+    const isExpanded = content.classList.toggle('expanded');
+    icon.classList.toggle('expanded', isExpanded);
+    header.classList.toggle('expanded', isExpanded);
 });
 
-document.getElementById('methodologyToggle').addEventListener('click', () => {
+document.getElementById('methodologyToggle').addEventListener('click', (event) => {
+    const header = event.currentTarget;
     const content = document.getElementById('methodologyContent');
     const icon = document.getElementById('methodologyToggleIcon');
 
-    if (content.classList.contains('expanded')) {
-        content.classList.remove('expanded');
-        icon.classList.remove('expanded');
-    } else {
-        content.classList.add('expanded');
-        icon.classList.add('expanded');
-    }
+    const isExpanded = content.classList.toggle('expanded');
+    icon.classList.toggle('expanded', isExpanded);
+    header.classList.toggle('expanded', isExpanded);
 });
 
 // ===================================================================

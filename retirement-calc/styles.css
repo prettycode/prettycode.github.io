@@ -30,11 +30,6 @@
     --color-panel-bg-start: #f8fafc;
     --color-panel-bg-mid: #eef2f7;
     --color-panel-border: #dbe4ee;
-    --color-info-bg-start: #eff6ff;
-    --color-info-bg-end: #dbeafe;
-    --color-info-border: #bfdbfe;
-    --color-info-text-dark: #1e3a8a;
-    --color-info-text: #1e40af;
     --color-success-bg-start: #d1fae5;
     --color-success-bg-end: #a7f3d0;
     --color-danger-bg-start: #fee2e2;
@@ -346,7 +341,7 @@ body {
 /* Chart section - Mobile optimized */
 .chart-section {
     margin-top: var(--spacing-lg);
-    background: linear-gradient(135deg, var(--color-panel-bg-start) 0%, #ffffff 100%);
+    background: linear-gradient(135deg, var(--color-panel-bg-start) 0%, var(--color-panel-bg-mid) 100%);
     padding: var(--spacing-lg);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-panel-border);
@@ -392,98 +387,40 @@ body {
     background-color: var(--color-success);
 }
 
-/* Stats - Mobile first (single column) */
 .stats-grid {
     margin-top: var(--spacing-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-}
-
-.stat-card {
-    background: linear-gradient(135deg, var(--color-panel-bg-start) 0%, #ffffff 100%);
-    padding: var(--spacing-lg);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-panel-border);
-    box-shadow: var(--shadow-sm);
-}
-
-.stat-title {
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--color-accent);
-    margin-bottom: var(--spacing-lg);
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    padding-bottom: var(--spacing-sm);
-    border-bottom: 1px solid var(--color-panel-border);
-    position: relative;
-}
-
-.stat-title::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -1px;
-    width: 36px;
-    height: 2px;
-    background: var(--color-gold-soft);
-}
-
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: 14px;
-    margin-bottom: var(--spacing-sm);
-    padding-bottom: var(--spacing-sm);
-    border-bottom: 1px solid var(--color-border);
-    gap: var(--spacing-sm);
-}
-
-.stat-row:last-child {
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
-}
-
-.stat-label {
-    color: var(--color-text-secondary);
-    font-weight: 500;
-    flex: 1;
-}
-
-.stat-value {
-    font-weight: 700;
-    color: var(--color-text-primary);
-    text-align: right;
 }
 
 /* Portfolio status banner */
 .portfolio-status-banner {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
     border-radius: var(--radius-sm);
     margin-bottom: var(--spacing-lg);
     display: flex;
     align-items: flex-start;
     gap: var(--spacing-md);
     line-height: 1.5;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-left-width: 3px;
 }
 
 .portfolio-status-banner.success {
-    background: linear-gradient(135deg, var(--color-success-bg-start) 0%, var(--color-success-bg-end) 100%);
-    border: var(--border-width) solid var(--color-success);
+    background: linear-gradient(90deg, rgba(4, 120, 87, 0.06) 0%, rgba(4, 120, 87, 0.01) 70%, transparent 100%);
+    border-color: var(--color-border);
+    border-left-color: var(--color-success);
 }
 
 .portfolio-status-banner.warning {
-    background: linear-gradient(135deg, var(--color-danger-bg-start) 0%, var(--color-danger-bg-end) 100%);
-    border: var(--border-width) solid var(--color-danger);
+    background: linear-gradient(90deg, rgba(185, 28, 28, 0.06) 0%, rgba(185, 28, 28, 0.01) 70%, transparent 100%);
+    border-color: var(--color-border);
+    border-left-color: var(--color-danger);
 }
 
 .status-icon {
-    font-size: 24px;
+    font-size: 20px;
     flex-shrink: 0;
-    line-height: 1;
+    line-height: 1.2;
 }
 
 .status-icon.success {
@@ -529,9 +466,9 @@ body {
 
 .methodology {
     margin-top: var(--spacing-lg);
-    background: linear-gradient(135deg, var(--color-info-bg-start) 0%, var(--color-info-bg-end) 100%);
+    background: linear-gradient(135deg, var(--color-panel-bg-start) 0%, var(--color-panel-bg-mid) 100%);
     border-radius: var(--radius-md);
-    border: 1px solid var(--color-info-border);
+    border: 1px solid var(--color-panel-border);
     overflow: hidden;
 }
 
@@ -551,6 +488,10 @@ body {
 
 .methodology-header:active {
     transform: scale(0.99);
+}
+
+.methodology-header.expanded {
+    border-bottom: 1px solid var(--color-panel-border);
 }
 
 .methodology-title {
@@ -575,13 +516,13 @@ body {
 }
 
 .methodology-wrapper {
-    padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+    padding: var(--spacing-lg);
 }
 
 .methodology h4 {
     font-weight: 700;
     font-size: 14px;
-    color: var(--color-info-text-dark);
+    color: var(--color-text-primary);
     margin-bottom: var(--spacing-sm);
     margin-top: var(--spacing-lg);
 }
@@ -592,14 +533,14 @@ body {
 
 .methodology p {
     font-size: 13px;
-    color: var(--color-info-text);
+    color: var(--color-text-medium);
     margin-bottom: var(--spacing-sm);
     line-height: 1.6;
 }
 
 .methodology ul {
     font-size: 13px;
-    color: var(--color-info-text);
+    color: var(--color-text-medium);
     margin-left: var(--spacing-lg);
     line-height: 1.6;
 }
@@ -715,18 +656,6 @@ body {
         margin-top: var(--spacing-2xl);
     }
 
-    .stat-card {
-        padding: var(--spacing-xl);
-    }
-
-    .stat-title {
-        font-size: 14px;
-    }
-
-    .stat-row {
-        font-size: 15px;
-    }
-
     .methodology {
         margin-top: var(--spacing-2xl);
     }
@@ -736,7 +665,7 @@ body {
     }
 
     .methodology-wrapper {
-        padding: 0 var(--spacing-xl) var(--spacing-xl) var(--spacing-xl);
+        padding: var(--spacing-xl);
     }
 
     .methodology-title {
@@ -811,7 +740,7 @@ body {
 /* Data table styles */
 .data-table-section {
     margin-top: var(--spacing-lg);
-    background: linear-gradient(135deg, var(--color-panel-bg-start) 0%, #ffffff 100%);
+    background: linear-gradient(135deg, var(--color-panel-bg-start) 0%, var(--color-panel-bg-mid) 100%);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-panel-border);
     overflow: hidden;
@@ -833,6 +762,10 @@ body {
 
 .data-table-header:active {
     transform: scale(0.99);
+}
+
+.data-table-header.expanded {
+    border-bottom: 1px solid var(--color-panel-border);
 }
 
 .data-table-title {
@@ -869,7 +802,7 @@ body {
 }
 
 .data-table-wrapper {
-    padding: 0 0 var(--spacing-lg) var(--spacing-lg);
+    padding: var(--spacing-lg);
 }
 
 .data-table {
@@ -942,8 +875,24 @@ body {
 }
 
 @media (min-width: 768px) {
+    .data-table-section {
+        margin-top: var(--spacing-2xl);
+    }
+
     .data-table {
         font-size: 14px;
+    }
+
+    .data-table-header {
+        padding: var(--spacing-xl);
+    }
+
+    .data-table-title {
+        font-size: 14px;
+    }
+
+    .data-table-wrapper {
+        padding: var(--spacing-xl);
     }
 
     .data-table th {
