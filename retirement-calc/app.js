@@ -434,7 +434,7 @@ function updateDisplay() {
         statusTitle.className = 'status-title success';
         statusTitle.textContent = 'Portfolio is Sustainable';
         statusMessage.className = 'status-message success';
-        statusMessage.textContent = `Your portfolio will last the full ${state.years} year time horizon`;
+        statusMessage.textContent = `Your portfolio will last the full ${state.years}-year time horizon.`;
     } else {
         const yearsShort = state.years - terminalYear;
         statusBanner.className = 'portfolio-status-banner warning';
