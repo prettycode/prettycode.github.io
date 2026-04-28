@@ -25,9 +25,10 @@
                         <h3 class="section-title">Portfolio Settings</h3>
                         <div class="control-group">
                             <label class="control-label">
-                                <span class="control-label-text">Portfolio Value at Retirement Start</span>
+                                <span class="control-label-text">Portfolio Value</span>
                                 <span class="control-value" id="initialInvestmentValue"></span>
                             </label>
+                            <p class="control-description">(I will retire with an investment portfolio worth this much)</p>
                             <input type="range" class="slider" id="initialInvestment" min="0" max="10000000" step="100000">
                         </div>
 
@@ -36,22 +37,25 @@
                                 <span class="control-label-text">Annual Withdrawal Rate</span>
                                 <span class="control-value" id="withdrawalRateValue"></span>
                             </label>
+                            <p class="control-description">(I will withdraw this percentage of my initial portfolio value each year)</p>
                             <input type="range" class="slider" id="withdrawalRate" min="0" max="10" step="0.1">
                         </div>
 
                         <div class="control-group">
                             <label class="control-label">
-                                <span class="control-label-text">Periods to Withdrawal Upfront</span>
+                                <span class="control-label-text">Upfront Withdrawal</span>
                                 <span class="control-value" id="firstWithdrawalPeriodsValue"></span>
                             </label>
+                            <p class="control-description">(I will feel safest if I take out this much upfront, at the start of retirement)</p>
                             <input type="range" class="slider" id="firstWithdrawalPeriods" min="1" max="10" step="1">
                         </div>
 
                         <div class="control-group">
                             <label class="control-label">
-                                <span class="control-label-text">Anticipated Years in Retirement</span>
+                                <span class="control-label-text">Time Horizon</span>
                                 <span class="control-value" id="yearsValue"></span>
                             </label>
+                            <p class="control-description">(I don't want to run out of money before this many years)</p>
                             <input type="range" class="slider" id="years" min="1" max="100" step="1">
                         </div>
 
@@ -59,11 +63,12 @@
                             <label class="control-label">
                                 <span class="control-label-text">Withdrawal Frequency</span>
                             </label>
+                            <p class="control-description">(I prefer to make withdrawals from my portfolio this frequently)</p>
                             <div class="frequency-options">
                                 <div class="frequency-option">
                                     <input type="radio" id="frequencyAnnual" name="frequency" value="annual" checked>
                                     <label for="frequencyAnnual">
-                                        <span class="frequency-label-main">Annual</span>
+                                        <span class="frequency-label-main">Annually</span>
                                         <span class="frequency-label-sub" id="annualAmount"></span>
                                     </label>
                                 </div>

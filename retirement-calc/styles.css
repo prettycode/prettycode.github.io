@@ -151,6 +151,13 @@ body {
     flex: 1;
 }
 
+.control-description {
+    margin: 0 0 var(--spacing-sm);
+    font-size: 12px;
+    color: var(--color-text-medium);
+    line-height: 1.4;
+}
+
 .control-value {
     font-weight: 700;
     color: var(--color-text-primary);
