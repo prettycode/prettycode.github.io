@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="theme-color" content="#667eea">
+    <meta name="theme-color" content="#fafbfc">
     <title>Retirement Portfolio Simulator</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -17,9 +17,6 @@
 
         <div class="card">
             <div class="card-content">
-                <div class="schedule-note">
-                    <strong>Withdrawal schedule:</strong> On retirement day, take your first withdrawal to fund your next year (or month) of expenses. The remaining balance grows for the period. At the start of each subsequent year (or month), take an inflation-adjusted withdrawal and let the remainder grow again.
-                </div>
                 <div class="controls-grid">
                     <div class="control-section">
                         <h3 class="section-title">Portfolio Settings</h3>
@@ -70,6 +67,7 @@
                                     <label for="frequencyAnnual">
                                         <span class="frequency-label-main">Annually</span>
                                         <span class="frequency-label-sub" id="annualAmount"></span>
+                                        <span class="frequency-label-note">to start, increases with inflation</span>
                                     </label>
                                 </div>
                                 <div class="frequency-option">
@@ -77,6 +75,7 @@
                                     <label for="frequencyMonthly">
                                         <span class="frequency-label-main">Monthly</span>
                                         <span class="frequency-label-sub" id="monthlyAmount"></span>
+                                        <span class="frequency-label-note">to start, increases with inflation</span>
                                     </label>
                                 </div>
                             </div>
@@ -128,23 +127,6 @@
                     </div>
                 </div>
 
-                <div class="chart-section">
-                    <h3 class="section-title">Portfolio Projection</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="portfolioChart"></canvas>
-                    </div>
-                    <div class="chart-legend">
-                        <div class="legend-item">
-                            <div class="legend-color median"></div>
-                            <span>Average Outcome</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color withdrawal"></div>
-                            <span id="withdrawalLegend">Annual Withdrawal</span>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="stats-grid">
                     <div class="stat-card">
                         <h4 class="stat-title" id="terminalTitle">Final Portfolio Values (Year 50)</h4>
@@ -167,6 +149,23 @@
                         </div>
                     </div>
 
+                </div>
+
+                <div class="chart-section">
+                    <h3 class="section-title">Portfolio Projection</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="portfolioChart"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-color median"></div>
+                            <span>Average Outcome</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color withdrawal"></div>
+                            <span id="withdrawalLegend">Annual Withdrawal</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="data-table-section">

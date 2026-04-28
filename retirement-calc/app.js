@@ -210,8 +210,8 @@ function drawChart(data) {
                 {
                     label: 'Average Outcome',
                     data: medianData,
-                    borderColor: '#667eea',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderColor: '#1e3a5f',
+                    backgroundColor: 'rgba(30, 58, 95, 0.1)',
                     borderWidth: 2.5,
                     tension: 0,
                     pointRadius: 0,
@@ -244,8 +244,8 @@ function drawChart(data) {
                     display: false
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                    titleColor: '#a5b4fc',
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    titleColor: '#c9a876',
                     bodyColor: '#fff',
                     padding: 12,
                     displayColors: true,
@@ -307,13 +307,13 @@ function drawChart(data) {
                             size: 13,
                             weight: 'bold'
                         },
-                        color: '#667eea'
+                        color: '#1e3a5f'
                     },
                     ticks: {
                         callback: function(value) {
                             return '$' + (value / 1000000).toFixed(1) + 'M';
                         },
-                        color: '#667eea'
+                        color: '#1e3a5f'
                     },
                     grid: {
                         color: '#f0f0f0'
