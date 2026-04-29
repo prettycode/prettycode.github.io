@@ -890,7 +890,7 @@ function RetirementSimulator() {
 
             <Slider
               label="Annual Withdrawal"
-              sublabel="Year-one drawdown"
+              sublabel="First-year size"
               value={withdrawal}
               min={10_000}
               max={300_000}
