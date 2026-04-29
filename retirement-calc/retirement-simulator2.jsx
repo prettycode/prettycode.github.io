@@ -119,7 +119,7 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
       if (isLumpSum) {
         if (y === 1) {
           actualW = lumpSumCents;
-          displayedW = 0;
+          displayedW = lumpSumCents;
         } else if (y <= upfrontYears) {
           actualW = 0;
           displayedW = 0;
@@ -678,6 +678,15 @@ function RetirementSimulator() {
       line-height: 1.5;
     }
 
+    .chart-footnote {
+      font-size: 11px;
+      color: var(--ink-2);
+      font-style: italic;
+      line-height: 1.55;
+      margin-top: 14px;
+      max-width: 600px;
+    }
+
     .chart-wrap {
       position: relative;
       width: 100%;
@@ -805,6 +814,15 @@ function RetirementSimulator() {
   `;
 
   const hoverData = hover !== null && sim ? sim.percentiles[hover] : null;
+  // Withdrawal at hover tick h is the draw taken at the start of year h+1.
+  // At the final tick we've run out of simulated years, so project one more
+  // year of inflation onto the last withdrawal — assumes retirement continues
+  // for as long as the portfolio sustains it.
+  const hoverWithdrawal = hover !== null && sim
+    ? (hover < years
+        ? sim.percentiles[hover + 1].withdrawal
+        : Math.floor(sim.percentiles[years].withdrawal * (1 + inflation)))
+    : null;
 
   return (
     <div className="sim-root">
@@ -952,7 +970,7 @@ function RetirementSimulator() {
               <div className="stat-cell">
                 <div className="stat-label">Total Drawn</div>
                 <div className="stat-value">
-                  {fmtMoney(sim.percentiles.reduce((a, b) => a + b.withdrawal, 0) + sim.lumpSum)}
+                  {fmtMoney(sim.percentiles.reduce((a, b) => a + b.withdrawal, 0))}
                 </div>
               </div>
               <div className="stat-cell">
@@ -976,7 +994,7 @@ function RetirementSimulator() {
               </div>
               <p className="chart-subtitle">
                 Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo paths. Outer band, 10th–90th percentile;
-                inner band, 25th–75th. The dashed line marks median annual withdrawal, scaled to the left axis.
+                inner band, 25th–75th. The stepped line marks median annual withdrawal, scaled to the left axis.
               </p>
 
               <div className="chart-wrap">
@@ -1087,15 +1105,26 @@ function RetirementSimulator() {
                     strokeLinejoin="round"
                   />
 
-                  {/* Withdrawal line (dashed, on left axis) */}
+                  {/* Withdrawal step-line (solid, on left axis). Shifted one
+                      tick left of the balance series: withdrawal[y] is the draw
+                      taken at the start of year y, so each step starts at
+                      x(y-1) — the moment the money leaves — and runs flat for
+                      that year's duration before stepping to the next year. */}
                   <path
-                    d={sim.percentiles.map((p, i) =>
-                      `${i === 0 ? "M" : "L"} ${x(p.year)} ${yScaleW(p.withdrawal)}`
-                    ).join(" ")}
+                    d={(() => {
+                      const pts = sim.percentiles.slice(1);
+                      let d = `M ${x(0)} ${yScaleW(pts[0].withdrawal)}`;
+                      for (let i = 1; i < pts.length; i++) {
+                        d += ` L ${x(i)} ${yScaleW(pts[i-1].withdrawal)}`;
+                        d += ` L ${x(i)} ${yScaleW(pts[i].withdrawal)}`;
+                      }
+                      d += ` L ${x(pts.length)} ${yScaleW(pts[pts.length-1].withdrawal)}`;
+                      return d;
+                    })()}
                     fill="none"
                     stroke="var(--withdrawal)"
                     strokeWidth="1.5"
-                    strokeDasharray="4 3"
+                    strokeLinejoin="miter"
                   />
 
                   {/* Hover guide */}
@@ -1111,7 +1140,7 @@ function RetirementSimulator() {
                       />
                       <circle cx={x(hover)} cy={yScale(hoverData.p50)} r="4" fill="var(--ink)"/>
                       <circle cx={x(hover)} cy={yScale(hoverData.p50)} r="2" fill="var(--cream)"/>
-                      <circle cx={x(hover)} cy={yScaleW(hoverData.withdrawal)} r="3" fill="var(--withdrawal)"/>
+                      <circle cx={x(hover)} cy={yScaleW(hoverWithdrawal)} r="3" fill="var(--withdrawal)"/>
                     </>
                   )}
 
@@ -1166,7 +1195,7 @@ function RetirementSimulator() {
                       <span>10th</span><span>{fmtMoneyFull(hoverData.p10)}</span>
                     </div>
                     <div className="tooltip-row median">
-                      <span>Withdrawal</span><span>{fmtMoneyFull(hoverData.withdrawal)}</span>
+                      <span>Withdrawal</span><span>{fmtMoneyFull(hoverWithdrawal)}</span>
                     </div>
                   </div>
                 )}
@@ -1188,7 +1217,7 @@ function RetirementSimulator() {
                 <div className="legend-item">
                   <span className="legend-swatch" style={{
                     background: "transparent",
-                    borderTop: "2px dashed var(--withdrawal)",
+                    borderTop: "2px solid var(--withdrawal)",
                     borderBottom: "none",
                     borderLeft: "none",
                     borderRight: "none",
@@ -1198,6 +1227,14 @@ function RetirementSimulator() {
                   Annual withdrawal (left axis)
                 </div>
               </div>
+
+              <p className="chart-footnote">
+                Withdrawals are taken at the start of the year they fund, so each step begins one tick left of the balance series:
+                the step starting at Y0 is the draw that funds year 1, Y1 the draw that funds year 2, and so on. With a multi-year
+                cash bucket, Y0's step is the lump-sum drawn from the portfolio at retirement; the bucket-funded years that follow
+                show zero portfolio withdrawal. The hover value at the final tick projects one more year of inflation onto the last
+                simulated withdrawal — assuming retirement continues for as long as the portfolio sustains it.
+              </p>
             </div>
 
             <p className="footer-note">
