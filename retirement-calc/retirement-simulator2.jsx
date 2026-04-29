@@ -21,6 +21,8 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   for (let y = 0; y <= years; y++) inflationPow[y] = Math.pow(1 + inflation, y);
 
   const withdrawalSum = new Float64Array(years + 1);
+  const depletionYears = new Uint16Array(runs);
+  let depletionCount = 0;
   let survived = 0;
   const reportEvery = Math.max(1, Math.floor(runs / 100));
 
@@ -41,6 +43,7 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
       if (bal <= 0) {
         bal = 0;
         depleted = true;
+        depletionYears[depletionCount++] = y;
         yearBalances[y][r] = 0;
         continue;
       }
@@ -77,7 +80,14 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // yearBalances[years] was sorted in the loop above
   const medianEnding = yearBalances[years][Math.floor(runs * 0.5)];
 
-  return { percentiles, successRate, medianEnding, runs };
+  let medianDepletionYear = null;
+  if (depletionCount > 0) {
+    const sortedDepletions = depletionYears.slice(0, depletionCount);
+    sortedDepletions.sort();
+    medianDepletionYear = sortedDepletions[Math.floor(depletionCount / 2)];
+  }
+
+  return { percentiles, successRate, medianEnding, medianDepletionYear, runs };
 }
 
 self.onmessage = function(e) {
@@ -414,7 +424,7 @@ function RetirementSimulator() {
 
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 0;
       border-top: 1px solid var(--ink);
       border-bottom: 1px solid var(--ink);
@@ -432,8 +442,13 @@ function RetirementSimulator() {
     .stat-cell:last-child { border-right: none; }
 
     @media (max-width: 720px) {
-      .stat-cell:nth-child(2) { border-right: none; }
-      .stat-cell:nth-child(1), .stat-cell:nth-child(2) { border-bottom: 1px solid var(--rule); }
+      .stat-cell:nth-child(2),
+      .stat-cell:nth-child(4) { border-right: none; }
+      .stat-cell:nth-child(1),
+      .stat-cell:nth-child(2),
+      .stat-cell:nth-child(3),
+      .stat-cell:nth-child(4) { border-bottom: 1px solid var(--rule); }
+      .stat-cell:nth-child(5) { grid-column: span 2; }
     }
 
     .stat-label {
@@ -731,6 +746,12 @@ function RetirementSimulator() {
                 <div className="stat-label">Final Withdrawal</div>
                 <div className="stat-value">
                   {fmtMoney(sim.percentiles[years].withdrawal)}
+                </div>
+              </div>
+              <div className="stat-cell">
+                <div className="stat-label">Median Depletion</div>
+                <div className="stat-value">
+                  {sim.medianDepletionYear ? `Year ${sim.medianDepletionYear}` : "None"}
                 </div>
               </div>
             </div>
