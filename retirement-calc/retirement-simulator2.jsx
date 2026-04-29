@@ -1494,18 +1494,20 @@ function RetirementSimulator() {
               </div>
 
               <p className="chart-footnote">
-                Withdrawals are taken at the start of the year they fund, so each step begins one tick left of the balance series:
-                the step starting at Y0 is the draw that funds year 1, Y1 the draw that funds year 2, and so on. With a multi-year
-                cash bucket, Y0's step is the lump-sum drawn from the portfolio at retirement; the bucket-funded years that follow
-                show zero portfolio withdrawal. The hover value at the final tick projects one more year of inflation onto the last
-                simulated withdrawal — assuming retirement continues for as long as the portfolio sustains it.
+                {withdrawalFrequency === 'monthly'
+                  ? "Withdrawals are taken in twelve equal monthly draws; each step on the chart aggregates them into the year's total, beginning one tick left of the balance series — the step at Y0 covers year 1's draws, Y1 covers year 2's, and so on. "
+                  : "Withdrawals are taken at the start of the year they fund, so each step begins one tick left of the balance series: the step starting at Y0 is the draw that funds year 1, Y1 the draw that funds year 2, and so on. "}
+                With a multi-year cash bucket, Y0's step is the lump-sum drawn from the portfolio at retirement; the bucket-funded
+                years that follow show zero portfolio withdrawal. The hover value at the final tick projects one more year of
+                inflation onto the last simulated withdrawal — assuming retirement continues for as long as the portfolio sustains it.
               </p>
             </div>
 
             <p className="footer-note">
-              Returns are sampled annually from a normal distribution centered on the expected return,
-              with the chosen volatility as standard deviation. Past performance does not guarantee future results;
-              this model is illustrative, not advisory.
+              {withdrawalFrequency === 'monthly'
+                ? "Returns are sampled monthly, with the annual mean and volatility rescaled so twelve compounded months match the annual factor's mean and variance. "
+                : "Returns are sampled annually from a normal distribution centered on the expected return, with the chosen volatility as standard deviation. "}
+              Past performance does not guarantee future results; this model is illustrative, not advisory.
             </p>
             </>}
           </main>
