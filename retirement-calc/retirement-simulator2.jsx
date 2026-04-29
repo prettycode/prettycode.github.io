@@ -66,6 +66,38 @@ const GAUSS_LUT = new Int32Array(GAUSS_LUT_SIZE);
 
 function gaussInt() { return GAUSS_LUT[nextU32() >>> 16]; }
 
+// Iterative Floyd quickselect with median-of-three pivot. After return, a[k]
+// holds the value that a full sort of a[l..r] would place at index k, with
+// a[l..k-1] all ≤ a[k] and a[k+1..r] all ≥ a[k]. We only need 5 quantile
+// indices per year, not a full ordering — O(n) selection beats O(n log n)
+// sort across 40+ year-arrays of 1M elements (the dominant post-loop cost).
+function quickselect(a, k, l, r) {
+  while (true) {
+    if (r - l <= 1) {
+      if (r - l === 1 && a[r] < a[l]) {
+        const t = a[l]; a[l] = a[r]; a[r] = t;
+      }
+      return;
+    }
+    const mid = (l + r) >>> 1;
+    let t = a[mid]; a[mid] = a[l + 1]; a[l + 1] = t;
+    if (a[l]     > a[r])     { t = a[l];     a[l]     = a[r];     a[r]     = t; }
+    if (a[l + 1] > a[r])     { t = a[l + 1]; a[l + 1] = a[r];     a[r]     = t; }
+    if (a[l]     > a[l + 1]) { t = a[l];     a[l]     = a[l + 1]; a[l + 1] = t; }
+    const pivot = a[l + 1];
+    let i = l + 1, j = r;
+    while (true) {
+      do i++; while (a[i] < pivot);
+      do j--; while (a[j] > pivot);
+      if (j < i) break;
+      t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    a[l + 1] = a[j]; a[j] = pivot;
+    if (j >= k) r = j - 1;
+    if (j <= k) l = j + 1;
+  }
+}
+
 function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket, bucketEarnsTBills, tBillRealPremium }) {
   // Boundary: convert UI inputs to integer scales once on entry.
   const balCents = Math.round(balance * 100);
@@ -199,23 +231,40 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // side's fmtMoney/fmtPct keep their existing signatures.
   const c2d = (c) => Math.floor(c / 100);
 
+  // Chain the quantile selections so each one only searches the half of the
+  // array left unresolved by its predecessor: p50 splits the array, quartiles
+  // work on each half, deciles on the relevant quarter. With 1M runs that's
+  // ~n + n/2 + n/4 + n/4 + n/4 ≈ 2.25n comparisons per year vs ~n log n ≈ 20n
+  // for a full sort.
+  const k10 = Math.floor(runs * 10 / 100);
+  const k25 = Math.floor(runs * 25 / 100);
+  const k50 = Math.floor(runs * 50 / 100);
+  const k75 = Math.floor(runs * 75 / 100);
+  const k90 = Math.floor(runs * 90 / 100);
+  const last = runs - 1;
+
   const percentiles = [];
   for (let y = 0; y <= years; y++) {
-    const yearVals = yearBalances[y];
-    yearVals.sort();
+    const v = yearBalances[y];
+    quickselect(v, k50, 0,        last);
+    quickselect(v, k25, 0,        k50 - 1);
+    quickselect(v, k10, 0,        k25 - 1);
+    quickselect(v, k75, k50 + 1,  last);
+    quickselect(v, k90, k75 + 1,  last);
     percentiles.push({
       year: y,
-      p10: c2d(yearVals[Math.floor(runs * 10 / 100)]),
-      p25: c2d(yearVals[Math.floor(runs * 25 / 100)]),
-      p50: c2d(yearVals[Math.floor(runs * 50 / 100)]),
-      p75: c2d(yearVals[Math.floor(runs * 75 / 100)]),
-      p90: c2d(yearVals[Math.floor(runs * 90 / 100)]),
+      p10: c2d(v[k10]),
+      p25: c2d(v[k25]),
+      p50: c2d(v[k50]),
+      p75: c2d(v[k75]),
+      p90: c2d(v[k90]),
       withdrawal: c2d(Math.floor(withdrawalSumCents[y] / runs)),
     });
   }
 
   const successRate = survived / runs;
-  const medianEnding = c2d(yearBalances[years][Math.floor(runs / 2)]);
+  // yearBalances[years] is no longer fully sorted, but k50 holds the median.
+  const medianEnding = percentiles[years].p50;
 
   let medianDepletionYear = null;
   if (depletionCount > 0) {
@@ -832,7 +881,7 @@ function RetirementSimulator() {
     }
     .fade { animation: fadeUp 0.5s ease both; }
 
-    /* Subtle progress bar — sits at top of chart-wrap and the initial loading view */
+    /* Thin progress bar — used in the initial loading view */
     .progress-bar {
       position: absolute;
       top: 0; left: 0;
@@ -843,6 +892,52 @@ function RetirementSimulator() {
       transition: width 0.18s ease, opacity 0.5s ease 0.3s;
     }
     .progress-bar.done { opacity: 0; }
+
+    /* While re-running: dim the chart and overlay a small progress label */
+    svg.chart { transition: opacity 0.25s ease; }
+    .chart-wrap.running svg.chart { opacity: 0.28; }
+    .chart-wrap.running { cursor: progress; }
+
+    .chart-progress-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 14px;
+      background: var(--cream);
+      border: 1px solid var(--rule);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chart-progress-overlay .pct {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .chart-progress-overlay .mini-track {
+      width: 70px;
+      height: 1.5px;
+      background: var(--rule);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chart-progress-overlay .mini-bar {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      background: var(--accent);
+      transition: width 0.18s ease;
+    }
 
     .initial-loading {
       padding: 100px 0 80px;
@@ -1067,11 +1162,16 @@ function RetirementSimulator() {
                 inner band, 25th–75th. The stepped line marks median annual withdrawal, scaled to the left axis.
               </p>
 
-              <div className="chart-wrap">
-                <div
-                  className={`progress-bar${running ? "" : " done"}`}
-                  style={{ width: `${progress * 100}%` }}
-                ></div>
+              <div className={`chart-wrap${running ? " running" : ""}`}>
+                {running && (
+                  <div className="chart-progress-overlay">
+                    <span>Recalculating</span>
+                    <div className="mini-track">
+                      <div className="mini-bar" style={{ width: `${progress * 100}%` }}></div>
+                    </div>
+                    <span className="pct">{Math.round(progress * 100)}%</span>
+                  </div>
+                )}
                 <svg
                   className="chart"
                   viewBox={`0 0 ${W} ${H}`}
