@@ -90,17 +90,28 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // Upfront cash bucket: if upfrontYears > 1, year 1 withdraws a lump sum that
   // funds years 1..upfrontYears, and no further withdrawals happen until year
   // upfrontYears+1. When upfrontYears === 1 this collapses to the normal flow.
-  // Sizing is the present value of the bucket-year withdrawals — discounted at
-  // the T-Bill rate when bucketEarnsTBills is on, otherwise undiscounted.
-  // Withdrawals grow at inflation when inflationAdjustBucket is on, else flat.
-  // L = wd · Σᵢ₌₀^{N-1} ((1+wGrowth)/(1+discount))^i
+  // Sizing: year 1's withdrawal is plain cash (spent immediately). When
+  // bucketEarnsTBills is on, only the *excess* — funds for years 2..N — earns
+  // T-Bills, and only until one year before it's spent (a rolling 1-year cash
+  // buffer is kept idle). So year y's portion (y ≥ 2) grows in T-Bills for
+  // y-2 years. Withdrawals grow at inflation when inflationAdjustBucket is on.
+  // L = wd · (1 + (1+wGrow) · Σᵢ₌₀^{N-2} ((1+wGrow)/(1+disc))ⁱ)
+  // When disc = 0 this collapses to wd · Σᵢ₌₀^{N-1} (1+wGrow)ⁱ.
   const isLumpSum = upfrontYears > 1;
   let lumpSumCents = 0;
   if (isLumpSum) {
     const wGrowMicro = inflationAdjustBucket ? inflMicro : 0;
     const discMicro = bucketEarnsTBills ? tBillMicro : 0;
-    if (wGrowMicro === 0 && discMicro === 0) {
-      lumpSumCents = upfrontYears * wdCents;
+    if (discMicro === 0) {
+      // No T-Bills earnings: sum the nominal (inflation-grown) withdrawals.
+      let pow = MICRO; // (1+wGrow)^0
+      let sumMicro = 0;
+      const num = MICRO + wGrowMicro;
+      for (let i = 0; i < upfrontYears; i++) {
+        sumMicro += pow;
+        pow = Math.floor(pow * num / MICRO);
+      }
+      lumpSumCents = Math.floor(wdCents * sumMicro / MICRO);
     } else {
       // ratio = (MICRO + wGrowMicro) / (MICRO + discMicro), tracked in MICRO
       // scale via iterative multiply to avoid pow() drift.
@@ -108,11 +119,15 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
       let sumMicro = 0;
       const num = MICRO + wGrowMicro;
       const den = MICRO + discMicro;
-      for (let i = 0; i < upfrontYears; i++) {
+      for (let i = 0; i < upfrontYears - 1; i++) {
         sumMicro += ratioPow;
         ratioPow = Math.floor(ratioPow * num / den);
       }
-      lumpSumCents = Math.floor(wdCents * sumMicro / MICRO);
+      // tBillsCents = wdCents · (1+wGrow) · sumMicro / MICRO. Split into two
+      // divides so intermediates stay inside Number-safe int range.
+      const grownWdCents = Math.floor(wdCents * num / MICRO);
+      const tBillsCents = Math.floor(grownWdCents * sumMicro / MICRO);
+      lumpSumCents = wdCents + tBillsCents;
     }
   }
 
@@ -230,15 +245,22 @@ const SIM_RUNS = 1_000_000;
 // Used so the T-Bill rate tracks the inflation slider (rate = inflation + this).
 const T_BILL_REAL_PREMIUM = 0.005;
 
-// Closed-form PV of N withdrawals of `wd`, growing at `wGrow` per year, taken
-// at the start of each year, discounted at `disc` per year. Mirrors the
-// integer-scale loop in the worker so UI and simulation agree on bucket size.
+// Closed-form bucket size: year 1's withdrawal is plain cash, years 2..N grow
+// at `disc` for y-2 years (a 1-year cash buffer is held idle the year before
+// each spend). Mirrors the integer-scale loop in the worker so UI and
+// simulation agree.
 function bucketSize(wd, years, wGrow, disc) {
   if (years <= 0) return 0;
-  if (wGrow === 0 && disc === 0) return years * wd;
+  if (disc === 0) {
+    // No T-Bills earnings: sum the nominal withdrawals.
+    if (wGrow === 0) return years * wd;
+    return wd * (Math.pow(1 + wGrow, years) - 1) / wGrow;
+  }
+  if (years === 1) return wd;
+  // L = wd + wd · (1 + wGrow) · Σⱼ₌₀^{N-2} ratio^j, ratio = (1+wGrow)/(1+disc).
   const ratio = (1 + wGrow) / (1 + disc);
-  if (Math.abs(ratio - 1) < 1e-9) return years * wd;
-  return wd * (1 - Math.pow(ratio, years)) / (1 - ratio);
+  if (Math.abs(ratio - 1) < 1e-9) return wd + (1 + wGrow) * wd * (years - 1);
+  return wd + wd * (1 + wGrow) * (1 - Math.pow(ratio, years - 1)) / (1 - ratio);
 }
 
 // ─── Formatting helpers ─────────────────────────────────────────────────────
@@ -901,7 +923,7 @@ function RetirementSimulator() {
 
             <Slider
               label="Upfront Cash Bucket"
-              sublabel="Years of expenses set aside on day 1"
+              sublabel="Pull out the first N years' at start"
               value={upfrontYears}
               min={1}
               max={10}
@@ -982,7 +1004,7 @@ function RetirementSimulator() {
                   <div>
                     <div className="toggle-label">Cash bucket earns T-Bills</div>
                     <div className="toggle-sub">
-                      Discount the lump sum at {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation + 0.5% historical real return).
+                      Hold cash beyond 1 year in T-Bills earning {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation + 0.5% historical real return).
                     </div>
                   </div>
                 </label>
