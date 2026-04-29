@@ -98,12 +98,26 @@ function quickselect(a, k, l, r) {
   }
 }
 
-function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket, bucketEarnsTBills, tBillRealPremium }) {
+function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket, bucketEarnsTBills, tBillRealPremium, monthly }) {
   // Boundary: convert UI inputs to integer scales once on entry.
   const balCents = Math.round(balance * 100);
   const wdCents = Math.round(withdrawal * 100);
   const returnBp = Math.round(returnRate * BP);
   const volBp = Math.round(volatility * BP);
+  // Monthly conversions — pick μ_m and σ_m so 12 compounded months match the
+  // annual factor's mean AND variance:
+  //   E:   (1+μ_m)¹² = 1+r          →  μ_m = (1+r)^(1/12) − 1
+  //   Var: ((1+μ_m)² + σ_m²)¹² = (1+r)² + σ²   (12 i.i.d. arithmetic factors)
+  // The textbook σ/√12 scaling is for *log* returns; under the arithmetic
+  // factor model used here it leaves the year's compounded variance ~22%
+  // too high at typical inputs, and the extra volatility drag drags median
+  // paths *below* annual mode — masking the spread-withdrawal advantage and
+  // reversing the intuitive "monthly should beat annual" outcome.
+  const annualA = 1 + returnRate;
+  const monthlyA = Math.pow(annualA, 1/12);
+  const monthlySigSq = Math.pow(annualA*annualA + volatility*volatility, 1/12) - monthlyA*monthlyA;
+  const returnMonthlyBp = Math.round((monthlyA - 1) * BP);
+  const volMonthlyBp = Math.round(Math.sqrt(Math.max(0, monthlySigSq)) * BP);
   const inflMicro = Math.round(inflation * MICRO);
   // T-Bill nominal rate = inflation + historical real premium (~0.5%). Held in
   // MICRO scale alongside inflMicro so bucket discounting compounds at the same
@@ -178,46 +192,71 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
     let depleted = false;
 
     for (let y = 1; y <= years; y++) {
-      let actualW, displayedW;
+      let actualW;
+      let isLumpYear = false;       // year 1 lump-sum draw — taken once at year start
+      let isBucketFunded = false;   // years 2..upfrontYears — bucket pays, no portfolio draw
       if (isLumpSum) {
         if (y === 1) {
           actualW = lumpSumCents;
-          displayedW = lumpSumCents;
+          isLumpYear = true;
         } else if (y <= upfrontYears) {
           actualW = 0;
-          displayedW = 0;
+          isBucketFunded = true;
         } else {
           actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
-          displayedW = actualW;
         }
       } else {
         actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
-        displayedW = actualW;
       }
-      withdrawalSumCents[y] += displayedW;
+      withdrawalSumCents[y] += actualW;
 
       if (depleted) {
         yearBalances[y][r] = 0;
         continue;
       }
 
-      bal -= actualW;
-      if (bal <= 0) {
-        bal = 0;
-        depleted = true;
-        depletionYears[depletionCount++] = y;
-        yearBalances[y][r] = 0;
-        continue;
-      }
+      // Monthly mode sub-steps the post-bucket years only: 12 draws of W/12,
+      // each followed by a monthly return shock. Lump-sum and bucket-funded
+      // years stay annual — the lump leaves all at once, and bucket years
+      // have no portfolio draw, so sub-stepping them would only inflate the
+      // RNG cost without changing the statistics.
+      if (monthly && !isLumpYear && !isBucketFunded) {
+        const monthlyW = Math.floor(actualW / 12);
+        const lastW = actualW - 11 * monthlyW;
+        for (let m = 0; m < 12; m++) {
+          const w = m === 11 ? lastW : monthlyW;
+          bal -= w;
+          if (bal <= 0) {
+            bal = 0;
+            depleted = true;
+            depletionYears[depletionCount++] = y;
+            break;
+          }
+          const shockBp = ((volMonthlyBp * gaussInt()) / GS) | 0;
+          let factorBp = BP + returnMonthlyBp + shockBp;
+          if (factorBp < 0) factorBp = 0;
+          bal = Math.floor(bal * factorBp / BP);
+        }
+        yearBalances[y][r] = bal;
+      } else {
+        bal -= actualW;
+        if (bal <= 0) {
+          bal = 0;
+          depleted = true;
+          depletionYears[depletionCount++] = y;
+          yearBalances[y][r] = 0;
+          continue;
+        }
 
-      // Per-year growth factor in bp: BP + returnBp + volBp·gauss/GS.
-      // (volBp·gauss) ≤ 3000·5e7 ≈ 1.5e11, fits Number exactly; /GS lands
-      // back in bp range. | 0 truncates the small int32 result.
-      const shockBp = ((volBp * gaussInt()) / GS) | 0;
-      let factorBp = BP + returnBp + shockBp;
-      if (factorBp < 0) factorBp = 0;  // a >100% loss can't push bal below 0
-      bal = Math.floor(bal * factorBp / BP);
-      yearBalances[y][r] = bal;
+        // Per-year growth factor in bp: BP + returnBp + volBp·gauss/GS.
+        // (volBp·gauss) ≤ 3000·5e7 ≈ 1.5e11, fits Number exactly; /GS lands
+        // back in bp range. | 0 truncates the small int32 result.
+        const shockBp = ((volBp * gaussInt()) / GS) | 0;
+        let factorBp = BP + returnBp + shockBp;
+        if (factorBp < 0) factorBp = 0;  // a >100% loss can't push bal below 0
+        bal = Math.floor(bal * factorBp / BP);
+        yearBalances[y][r] = bal;
+      }
     }
 
     if (bal > 0) survived++;
@@ -355,6 +394,7 @@ function Slider({ label, value, min, max, step, onChange, format, sublabel }) {
 function RetirementSimulator() {
   const [balance, setBalance] = useState(4_000_000);
   const [withdrawal, setWithdrawal] = useState(152_000);
+  const [withdrawalFrequency, setWithdrawalFrequency] = useState('annual');
   const [upfrontYears, setUpfrontYears] = useState(1);
   const [inflationAdjustBucket, setInflationAdjustBucket] = useState(false);
   const [bucketEarnsTBills, setBucketEarnsTBills] = useState(false);
@@ -393,14 +433,14 @@ function RetirementSimulator() {
       };
       worker.postMessage({
         type: 'run',
-        params: { balance, withdrawal, returnRate, volatility, inflation, years, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket, bucketEarnsTBills: effectiveBucketEarnsTBills, tBillRealPremium: T_BILL_REAL_PREMIUM },
+        params: { balance, withdrawal, returnRate, volatility, inflation, years, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket, bucketEarnsTBills: effectiveBucketEarnsTBills, tBillRealPremium: T_BILL_REAL_PREMIUM, monthly: withdrawalFrequency === 'monthly' },
       });
     }, 150);
     return () => {
       clearTimeout(t);
       if (worker) worker.terminate();
     };
-  }, [balance, withdrawal, returnRate, volatility, inflation, years, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills]);
+  }, [balance, withdrawal, returnRate, volatility, inflation, years, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills, withdrawalFrequency]);
 
   // Chart geometry
   const W = 760;
@@ -632,6 +672,36 @@ function RetirementSimulator() {
       border: 2px solid var(--ink);
       border-radius: 50%;
       cursor: pointer;
+    }
+
+    /* ─── Segmented toggle (Annual / Monthly) ─── */
+    .freq-toggle {
+      display: flex;
+      border: 1px solid var(--ink);
+      background: var(--cream);
+    }
+
+    .freq-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 7px 10px;
+      font-family: 'Fraunces', serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-2);
+      cursor: pointer;
+      border-right: 1px solid var(--ink);
+      transition: background 0.15s ease, color 0.15s ease;
+      letter-spacing: -0.01em;
+    }
+
+    .freq-btn:last-child { border-right: none; }
+    .freq-btn:hover { color: var(--ink); }
+
+    .freq-btn.active {
+      background: var(--ink);
+      color: var(--cream);
     }
 
     /* ─── Advanced (collapsible) ─── */
@@ -1015,6 +1085,31 @@ function RetirementSimulator() {
               onChange={setWithdrawal}
               format={(v) => `${fmtMoney(v)} (${(v / balance * 100).toFixed(1)}%)`}
             />
+
+            <div className="slider-row">
+              <div className="slider-header">
+                <div>
+                  <div className="slider-label">Withdrawal Frequency</div>
+                  <div className="slider-sub">When draws are taken</div>
+                </div>
+              </div>
+              <div className="freq-toggle">
+                <button
+                  type="button"
+                  className={`freq-btn${withdrawalFrequency === 'annual' ? ' active' : ''}`}
+                  onClick={() => setWithdrawalFrequency('annual')}
+                >
+                  Annual
+                </button>
+                <button
+                  type="button"
+                  className={`freq-btn${withdrawalFrequency === 'monthly' ? ' active' : ''}`}
+                  onClick={() => setWithdrawalFrequency('monthly')}
+                >
+                  Monthly
+                </button>
+              </div>
+            </div>
 
             <Slider
               label="Starting Cash Bucket"
