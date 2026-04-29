@@ -1,24 +1,87 @@
 const { useState, useEffect } = React;
 
 // ─── Monte Carlo Engine (runs in a Web Worker) ──────────────────────────────
-// Float32Array per-year balance storage keeps 1M-run memory near 124MB
-// (vs ~500MB for an array-of-arrays approach) and lets us use the much faster
-// typed-array .sort() for percentile extraction.
+// Integer arithmetic throughout the simulation: money in cents, rates in
+// basis points (×10⁴), cumulative growth factors in micro-units (×10⁶).
+// JS Numbers are IEEE-754 doubles but exact for integers up to 2⁵³ ≈ 9×10¹⁵,
+// which covers cents-precision balances to ~$90T — enough headroom for any
+// pathological run. Float64Array per-year storage holds those integer cents
+// exactly and keeps the fast typed-array .sort() for percentile extraction.
+// The only float math in this worker is the one-time Gaussian LUT build at
+// init; the per-run hot loop is purely integer.
 const WORKER_SOURCE = `
-function gaussian() {
-  let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+const BP = 10000;        // per-period rates: return, vol, inflation
+const MICRO = 1000000;   // cumulative factors: (1+inflation)^y
+const GS = 10000000;     // Gaussian sample scale (~7-digit per-sample resolution)
+
+// xorshift32 — integer PRNG, 2³²-1 period. Replaces Math.random() so the
+// hot loop stays in int32 land.
+let rngState = (Date.now() ^ 0x9E3779B9) | 0;
+if (rngState === 0) rngState = 1;
+function nextU32() {
+  rngState ^= rngState << 13;
+  rngState ^= rngState >>> 17;
+  rngState ^= rngState << 5;
+  return rngState >>> 0;
 }
 
-function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket }) {
-  const yearBalances = new Array(years + 1);
-  for (let y = 0; y <= years; y++) yearBalances[y] = new Float32Array(runs);
-  yearBalances[0].fill(balance);
+// ── Gaussian inverse-CDF lookup table ──────────────────────────────────────
+// THIS BLOCK IS THE ONLY FLOAT MATH IN THE FILE. It runs exactly once at
+// worker init and freezes a 65,536-entry Int32Array. After init, sampling
+// is one xorshift32 + one table read. Acklam's invNormCDF approximation
+// gives ~9-digit accuracy in the body and ~7 in the tails — well past the
+// table's 1/65536 quantization, so the LUT is the precision-limiting step.
+const GAUSS_LUT_SIZE = 65536;
+const GAUSS_LUT = new Int32Array(GAUSS_LUT_SIZE);
+(function buildGaussLut() {
+  function invNormCDF(p) {
+    const a1=-39.69683028665376, a2=220.9460984245205, a3=-275.9285104469687,
+          a4=138.3577518672690, a5=-30.66479806614716, a6=2.506628277459239;
+    const b1=-54.47609879822406, b2=161.5858368580409, b3=-155.6989798598866,
+          b4=66.80131188771972, b5=-13.28068155288572;
+    const c1=-0.007784894002430293, c2=-0.3223964580411365, c3=-2.400758277161838,
+          c4=-2.549732539343734, c5=4.374664141464968, c6=2.938163982698783;
+    const d1=0.007784695709041462, d2=0.3224671290700398, d3=2.445134137142996,
+          d4=3.754408661907416;
+    const pLow = 0.02425, pHigh = 1 - pLow;
+    let q, r;
+    if (p < pLow) {
+      q = Math.sqrt(-2 * Math.log(p));
+      return (((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6) /
+             ((((d1*q+d2)*q+d3)*q+d4)*q+1);
+    }
+    if (p <= pHigh) {
+      q = p - 0.5; r = q*q;
+      return (((((a1*r+a2)*r+a3)*r+a4)*r+a5)*r+a6) * q /
+             (((((b1*r+b2)*r+b3)*r+b4)*r+b5)*r+1);
+    }
+    q = Math.sqrt(-2 * Math.log(1 - p));
+    return -(((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6) /
+            ((((d1*q+d2)*q+d3)*q+d4)*q+1);
+  }
+  for (let i = 0; i < GAUSS_LUT_SIZE; i++) {
+    GAUSS_LUT[i] = Math.round(invNormCDF((i + 0.5) / GAUSS_LUT_SIZE) * GS);
+  }
+})();
 
-  const inflationPow = new Float64Array(years + 1);
-  for (let y = 0; y <= years; y++) inflationPow[y] = Math.pow(1 + inflation, y);
+function gaussInt() { return GAUSS_LUT[nextU32() >>> 16]; }
+
+function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket }) {
+  // Boundary: convert UI inputs to integer scales once on entry.
+  const balCents = Math.round(balance * 100);
+  const wdCents = Math.round(withdrawal * 100);
+  const returnBp = Math.round(returnRate * BP);
+  const volBp = Math.round(volatility * BP);
+  const inflMicro = Math.round(inflation * MICRO);
+
+  // Cumulative inflation factor in MICRO scale, built iteratively — bounds
+  // drift to ≤1 part per 10⁶ per compounding step (vs the bp-scale 1-in-10⁴
+  // that would drift visibly over 50 years).
+  const inflPow = new Float64Array(years + 1);
+  inflPow[0] = MICRO;
+  for (let y = 1; y <= years; y++) {
+    inflPow[y] = Math.floor(inflPow[y-1] * (MICRO + inflMicro) / MICRO);
+  }
 
   // Upfront cash bucket: if upfrontYears > 1, year 1 withdraws a lump sum that
   // funds years 1..upfrontYears, and no further withdrawals happen until year
@@ -26,50 +89,56 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // Default sizing: upfrontYears × current annual. With inflationAdjustBucket,
   // size to fund N years of real spending: Σᵢ₌₀^{N-1} (1+inf)^i × withdrawal.
   const isLumpSum = upfrontYears > 1;
-  let lumpSum = 0;
+  let lumpSumCents = 0;
   if (isLumpSum) {
-    if (inflationAdjustBucket && inflation > 0) {
-      lumpSum = withdrawal * (Math.pow(1 + inflation, upfrontYears) - 1) / inflation;
+    if (inflationAdjustBucket && inflMicro > 0) {
+      let sumMicro = 0;
+      for (let i = 0; i < upfrontYears; i++) sumMicro += inflPow[i];
+      lumpSumCents = Math.floor(wdCents * sumMicro / MICRO);
     } else {
-      lumpSum = upfrontYears * withdrawal;
+      lumpSumCents = upfrontYears * wdCents;
     }
   }
 
-  const withdrawalSum = new Float64Array(years + 1);
+  const yearBalances = new Array(years + 1);
+  for (let y = 0; y <= years; y++) yearBalances[y] = new Float64Array(runs);
+  yearBalances[0].fill(balCents);
+
+  const withdrawalSumCents = new Float64Array(years + 1);
   const depletionYears = new Uint16Array(runs);
   let depletionCount = 0;
   let survived = 0;
   const reportEvery = Math.max(1, Math.floor(runs / 100));
 
   for (let r = 0; r < runs; r++) {
-    let bal = balance;
+    let bal = balCents;
     let depleted = false;
 
     for (let y = 1; y <= years; y++) {
-      let actualWithdrawal, displayedWithdrawal;
+      let actualW, displayedW;
       if (isLumpSum) {
         if (y === 1) {
-          actualWithdrawal = lumpSum;
-          displayedWithdrawal = 0;
+          actualW = lumpSumCents;
+          displayedW = 0;
         } else if (y <= upfrontYears) {
-          actualWithdrawal = 0;
-          displayedWithdrawal = 0;
+          actualW = 0;
+          displayedW = 0;
         } else {
-          actualWithdrawal = withdrawal * inflationPow[y - 1];
-          displayedWithdrawal = actualWithdrawal;
+          actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
+          displayedW = actualW;
         }
       } else {
-        actualWithdrawal = withdrawal * inflationPow[y - 1];
-        displayedWithdrawal = actualWithdrawal;
+        actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
+        displayedW = actualW;
       }
-      withdrawalSum[y] += displayedWithdrawal;
+      withdrawalSumCents[y] += displayedW;
 
       if (depleted) {
         yearBalances[y][r] = 0;
         continue;
       }
 
-      bal -= actualWithdrawal;
+      bal -= actualW;
       if (bal <= 0) {
         bal = 0;
         depleted = true;
@@ -78,9 +147,13 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
         continue;
       }
 
-      const annualReturn = returnRate + volatility * gaussian();
-      bal = bal * (1 + annualReturn);
-      if (bal < 0) bal = 0;
+      // Per-year growth factor in bp: BP + returnBp + volBp·gauss/GS.
+      // (volBp·gauss) ≤ 3000·5e7 ≈ 1.5e11, fits Number exactly; /GS lands
+      // back in bp range. | 0 truncates the small int32 result.
+      const shockBp = ((volBp * gaussInt()) / GS) | 0;
+      let factorBp = BP + returnBp + shockBp;
+      if (factorBp < 0) factorBp = 0;  // a >100% loss can't push bal below 0
+      bal = Math.floor(bal * factorBp / BP);
       yearBalances[y][r] = bal;
     }
 
@@ -91,24 +164,27 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
     }
   }
 
+  // Boundary: emit dollars (integer cents → integer dollars) so the React
+  // side's fmtMoney/fmtPct keep their existing signatures.
+  const c2d = (c) => Math.floor(c / 100);
+
   const percentiles = [];
   for (let y = 0; y <= years; y++) {
     const yearVals = yearBalances[y];
     yearVals.sort();
     percentiles.push({
       year: y,
-      p10: yearVals[Math.floor(runs * 0.1)],
-      p25: yearVals[Math.floor(runs * 0.25)],
-      p50: yearVals[Math.floor(runs * 0.5)],
-      p75: yearVals[Math.floor(runs * 0.75)],
-      p90: yearVals[Math.floor(runs * 0.9)],
-      withdrawal: withdrawalSum[y] / runs,
+      p10: c2d(yearVals[Math.floor(runs * 10 / 100)]),
+      p25: c2d(yearVals[Math.floor(runs * 25 / 100)]),
+      p50: c2d(yearVals[Math.floor(runs * 50 / 100)]),
+      p75: c2d(yearVals[Math.floor(runs * 75 / 100)]),
+      p90: c2d(yearVals[Math.floor(runs * 90 / 100)]),
+      withdrawal: c2d(Math.floor(withdrawalSumCents[y] / runs)),
     });
   }
 
   const successRate = survived / runs;
-  // yearBalances[years] was sorted in the loop above
-  const medianEnding = yearBalances[years][Math.floor(runs * 0.5)];
+  const medianEnding = c2d(yearBalances[years][Math.floor(runs / 2)]);
 
   let medianDepletionYear = null;
   if (depletionCount > 0) {
@@ -117,7 +193,7 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
     medianDepletionYear = sortedDepletions[Math.floor(depletionCount / 2)];
   }
 
-  return { percentiles, successRate, medianEnding, medianDepletionYear, runs, lumpSum };
+  return { percentiles, successRate, medianEnding, medianDepletionYear, runs, lumpSum: c2d(lumpSumCents) };
 }
 
 self.onmessage = function(e) {
