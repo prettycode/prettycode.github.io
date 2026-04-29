@@ -1086,31 +1086,6 @@ function RetirementSimulator() {
               format={(v) => `${fmtMoney(v)} (${(v / balance * 100).toFixed(1)}%)`}
             />
 
-            <div className="slider-row">
-              <div className="slider-header">
-                <div>
-                  <div className="slider-label">Withdrawal Frequency</div>
-                  <div className="slider-sub">When draws are taken</div>
-                </div>
-              </div>
-              <div className="freq-toggle">
-                <button
-                  type="button"
-                  className={`freq-btn${withdrawalFrequency === 'annual' ? ' active' : ''}`}
-                  onClick={() => setWithdrawalFrequency('annual')}
-                >
-                  Annual
-                </button>
-                <button
-                  type="button"
-                  className={`freq-btn${withdrawalFrequency === 'monthly' ? ' active' : ''}`}
-                  onClick={() => setWithdrawalFrequency('monthly')}
-                >
-                  Monthly
-                </button>
-              </div>
-            </div>
-
             <Slider
               label="Starting Cash Bucket"
               sublabel="Lump-sum first withdrawal"
@@ -1176,6 +1151,29 @@ function RetirementSimulator() {
             <details className="advanced">
               <summary>Advanced</summary>
               <div className="advanced-body">
+                <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 14 }}>
+                  <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
+                  <div style={{ flex: 1 }}>
+                    <div className="toggle-label">Withdrawal frequency</div>
+                    <div className="toggle-sub" style={{ marginBottom: 8 }}>When draws are taken from the portfolio.</div>
+                    <div className="freq-toggle">
+                      <button
+                        type="button"
+                        className={`freq-btn${withdrawalFrequency === 'annual' ? ' active' : ''}`}
+                        onClick={() => setWithdrawalFrequency('annual')}
+                      >
+                        Annual
+                      </button>
+                      <button
+                        type="button"
+                        className={`freq-btn${withdrawalFrequency === 'monthly' ? ' active' : ''}`}
+                        onClick={() => setWithdrawalFrequency('monthly')}
+                      >
+                        Monthly
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 <label className="toggle-row">
                   <input
                     type="checkbox"
@@ -1183,8 +1181,8 @@ function RetirementSimulator() {
                     onChange={(e) => setInflationAdjustBucket(e.target.checked)}
                   />
                   <div>
-                    <div className="toggle-label">Inflation-adjust bucket</div>
-                    <div className="toggle-sub">Size to fund N years of real spending instead of N × current annual.</div>
+                    <div className="toggle-label">Starting Cash Bucket is inflation-adjusted</div>
+                    <div className="toggle-sub">Increase cash bucket by inflation for years > 1.</div>
                   </div>
                 </label>
                 <label className="toggle-row" style={{ marginTop: 12 }}>
@@ -1194,7 +1192,7 @@ function RetirementSimulator() {
                     onChange={(e) => setBucketEarnsTBills(e.target.checked)}
                   />
                   <div>
-                    <div className="toggle-label">Cash bucket earns T-Bills</div>
+                    <div className="toggle-label">Starting Cash Bucket earns T-Bills</div>
                     <div className="toggle-sub">
                       Hold cash beyond 1 year in T-Bills earning {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation + 0.5% historical real return).
                     </div>
