@@ -182,8 +182,6 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   yearBalances[0].fill(balCents);
 
   const withdrawalSumCents = new Float64Array(years + 1);
-  const depletionYears = new Uint16Array(runs);
-  let depletionCount = 0;
   let survived = 0;
   const reportEvery = Math.max(1, Math.floor(runs / 100));
 
@@ -229,7 +227,6 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
           if (bal <= 0) {
             bal = 0;
             depleted = true;
-            depletionYears[depletionCount++] = y;
             break;
           }
           const shockBp = ((volMonthlyBp * gaussInt()) / GS) | 0;
@@ -243,7 +240,6 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
         if (bal <= 0) {
           bal = 0;
           depleted = true;
-          depletionYears[depletionCount++] = y;
           yearBalances[y][r] = 0;
           continue;
         }
@@ -305,14 +301,7 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // yearBalances[years] is no longer fully sorted, but k50 holds the median.
   const medianEnding = percentiles[years].p50;
 
-  let medianDepletionYear = null;
-  if (depletionCount > 0) {
-    const sortedDepletions = depletionYears.slice(0, depletionCount);
-    sortedDepletions.sort();
-    medianDepletionYear = sortedDepletions[Math.floor(depletionCount / 2)];
-  }
-
-  return { percentiles, successRate, medianEnding, medianDepletionYear, runs, lumpSum: c2d(lumpSumCents) };
+  return { percentiles, successRate, medianEnding, runs, lumpSum: c2d(lumpSumCents) };
 }
 
 self.onmessage = function(e) {
@@ -580,6 +569,19 @@ function RetirementSimulator() {
 
   // Derived stats
   const successColor = sim && sim.successRate >= 0.9 ? "#3a7d44" : sim && sim.successRate >= 0.7 ? "#c89a3a" : "#a83232";
+
+  // First year the median (p50) path hits $0. The withdrawal at that year is
+  // the inflation-adjusted intended draw — i.e. the spend that broke the
+  // median portfolio.
+  const medianDepletion = (() => {
+    if (!sim) return null;
+    for (let i = 1; i <= years; i++) {
+      if (sim.percentiles[i].p50 <= 0) {
+        return { year: i, withdrawal: sim.percentiles[i].withdrawal };
+      }
+    }
+    return null;
+  })();
 
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500;700&family=Inter+Tight:wght@400;500;600&display=swap');
@@ -1289,7 +1291,7 @@ function RetirementSimulator() {
 
             <Slider
               label="CAGR"
-              sublabel="Compound annual growth rate"
+              sublabel="Portfolio's Compound annual growth rate"
               value={cagr}
               min={0.01}
               max={0.12}
@@ -1300,7 +1302,7 @@ function RetirementSimulator() {
 
             <Slider
               label="Annual Volatility"
-              sublabel="Standard deviation"
+              sublabel="Portfolio's Standard deviation"
               value={volatility}
               min={0.02}
               max={0.30}
@@ -1412,8 +1414,13 @@ function RetirementSimulator() {
               <div className="stat-cell">
                 <div className="stat-label">Median Depletion</div>
                 <div className="stat-value">
-                  {sim.medianDepletionYear ? `Year ${sim.medianDepletionYear}` : "None"}
+                  {medianDepletion ? `Year ${medianDepletion.year}` : "None"}
                 </div>
+                {medianDepletion && (
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: '0.05em', color: 'var(--ink-2)', marginTop: 4, textTransform: 'uppercase', fontVariantNumeric: 'tabular-nums' }}>
+                    {fmtMoney(medianDepletion.withdrawal)} draw
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1564,9 +1571,18 @@ function RetirementSimulator() {
                   <path d={buildArea("p90", "p10")} fill="var(--accent-2)" opacity="0.12"/>
                   <path d={buildArea("p75", "p25")} fill="var(--accent-2)" opacity="0.22"/>
 
-                  {/* Median portfolio line */}
+                  {/* Median portfolio line — truncated at depletion year so
+                      the line clearly terminates at $0 instead of vanishing
+                      along the bottom axis frame. */}
                   <path
-                    d={buildPath("p50")}
+                    d={(() => {
+                      const lastYear = medianDepletion ? medianDepletion.year : years;
+                      let d = `M ${x(0)} ${yScale(sim.percentiles[0].p50)}`;
+                      for (let i = 1; i <= lastYear; i++) {
+                        d += ` L ${x(i)} ${yScale(sim.percentiles[i].p50)}`;
+                      }
+                      return d;
+                    })()}
                     fill="none"
                     stroke="var(--ink)"
                     strokeWidth="2"
@@ -1581,12 +1597,18 @@ function RetirementSimulator() {
                   <path
                     d={(() => {
                       const pts = sim.percentiles.slice(1);
+                      const lastYear = medianDepletion ? medianDepletion.year : pts.length;
                       let d = `M ${x(0)} ${yScaleW(pts[0].withdrawal)}`;
-                      for (let i = 1; i < pts.length; i++) {
+                      for (let i = 1; i < lastYear; i++) {
                         d += ` L ${x(i)} ${yScaleW(pts[i-1].withdrawal)}`;
                         d += ` L ${x(i)} ${yScaleW(pts[i].withdrawal)}`;
                       }
-                      d += ` L ${x(pts.length)} ${yScaleW(pts[pts.length-1].withdrawal)}`;
+                      d += ` L ${x(lastYear)} ${yScaleW(pts[lastYear-1].withdrawal)}`;
+                      if (medianDepletion) {
+                        // Drop to $0 at the depletion year and terminate —
+                        // matches the median portfolio line.
+                        d += ` L ${x(lastYear)} ${yScaleW(0)}`;
+                      }
                       return d;
                     })()}
                     fill="none"
