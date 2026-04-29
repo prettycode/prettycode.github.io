@@ -12,13 +12,28 @@ function gaussian() {
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
 
-function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs }) {
+function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket }) {
   const yearBalances = new Array(years + 1);
   for (let y = 0; y <= years; y++) yearBalances[y] = new Float32Array(runs);
   yearBalances[0].fill(balance);
 
   const inflationPow = new Float64Array(years + 1);
   for (let y = 0; y <= years; y++) inflationPow[y] = Math.pow(1 + inflation, y);
+
+  // Upfront cash bucket: if upfrontYears > 1, year 1 withdraws a lump sum that
+  // funds years 1..upfrontYears, and no further withdrawals happen until year
+  // upfrontYears+1. When upfrontYears === 1 this collapses to the normal flow.
+  // Default sizing: upfrontYears × current annual. With inflationAdjustBucket,
+  // size to fund N years of real spending: Σᵢ₌₀^{N-1} (1+inf)^i × withdrawal.
+  const isLumpSum = upfrontYears > 1;
+  let lumpSum = 0;
+  if (isLumpSum) {
+    if (inflationAdjustBucket && inflation > 0) {
+      lumpSum = withdrawal * (Math.pow(1 + inflation, upfrontYears) - 1) / inflation;
+    } else {
+      lumpSum = upfrontYears * withdrawal;
+    }
+  }
 
   const withdrawalSum = new Float64Array(years + 1);
   const depletionYears = new Uint16Array(runs);
@@ -31,15 +46,30 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
     let depleted = false;
 
     for (let y = 1; y <= years; y++) {
-      const currentWithdrawal = withdrawal * inflationPow[y - 1];
-      withdrawalSum[y] += currentWithdrawal;
+      let actualWithdrawal, displayedWithdrawal;
+      if (isLumpSum) {
+        if (y === 1) {
+          actualWithdrawal = lumpSum;
+          displayedWithdrawal = 0;
+        } else if (y <= upfrontYears) {
+          actualWithdrawal = 0;
+          displayedWithdrawal = 0;
+        } else {
+          actualWithdrawal = withdrawal * inflationPow[y - 1];
+          displayedWithdrawal = actualWithdrawal;
+        }
+      } else {
+        actualWithdrawal = withdrawal * inflationPow[y - 1];
+        displayedWithdrawal = actualWithdrawal;
+      }
+      withdrawalSum[y] += displayedWithdrawal;
 
       if (depleted) {
         yearBalances[y][r] = 0;
         continue;
       }
 
-      bal -= currentWithdrawal;
+      bal -= actualWithdrawal;
       if (bal <= 0) {
         bal = 0;
         depleted = true;
@@ -87,7 +117,7 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
     medianDepletionYear = sortedDepletions[Math.floor(depletionCount / 2)];
   }
 
-  return { percentiles, successRate, medianEnding, medianDepletionYear, runs };
+  return { percentiles, successRate, medianEnding, medianDepletionYear, runs, lumpSum };
 }
 
 self.onmessage = function(e) {
@@ -147,6 +177,8 @@ function Slider({ label, value, min, max, step, onChange, format, sublabel }) {
 function RetirementSimulator() {
   const [balance, setBalance] = useState(4_000_000);
   const [withdrawal, setWithdrawal] = useState(152_000);
+  const [upfrontYears, setUpfrontYears] = useState(1);
+  const [inflationAdjustBucket, setInflationAdjustBucket] = useState(false);
   const [returnRate, setReturnRate] = useState(0.098);
   const [volatility, setVolatility] = useState(0.195);
   const [inflation, setInflation] = useState(0.03);
@@ -157,6 +189,12 @@ function RetirementSimulator() {
   const [sim, setSim] = useState(null);
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(true);
+
+  // The bucket-inflation-adjust flag is a no-op when upfrontYears === 1 (no lump
+  // sum is taken). Depending on the *effective* value here keeps a checkbox
+  // toggle from triggering a fresh Monte Carlo run with new random samples,
+  // which would otherwise jiggle the success rate as pure simulation noise.
+  const effectiveInflationAdjustBucket = inflationAdjustBucket && upfrontYears > 1;
 
   useEffect(() => {
     setRunning(true);
@@ -175,14 +213,14 @@ function RetirementSimulator() {
       };
       worker.postMessage({
         type: 'run',
-        params: { balance, withdrawal, returnRate, volatility, inflation, years, runs: SIM_RUNS },
+        params: { balance, withdrawal, returnRate, volatility, inflation, years, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket },
       });
     }, 150);
     return () => {
       clearTimeout(t);
       if (worker) worker.terminate();
     };
-  }, [balance, withdrawal, returnRate, volatility, inflation, years]);
+  }, [balance, withdrawal, returnRate, volatility, inflation, years, upfrontYears, effectiveInflationAdjustBucket]);
 
   // Chart geometry
   const W = 760;
@@ -198,7 +236,7 @@ function RetirementSimulator() {
   const x = (y) => padL + (y / years) * innerW;
   const yScale = (v) => padT + innerH - (v / maxVal) * innerH;
 
-  // Withdrawal scale (right axis)
+  // Withdrawal scale (left axis)
   const maxW = sim ? Math.max(...sim.percentiles.map(p => p.withdrawal)) * 1.15 : 1;
   const yScaleW = (v) => padT + innerH - (v / maxW) * innerH;
 
@@ -369,6 +407,7 @@ function RetirementSimulator() {
       font-weight: 700;
       color: var(--accent);
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
 
     .slider-track-wrap {
@@ -382,8 +421,8 @@ function RetirementSimulator() {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 2px;
-      background: linear-gradient(to right, var(--ink) 0%, var(--ink) var(--pct), var(--rule) var(--pct), var(--rule) 100%);
+      height: 4px;
+      background: linear-gradient(to right, var(--ink) 0%, var(--ink) var(--pct), rgba(26, 22, 18, 0.18) var(--pct), rgba(26, 22, 18, 0.18) 100%);
       outline: none;
       cursor: pointer;
     }
@@ -413,6 +452,71 @@ function RetirementSimulator() {
       border: 2px solid var(--ink);
       border-radius: 50%;
       cursor: pointer;
+    }
+
+    /* ─── Advanced (collapsible) ─── */
+    .advanced {
+      margin-top: 4px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--rule);
+    }
+
+    .advanced > summary {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      padding: 2px 0;
+      transition: color 0.15s ease;
+    }
+
+    .advanced > summary:hover { color: var(--ink); }
+
+    .advanced > summary::-webkit-details-marker { display: none; }
+
+    .advanced > summary::before {
+      content: '+ ';
+      display: inline-block;
+      width: 14px;
+      font-weight: 700;
+    }
+
+    .advanced[open] > summary::before { content: '− '; }
+
+    .advanced-body { padding: 12px 0 4px; }
+
+    .toggle-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      cursor: pointer;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      margin: 2px 0 0;
+      width: 12px;
+      height: 12px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .toggle-label {
+      font-family: 'Fraunces', serif;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.25;
+    }
+
+    .toggle-sub {
+      font-size: 10px;
+      color: var(--ink-2);
+      margin-top: 2px;
+      line-height: 1.4;
     }
 
     /* ─── Main Area ─── */
@@ -669,6 +773,22 @@ function RetirementSimulator() {
             />
 
             <Slider
+              label="Upfront Cash Bucket"
+              sublabel="Years of expenses set aside on day 1"
+              value={upfrontYears}
+              min={1}
+              max={10}
+              step={1}
+              onChange={setUpfrontYears}
+              format={(v) => {
+                const bucket = inflationAdjustBucket && inflation > 0
+                  ? withdrawal * (Math.pow(1 + inflation, v) - 1) / inflation
+                  : v * withdrawal;
+                return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)})`;
+              }}
+            />
+
+            <Slider
               label="Retirement Duration"
               sublabel="Years to model"
               value={years}
@@ -711,6 +831,23 @@ function RetirementSimulator() {
               onChange={setInflation}
               format={fmtPct}
             />
+
+            <details className="advanced">
+              <summary>Advanced</summary>
+              <div className="advanced-body">
+                <label className="toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={inflationAdjustBucket}
+                    onChange={(e) => setInflationAdjustBucket(e.target.checked)}
+                  />
+                  <div>
+                    <div className="toggle-label">Inflation-adjust bucket</div>
+                    <div className="toggle-sub">Size to fund N years of real spending instead of N × current annual.</div>
+                  </div>
+                </label>
+              </div>
+            </details>
           </aside>
 
           {/* MAIN AREA */}
@@ -739,7 +876,7 @@ function RetirementSimulator() {
               <div className="stat-cell">
                 <div className="stat-label">Total Drawn</div>
                 <div className="stat-value">
-                  {fmtMoney(sim.percentiles.reduce((a, b) => a + b.withdrawal, 0))}
+                  {fmtMoney(sim.percentiles.reduce((a, b) => a + b.withdrawal, 0) + sim.lumpSum)}
                 </div>
               </div>
               <div className="stat-cell">
@@ -763,7 +900,7 @@ function RetirementSimulator() {
               </div>
               <p className="chart-subtitle">
                 Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo paths. Outer band, 10th–90th percentile;
-                inner band, 25th–75th. The dashed line marks median annual withdrawal, scaled to the right axis.
+                inner band, 25th–75th. The dashed line marks median annual withdrawal, scaled to the left axis.
               </p>
 
               <div className="chart-wrap">
@@ -788,7 +925,7 @@ function RetirementSimulator() {
                   <rect x={padL} y={padT} width={innerW} height={innerH} fill="var(--cream)"/>
                   <rect x={padL} y={padT} width={innerW} height={innerH} fill="url(#grain)"/>
 
-                  {/* Y gridlines */}
+                  {/* Y gridlines + portfolio-value labels (right axis) */}
                   {yTicks.map((t, i) => (
                     <g key={i}>
                       <line
@@ -798,8 +935,8 @@ function RetirementSimulator() {
                         strokeDasharray={i === 0 ? "0" : "2 3"}
                       />
                       <text
-                        x={padL - 8} y={yScale(t) + 4}
-                        textAnchor="end"
+                        x={W - padR + 8} y={yScale(t) + 4}
+                        textAnchor="start"
                         fontFamily="JetBrains Mono"
                         fontSize="10"
                         fill="var(--ink-2)"
@@ -829,9 +966,9 @@ function RetirementSimulator() {
                     </g>
                   ))}
 
-                  {/* Right axis (withdrawal) — own ticks + frame */}
+                  {/* Left axis (withdrawal) — own ticks + frame */}
                   <line
-                    x1={W - padR} x2={W - padR}
+                    x1={padL} x2={padL}
                     y1={padT} y2={padT + innerH}
                     stroke="var(--withdrawal)"
                     strokeWidth="0.75"
@@ -842,15 +979,15 @@ function RetirementSimulator() {
                     return (
                       <g key={i}>
                         <line
-                          x1={W - padR} x2={W - padR + 4}
+                          x1={padL - 4} x2={padL}
                           y1={yScaleW(v)} y2={yScaleW(v)}
                           stroke="var(--withdrawal)"
                           strokeWidth="0.75"
                           opacity="0.6"
                         />
                         <text
-                          x={W - padR + 7} y={yScaleW(v) + 3}
-                          textAnchor="start"
+                          x={padL - 7} y={yScaleW(v) + 3}
+                          textAnchor="end"
                           fontFamily="JetBrains Mono"
                           fontSize="9"
                           fill="var(--withdrawal)"
@@ -874,7 +1011,7 @@ function RetirementSimulator() {
                     strokeLinejoin="round"
                   />
 
-                  {/* Withdrawal line (dashed, on right axis) */}
+                  {/* Withdrawal line (dashed, on left axis) */}
                   <path
                     d={sim.percentiles.map((p, i) =>
                       `${i === 0 ? "M" : "L"} ${x(p.year)} ${yScaleW(p.withdrawal)}`
@@ -903,7 +1040,7 @@ function RetirementSimulator() {
                   )}
 
                   {/* Axis frame */}
-                  <line x1={padL} x2={padL} y1={padT} y2={padT + innerH} stroke="var(--ink)" strokeWidth="1"/>
+                  <line x1={W - padR} x2={W - padR} y1={padT} y2={padT + innerH} stroke="var(--ink)" strokeWidth="1"/>
                   <line x1={padL} x2={W - padR} y1={padT + innerH} y2={padT + innerH} stroke="var(--ink)" strokeWidth="1"/>
 
                   {/* Axis labels */}
@@ -912,9 +1049,9 @@ function RetirementSimulator() {
                     fontFamily="JetBrains Mono"
                     fontSize="9"
                     letterSpacing="0.15em"
-                    fill="var(--ink-2)"
+                    fill="var(--withdrawal)"
                   >
-                    PORTFOLIO VALUE ($)
+                    WITHDRAWAL ($)
                   </text>
                   <text
                     x={W - padR} y={padT - 12}
@@ -922,9 +1059,9 @@ function RetirementSimulator() {
                     fontFamily="JetBrains Mono"
                     fontSize="9"
                     letterSpacing="0.15em"
-                    fill="var(--withdrawal)"
+                    fill="var(--ink-2)"
                   >
-                    WITHDRAWAL ($)
+                    PORTFOLIO VALUE ($)
                   </text>
                 </svg>
 
@@ -982,7 +1119,7 @@ function RetirementSimulator() {
                     height: "0",
                     marginTop: "5px"
                   }}></span>
-                  Annual withdrawal (right axis)
+                  Annual withdrawal (left axis)
                 </div>
               </div>
             </div>
