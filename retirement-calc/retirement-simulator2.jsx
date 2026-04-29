@@ -1125,7 +1125,7 @@ function RetirementSimulator() {
               <div className="stat-cell">
                 <div className="stat-label">Success Rate</div>
                 <div className="stat-value success" style={{ color: successColor }}>
-                  {fmtPct(sim.successRate)}
+                  {`${(sim.successRate * 100).toFixed(2)}%`}
                 </div>
               </div>
               <div className="stat-cell">
