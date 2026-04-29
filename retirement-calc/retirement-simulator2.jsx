@@ -897,7 +897,7 @@ function RetirementSimulator() {
         <div className="layout">
           {/* SIDEBAR */}
           <aside className="sidebar">
-            <div className="panel-heading">Inputs · Adjust to Model</div>
+            <div className="panel-heading">Portfolio Settings</div>
 
             <Slider
               label="Starting Balance"
@@ -912,7 +912,7 @@ function RetirementSimulator() {
 
             <Slider
               label="Annual Withdrawal"
-              sublabel="First-year size"
+              sublabel="Amount before inflation adjustment"
               value={withdrawal}
               min={10_000}
               max={300_000}
@@ -922,8 +922,8 @@ function RetirementSimulator() {
             />
 
             <Slider
-              label="Upfront Cash Bucket"
-              sublabel="Pull out the first N years' at start"
+              label="Starting Cash Bucket"
+              sublabel="Lump-sum first withdrawal"
               value={upfrontYears}
               min={1}
               max={10}
@@ -947,6 +947,8 @@ function RetirementSimulator() {
               onChange={setYears}
               format={(v) => `${v} yrs`}
             />
+
+            <div className="panel-heading">Market Assumptions</div>
 
             <Slider
               label="Expected Return"
