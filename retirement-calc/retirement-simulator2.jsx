@@ -66,13 +66,17 @@ const GAUSS_LUT = new Int32Array(GAUSS_LUT_SIZE);
 
 function gaussInt() { return GAUSS_LUT[nextU32() >>> 16]; }
 
-function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket }) {
+function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket, bucketEarnsTBills, tBillRealPremium }) {
   // Boundary: convert UI inputs to integer scales once on entry.
   const balCents = Math.round(balance * 100);
   const wdCents = Math.round(withdrawal * 100);
   const returnBp = Math.round(returnRate * BP);
   const volBp = Math.round(volatility * BP);
   const inflMicro = Math.round(inflation * MICRO);
+  // T-Bill nominal rate = inflation + historical real premium (~0.5%). Held in
+  // MICRO scale alongside inflMicro so bucket discounting compounds at the same
+  // precision as the inflation factor used to size withdrawals.
+  const tBillMicro = inflMicro + Math.round(tBillRealPremium * MICRO);
 
   // Cumulative inflation factor in MICRO scale, built iteratively — bounds
   // drift to ≤1 part per 10⁶ per compounding step (vs the bp-scale 1-in-10⁴
@@ -86,17 +90,29 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // Upfront cash bucket: if upfrontYears > 1, year 1 withdraws a lump sum that
   // funds years 1..upfrontYears, and no further withdrawals happen until year
   // upfrontYears+1. When upfrontYears === 1 this collapses to the normal flow.
-  // Default sizing: upfrontYears × current annual. With inflationAdjustBucket,
-  // size to fund N years of real spending: Σᵢ₌₀^{N-1} (1+inf)^i × withdrawal.
+  // Sizing is the present value of the bucket-year withdrawals — discounted at
+  // the T-Bill rate when bucketEarnsTBills is on, otherwise undiscounted.
+  // Withdrawals grow at inflation when inflationAdjustBucket is on, else flat.
+  // L = wd · Σᵢ₌₀^{N-1} ((1+wGrowth)/(1+discount))^i
   const isLumpSum = upfrontYears > 1;
   let lumpSumCents = 0;
   if (isLumpSum) {
-    if (inflationAdjustBucket && inflMicro > 0) {
-      let sumMicro = 0;
-      for (let i = 0; i < upfrontYears; i++) sumMicro += inflPow[i];
-      lumpSumCents = Math.floor(wdCents * sumMicro / MICRO);
-    } else {
+    const wGrowMicro = inflationAdjustBucket ? inflMicro : 0;
+    const discMicro = bucketEarnsTBills ? tBillMicro : 0;
+    if (wGrowMicro === 0 && discMicro === 0) {
       lumpSumCents = upfrontYears * wdCents;
+    } else {
+      // ratio = (MICRO + wGrowMicro) / (MICRO + discMicro), tracked in MICRO
+      // scale via iterative multiply to avoid pow() drift.
+      let ratioPow = MICRO; // ratio^0 = 1
+      let sumMicro = 0;
+      const num = MICRO + wGrowMicro;
+      const den = MICRO + discMicro;
+      for (let i = 0; i < upfrontYears; i++) {
+        sumMicro += ratioPow;
+        ratioPow = Math.floor(ratioPow * num / den);
+      }
+      lumpSumCents = Math.floor(wdCents * sumMicro / MICRO);
     }
   }
 
@@ -210,6 +226,21 @@ const WORKER_BLOB_URL = URL.createObjectURL(
 
 const SIM_RUNS = 1_000_000;
 
+// Historical real return on 3-month T-Bills above CPI inflation, ~1928–2023.
+// Used so the T-Bill rate tracks the inflation slider (rate = inflation + this).
+const T_BILL_REAL_PREMIUM = 0.005;
+
+// Closed-form PV of N withdrawals of `wd`, growing at `wGrow` per year, taken
+// at the start of each year, discounted at `disc` per year. Mirrors the
+// integer-scale loop in the worker so UI and simulation agree on bucket size.
+function bucketSize(wd, years, wGrow, disc) {
+  if (years <= 0) return 0;
+  if (wGrow === 0 && disc === 0) return years * wd;
+  const ratio = (1 + wGrow) / (1 + disc);
+  if (Math.abs(ratio - 1) < 1e-9) return years * wd;
+  return wd * (1 - Math.pow(ratio, years)) / (1 - ratio);
+}
+
 // ─── Formatting helpers ─────────────────────────────────────────────────────
 const fmtMoney = (n) => {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
@@ -255,6 +286,7 @@ function RetirementSimulator() {
   const [withdrawal, setWithdrawal] = useState(152_000);
   const [upfrontYears, setUpfrontYears] = useState(1);
   const [inflationAdjustBucket, setInflationAdjustBucket] = useState(false);
+  const [bucketEarnsTBills, setBucketEarnsTBills] = useState(false);
   const [returnRate, setReturnRate] = useState(0.098);
   const [volatility, setVolatility] = useState(0.195);
   const [inflation, setInflation] = useState(0.03);
@@ -266,11 +298,12 @@ function RetirementSimulator() {
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(true);
 
-  // The bucket-inflation-adjust flag is a no-op when upfrontYears === 1 (no lump
-  // sum is taken). Depending on the *effective* value here keeps a checkbox
-  // toggle from triggering a fresh Monte Carlo run with new random samples,
-  // which would otherwise jiggle the success rate as pure simulation noise.
+  // The bucket-* flags are no-ops when upfrontYears === 1 (no lump sum is
+  // taken). Depending on the *effective* values here keeps a checkbox toggle
+  // from triggering a fresh Monte Carlo run with new random samples, which
+  // would otherwise jiggle the success rate as pure simulation noise.
   const effectiveInflationAdjustBucket = inflationAdjustBucket && upfrontYears > 1;
+  const effectiveBucketEarnsTBills = bucketEarnsTBills && upfrontYears > 1;
 
   useEffect(() => {
     setRunning(true);
@@ -289,14 +322,14 @@ function RetirementSimulator() {
       };
       worker.postMessage({
         type: 'run',
-        params: { balance, withdrawal, returnRate, volatility, inflation, years, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket },
+        params: { balance, withdrawal, returnRate, volatility, inflation, years, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket, bucketEarnsTBills: effectiveBucketEarnsTBills, tBillRealPremium: T_BILL_REAL_PREMIUM },
       });
     }, 150);
     return () => {
       clearTimeout(t);
       if (worker) worker.terminate();
     };
-  }, [balance, withdrawal, returnRate, volatility, inflation, years, upfrontYears, effectiveInflationAdjustBucket]);
+  }, [balance, withdrawal, returnRate, volatility, inflation, years, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills]);
 
   // Chart geometry
   const W = 760;
@@ -875,9 +908,9 @@ function RetirementSimulator() {
               step={1}
               onChange={setUpfrontYears}
               format={(v) => {
-                const bucket = inflationAdjustBucket && inflation > 0
-                  ? withdrawal * (Math.pow(1 + inflation, v) - 1) / inflation
-                  : v * withdrawal;
+                const wGrow = inflationAdjustBucket ? inflation : 0;
+                const disc = bucketEarnsTBills && v > 1 ? inflation + T_BILL_REAL_PREMIUM : 0;
+                const bucket = bucketSize(withdrawal, v, wGrow, disc);
                 return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)})`;
               }}
             />
@@ -938,6 +971,19 @@ function RetirementSimulator() {
                   <div>
                     <div className="toggle-label">Inflation-adjust bucket</div>
                     <div className="toggle-sub">Size to fund N years of real spending instead of N × current annual.</div>
+                  </div>
+                </label>
+                <label className="toggle-row" style={{ marginTop: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={bucketEarnsTBills}
+                    onChange={(e) => setBucketEarnsTBills(e.target.checked)}
+                  />
+                  <div>
+                    <div className="toggle-label">Cash bucket earns T-Bills</div>
+                    <div className="toggle-sub">
+                      Discount the lump sum at {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation + 0.5% historical real return).
+                    </div>
                   </div>
                 </label>
               </div>
