@@ -408,6 +408,9 @@ function RetirementSimulator() {
   const [sim, setSim] = useState(null);
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(true);
+  const [solving, setSolving] = useState(false);
+  const [solveProgress, setSolveProgress] = useState(0);
+  const [targetSuccessRate, setTargetSuccessRate] = useState(95);
 
   // The bucket-* flags are no-ops when upfrontYears === 1 (no lump sum is
   // taken). Depending on the *effective* values here keeps a checkbox toggle
@@ -441,6 +444,82 @@ function RetirementSimulator() {
       if (worker) worker.terminate();
     };
   }, [balance, withdrawal, returnRate, volatility, inflation, years, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills, withdrawalFrequency]);
+
+  // Binary-search the worker for the withdrawal that yields the chosen
+  // target success rate. Success is monotonic in withdrawal (more spent →
+  // lower success), so we probe endpoints first to detect the unreachable
+  // cases, then halve the interval keeping the invariant rate(lo) ≥ target
+  // > rate(hi). Each probe runs a reduced-runs simulation (100K vs 1M) for
+  // speed; the final value is applied to the slider, which triggers the
+  // normal full-resolution rerun.
+  const solveForTarget = async () => {
+    if (solving || running) return;
+    const TARGET = targetSuccessRate / 100;
+    const SOLVE_RUNS = 100_000;
+    const STEP = 1_000;
+    const MIN_WD = 10_000;
+    const MAX_WD = 300_000;
+    const MAX_ITER = 10;
+
+    setSolving(true);
+    setSolveProgress(0);
+
+    const baseParams = {
+      balance, returnRate, volatility, inflation, years,
+      runs: SOLVE_RUNS, upfrontYears,
+      inflationAdjustBucket: effectiveInflationAdjustBucket,
+      bucketEarnsTBills: effectiveBucketEarnsTBills,
+      tBillRealPremium: T_BILL_REAL_PREMIUM,
+      monthly: withdrawalFrequency === 'monthly',
+    };
+
+    const probe = (wd) => new Promise((resolve) => {
+      const w = new Worker(WORKER_BLOB_URL);
+      w.onmessage = (e) => {
+        if (e.data.type === 'done') {
+          w.terminate();
+          resolve(e.data.result.successRate);
+        }
+      };
+      w.postMessage({ type: 'run', params: { ...baseParams, withdrawal: wd } });
+    });
+
+    const totalSteps = MAX_ITER + 2;
+    let step = 0;
+    const tick = () => { step++; setSolveProgress(step / totalSteps); };
+
+    const loRate = await probe(MIN_WD);
+    tick();
+    if (loRate < TARGET) {
+      setWithdrawal(MIN_WD);
+      setSolving(false);
+      setSolveProgress(0);
+      return;
+    }
+    const hiRate = await probe(MAX_WD);
+    tick();
+    if (hiRate >= TARGET) {
+      setWithdrawal(MAX_WD);
+      setSolving(false);
+      setSolveProgress(0);
+      return;
+    }
+
+    let lo = MIN_WD;
+    let hi = MAX_WD;
+    for (let i = 0; i < MAX_ITER; i++) {
+      const mid = Math.round((lo + hi) / 2 / STEP) * STEP;
+      if (mid <= lo || mid >= hi) break;
+      const rate = await probe(mid);
+      if (rate >= TARGET) lo = mid;
+      else hi = mid;
+      tick();
+    }
+
+    setWithdrawal(lo);
+    setSolving(false);
+    setSolveProgress(0);
+  };
 
   // Chart geometry
   const W = 760;
@@ -702,6 +781,86 @@ function RetirementSimulator() {
     .freq-btn.active {
       background: var(--ink);
       color: var(--cream);
+    }
+
+    /* ─── Solver row (between stats and chart) ─── */
+    .solver-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 22px;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--ink);
+    }
+
+    @media (max-width: 720px) {
+      .solver-row {
+        grid-template-columns: 1fr auto;
+        gap: 12px 18px;
+      }
+      .solver-row .solver-slider { grid-column: 1 / -1; order: 3; }
+      .solver-row .solve-btn { grid-column: 1 / -1; order: 4; }
+    }
+
+    .solver-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+      white-space: nowrap;
+    }
+
+    .solver-slider { display: flex; align-items: center; }
+    .solver-slider input[type="range"] { width: 100%; }
+    .solver-slider input[type="range"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .solver-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    .solve-btn {
+      display: inline-grid;
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid var(--ink);
+      font-family: 'Fraunces', serif;
+      font-size: 13px;
+      font-weight: 500;
+      font-style: italic;
+      color: var(--ink);
+      cursor: pointer;
+      letter-spacing: -0.01em;
+      transition: background 0.15s ease, color 0.15s ease;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .solve-btn-ghost,
+    .solve-btn-label {
+      grid-area: 1 / 1;
+    }
+
+    .solve-btn-ghost {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .solve-btn:hover:not(:disabled) {
+      background: var(--ink);
+      color: var(--cream);
+    }
+
+    .solve-btn:disabled {
+      opacity: 0.5;
+      cursor: progress;
     }
 
     /* ─── Advanced (collapsible) ─── */
@@ -1243,6 +1402,39 @@ function RetirementSimulator() {
                   {sim.medianDepletionYear ? `Year ${sim.medianDepletionYear}` : "None"}
                 </div>
               </div>
+            </div>
+
+            {/* SOLVER */}
+            <div className="solver-row fade">
+              <div className="solver-label">Target Success Rate</div>
+              <div className="solver-slider">
+                <input
+                  type="range"
+                  min={50}
+                  max={99}
+                  step={1}
+                  value={targetSuccessRate}
+                  onChange={(e) => setTargetSuccessRate(parseInt(e.target.value, 10))}
+                  style={{ "--pct": `${((targetSuccessRate - 50) / 49) * 100}%` }}
+                  disabled={solving}
+                />
+              </div>
+              <div className="solver-value">{targetSuccessRate}%</div>
+              <button
+                type="button"
+                className="solve-btn"
+                onClick={solveForTarget}
+                disabled={solving || running}
+              >
+                <span className="solve-btn-ghost" aria-hidden="true">
+                  Solve for 99% Success
+                </span>
+                <span className="solve-btn-label">
+                  {solving
+                    ? `Solving · ${Math.round(solveProgress * 100)}%`
+                    : `Solve for ${targetSuccessRate}% Success`}
+                </span>
+              </button>
             </div>
 
             {/* CHART */}
