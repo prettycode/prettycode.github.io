@@ -333,6 +333,19 @@ const SIM_RUNS = 1_000_000;
 // Used so the T-Bill rate tracks the inflation slider (rate = inflation + this).
 const T_BILL_REAL_PREMIUM = 0.005;
 
+// Convert a target CAGR to the per-year arithmetic mean μ that the worker's
+// additive-shock model needs. With (1+R) ~ N(1+μ, σ²), the long-run geometric
+// mean satisfies E[ln(1+R)] ≈ ln(1+μ) − σ²/(2(1+μ)²); inverting gives the
+// fixed point 1+μ = (1+CAGR)·exp(σ²/(2(1+μ)²)). Eight iterations is well past
+// machine precision for any sane (CAGR, σ).
+function cagrToArithmetic(cagr, vol) {
+  let m = 1 + cagr;
+  for (let i = 0; i < 8; i++) {
+    m = (1 + cagr) * Math.exp(vol * vol / (2 * m * m));
+  }
+  return m - 1;
+}
+
 // Closed-form bucket size: year 1's withdrawal is plain cash, years 2..N grow
 // at `disc` for y-2 years (a 1-year cash buffer is held idle the year before
 // each spend). Mirrors the integer-scale loop in the worker so UI and
@@ -398,8 +411,8 @@ function RetirementSimulator() {
   const [upfrontYears, setUpfrontYears] = useState(1);
   const [inflationAdjustBucket, setInflationAdjustBucket] = useState(false);
   const [bucketEarnsTBills, setBucketEarnsTBills] = useState(false);
-  const [returnRate, setReturnRate] = useState(0.098);
-  const [volatility, setVolatility] = useState(0.195);
+  const [cagr, setCagr] = useState(0.098);
+  const [volatility, setVolatility] = useState(0.175);
   const [inflation, setInflation] = useState(0.03);
   const [years, setYears] = useState(40);
 
@@ -436,14 +449,14 @@ function RetirementSimulator() {
       };
       worker.postMessage({
         type: 'run',
-        params: { balance, withdrawal, returnRate, volatility, inflation, years, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket, bucketEarnsTBills: effectiveBucketEarnsTBills, tBillRealPremium: T_BILL_REAL_PREMIUM, monthly: withdrawalFrequency === 'monthly' },
+        params: { balance, withdrawal, returnRate: cagrToArithmetic(cagr, volatility), volatility, inflation, years, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket, bucketEarnsTBills: effectiveBucketEarnsTBills, tBillRealPremium: T_BILL_REAL_PREMIUM, monthly: withdrawalFrequency === 'monthly' },
       });
     }, 150);
     return () => {
       clearTimeout(t);
       if (worker) worker.terminate();
     };
-  }, [balance, withdrawal, returnRate, volatility, inflation, years, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills, withdrawalFrequency]);
+  }, [balance, withdrawal, cagr, volatility, inflation, years, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills, withdrawalFrequency]);
 
   // Binary-search the worker for the withdrawal that yields the chosen
   // target success rate. Success is monotonic in withdrawal (more spent →
@@ -465,7 +478,7 @@ function RetirementSimulator() {
     setSolveProgress(0);
 
     const baseParams = {
-      balance, returnRate, volatility, inflation, years,
+      balance, returnRate: cagrToArithmetic(cagr, volatility), volatility, inflation, years,
       runs: SOLVE_RUNS, upfrontYears,
       inflationAdjustBucket: effectiveInflationAdjustBucket,
       bucketEarnsTBills: effectiveBucketEarnsTBills,
@@ -1275,13 +1288,13 @@ function RetirementSimulator() {
             <div className="panel-heading">Market Assumptions</div>
 
             <Slider
-              label="Expected Return"
-              sublabel="Average annual"
-              value={returnRate}
+              label="CAGR"
+              sublabel="Compound annual growth rate"
+              value={cagr}
               min={0.01}
               max={0.12}
               step={0.005}
-              onChange={setReturnRate}
+              onChange={setCagr}
               format={fmtPct}
             />
 
@@ -1696,7 +1709,7 @@ function RetirementSimulator() {
             <p className="footer-note">
               {withdrawalFrequency === 'monthly'
                 ? "Returns are sampled monthly, with the annual mean and volatility rescaled so twelve compounded months match the annual factor's mean and variance. "
-                : "Returns are sampled annually from a normal distribution centered on the expected return, with the chosen volatility as standard deviation. "}
+                : "Returns are sampled annually from a normal distribution; the input CAGR is converted to the per-year arithmetic mean by adding back the variance drag (≈ σ²/2), so the long-run geometric mean of paths tracks the chosen CAGR. "}
               Past performance does not guarantee future results; this model is illustrative, not advisory.
             </p>
             </>}
