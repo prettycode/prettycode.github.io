@@ -1,7 +1,10 @@
-const { useState, useMemo, useEffect } = React;
+const { useState, useEffect } = React;
 
-// ─── Monte Carlo Engine ─────────────────────────────────────────────────────
-// Box-Muller transform for normally distributed random numbers
+// ─── Monte Carlo Engine (runs in a Web Worker) ──────────────────────────────
+// Float32Array per-year balance storage keeps 1M-run memory near 124MB
+// (vs ~500MB for an array-of-arrays approach) and lets us use the much faster
+// typed-array .sort() for percentile extraction.
+const WORKER_SOURCE = `
 function gaussian() {
   let u = 0, v = 0;
   while (u === 0) u = Math.random();
@@ -10,54 +13,55 @@ function gaussian() {
 }
 
 function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs }) {
-  const allPaths = [];
-  const allWithdrawals = [];
+  const yearBalances = new Array(years + 1);
+  for (let y = 0; y <= years; y++) yearBalances[y] = new Float32Array(runs);
+  yearBalances[0].fill(balance);
+
+  const inflationPow = new Float64Array(years + 1);
+  for (let y = 0; y <= years; y++) inflationPow[y] = Math.pow(1 + inflation, y);
+
+  const withdrawalSum = new Float64Array(years + 1);
+  let survived = 0;
+  const reportEvery = Math.max(1, Math.floor(runs / 100));
 
   for (let r = 0; r < runs; r++) {
-    const path = [balance];
-    const wPath = [0];
     let bal = balance;
-    let currentWithdrawal = withdrawal;
+    let depleted = false;
 
     for (let y = 1; y <= years; y++) {
-      // Apply inflation to withdrawal
-      currentWithdrawal = withdrawal * Math.pow(1 + inflation, y - 1);
+      const currentWithdrawal = withdrawal * inflationPow[y - 1];
+      withdrawalSum[y] += currentWithdrawal;
 
-      // Withdraw at start of year
-      bal -= currentWithdrawal;
-
-      // If depleted, stay at zero
-      if (bal <= 0) {
-        bal = 0;
-        path.push(0);
-        wPath.push(currentWithdrawal);
-        // Fill remaining years with zero
-        for (let f = y + 1; f <= years; f++) {
-          path.push(0);
-          wPath.push(withdrawal * Math.pow(1 + inflation, f - 1));
-        }
-        break;
+      if (depleted) {
+        yearBalances[y][r] = 0;
+        continue;
       }
 
-      // Apply random annual return
+      bal -= currentWithdrawal;
+      if (bal <= 0) {
+        bal = 0;
+        depleted = true;
+        yearBalances[y][r] = 0;
+        continue;
+      }
+
       const annualReturn = returnRate + volatility * gaussian();
       bal = bal * (1 + annualReturn);
-      bal = Math.max(0, bal);
-
-      path.push(bal);
-      wPath.push(currentWithdrawal);
+      if (bal < 0) bal = 0;
+      yearBalances[y][r] = bal;
     }
 
-    allPaths.push(path);
-    allWithdrawals.push(wPath);
+    if (bal > 0) survived++;
+
+    if (r % reportEvery === 0) {
+      self.postMessage({ type: 'progress', pct: r / runs });
+    }
   }
 
-  // Compute percentiles per year
   const percentiles = [];
-  const avgWithdrawals = [];
   for (let y = 0; y <= years; y++) {
-    const yearVals = allPaths.map(p => p[y]).sort((a, b) => a - b);
-    const yearWds = allWithdrawals.map(p => p[y]);
+    const yearVals = yearBalances[y];
+    yearVals.sort();
     percentiles.push({
       year: y,
       p10: yearVals[Math.floor(runs * 0.1)],
@@ -65,21 +69,30 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
       p50: yearVals[Math.floor(runs * 0.5)],
       p75: yearVals[Math.floor(runs * 0.75)],
       p90: yearVals[Math.floor(runs * 0.9)],
-      withdrawal: yearWds.reduce((a, b) => a + b, 0) / runs,
+      withdrawal: withdrawalSum[y] / runs,
     });
-    avgWithdrawals.push(yearWds.reduce((a, b) => a + b, 0) / runs);
   }
 
-  // Success rate: % of runs with money remaining at end
-  const survived = allPaths.filter(p => p[years] > 0).length;
   const successRate = survived / runs;
-
-  // Median ending balance
-  const endingBalances = allPaths.map(p => p[years]).sort((a, b) => a - b);
-  const medianEnding = endingBalances[Math.floor(runs * 0.5)];
+  // yearBalances[years] was sorted in the loop above
+  const medianEnding = yearBalances[years][Math.floor(runs * 0.5)];
 
   return { percentiles, successRate, medianEnding, runs };
 }
+
+self.onmessage = function(e) {
+  if (e.data.type === 'run') {
+    const result = runSimulation(e.data.params);
+    self.postMessage({ type: 'done', result: result });
+  }
+};
+`;
+
+const WORKER_BLOB_URL = URL.createObjectURL(
+  new Blob([WORKER_SOURCE], { type: 'application/javascript' })
+);
+
+const SIM_RUNS = 1_000_000;
 
 // ─── Formatting helpers ─────────────────────────────────────────────────────
 const fmtMoney = (n) => {
@@ -122,19 +135,44 @@ function Slider({ label, value, min, max, step, onChange, format, sublabel }) {
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 function RetirementSimulator() {
-  const [balance, setBalance] = useState(1_000_000);
-  const [withdrawal, setWithdrawal] = useState(45_000);
-  const [returnRate, setReturnRate] = useState(0.07);
-  const [volatility, setVolatility] = useState(0.15);
+  const [balance, setBalance] = useState(4_000_000);
+  const [withdrawal, setWithdrawal] = useState(152_000);
+  const [returnRate, setReturnRate] = useState(0.098);
+  const [volatility, setVolatility] = useState(0.195);
   const [inflation, setInflation] = useState(0.03);
-  const [years, setYears] = useState(30);
+  const [years, setYears] = useState(40);
 
   const [hover, setHover] = useState(null);
 
-  const sim = useMemo(
-    () => runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs: 1_000_000 }),
-    [balance, withdrawal, returnRate, volatility, inflation, years]
-  );
+  const [sim, setSim] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [running, setRunning] = useState(true);
+
+  useEffect(() => {
+    setRunning(true);
+    setProgress(0);
+    let worker = null;
+    const t = setTimeout(() => {
+      worker = new Worker(WORKER_BLOB_URL);
+      worker.onmessage = (e) => {
+        if (e.data.type === 'progress') {
+          setProgress(e.data.pct);
+        } else if (e.data.type === 'done') {
+          setSim(e.data.result);
+          setRunning(false);
+          setProgress(1);
+        }
+      };
+      worker.postMessage({
+        type: 'run',
+        params: { balance, withdrawal, returnRate, volatility, inflation, years, runs: SIM_RUNS },
+      });
+    }, 150);
+    return () => {
+      clearTimeout(t);
+      if (worker) worker.terminate();
+    };
+  }, [balance, withdrawal, returnRate, volatility, inflation, years]);
 
   // Chart geometry
   const W = 760;
@@ -146,12 +184,12 @@ function RetirementSimulator() {
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
 
-  const maxVal = Math.max(...sim.percentiles.map(p => p.p90), balance) * 1.05;
+  const maxVal = sim ? Math.max(...sim.percentiles.map(p => p.p90), balance) * 1.05 : balance * 1.05;
   const x = (y) => padL + (y / years) * innerW;
   const yScale = (v) => padT + innerH - (v / maxVal) * innerH;
 
   // Withdrawal scale (right axis)
-  const maxW = Math.max(...sim.percentiles.map(p => p.withdrawal)) * 1.15;
+  const maxW = sim ? Math.max(...sim.percentiles.map(p => p.withdrawal)) * 1.15 : 1;
   const yScaleW = (v) => padT + innerH - (v / maxW) * innerH;
 
   const buildPath = (key) =>
@@ -181,7 +219,7 @@ function RetirementSimulator() {
   };
 
   // Derived stats
-  const successColor = sim.successRate >= 0.9 ? "#3a7d44" : sim.successRate >= 0.7 ? "#c89a3a" : "#a83232";
+  const successColor = sim && sim.successRate >= 0.9 ? "#3a7d44" : sim && sim.successRate >= 0.7 ? "#c89a3a" : "#a83232";
 
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500;700&family=Inter+Tight:wght@400;500;600&display=swap');
@@ -534,9 +572,44 @@ function RetirementSimulator() {
       to { opacity: 1; transform: translateY(0); }
     }
     .fade { animation: fadeUp 0.5s ease both; }
+
+    /* Subtle progress bar — sits at top of chart-wrap and the initial loading view */
+    .progress-bar {
+      position: absolute;
+      top: 0; left: 0;
+      height: 1.5px;
+      background: var(--accent);
+      z-index: 5;
+      pointer-events: none;
+      transition: width 0.18s ease, opacity 0.5s ease 0.3s;
+    }
+    .progress-bar.done { opacity: 0; }
+
+    .initial-loading {
+      padding: 100px 0 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .initial-loading .progress-track {
+      position: relative;
+      width: 220px;
+      height: 1.5px;
+      background: var(--rule);
+    }
+
+    .initial-loading-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+    }
   `;
 
-  const hoverData = hover !== null ? sim.percentiles[hover] : null;
+  const hoverData = hover !== null && sim ? sim.percentiles[hover] : null;
 
   return (
     <div className="sim-root">
@@ -549,7 +622,7 @@ function RetirementSimulator() {
           </h1>
           <div className="masthead-meta">
             <div className="vol">VOL. I · MONTE CARLO EDITION</div>
-            <div>1,000,000 SIMULATIONS · {years}-YEAR HORIZON</div>
+            <div>{SIM_RUNS.toLocaleString()} SIMULATIONS · {years}-YEAR HORIZON</div>
           </div>
         </header>
 
@@ -577,7 +650,18 @@ function RetirementSimulator() {
               max={300_000}
               step={1_000}
               onChange={setWithdrawal}
-              format={fmtMoney}
+              format={(v) => `${fmtMoney(v)} (${(v / balance * 100).toFixed(1)}%)`}
+            />
+
+            <Slider
+              label="Retirement Duration"
+              sublabel="Years to model"
+              value={years}
+              min={5}
+              max={50}
+              step={1}
+              onChange={setYears}
+              format={(v) => `${v} yrs`}
             />
 
             <Slider
@@ -612,21 +696,19 @@ function RetirementSimulator() {
               onChange={setInflation}
               format={fmtPct}
             />
-
-            <Slider
-              label="Retirement Duration"
-              sublabel="Years to model"
-              value={years}
-              min={5}
-              max={50}
-              step={1}
-              onChange={setYears}
-              format={(v) => `${v} yrs`}
-            />
           </aside>
 
           {/* MAIN AREA */}
           <main className="main-area">
+            {!sim && (
+              <div className="initial-loading">
+                <div className="progress-track">
+                  <div className="progress-bar" style={{ width: `${progress * 100}%` }}></div>
+                </div>
+                <div className="initial-loading-label">Running {SIM_RUNS.toLocaleString()} simulations…</div>
+              </div>
+            )}
+            {sim && <>
             {/* STATS */}
             <div className="stats-row fade">
               <div className="stat-cell">
@@ -659,11 +741,15 @@ function RetirementSimulator() {
                 <h2 className="chart-title">Portfolio Trajectory</h2>
               </div>
               <p className="chart-subtitle">
-                Shaded bands show the spread of {sim.runs} Monte Carlo paths. Outer band, 10th–90th percentile;
+                Shaded bands show the spread of {SIM_RUNS} Monte Carlo paths. Outer band, 10th–90th percentile;
                 inner band, 25th–75th. The dashed line marks median annual withdrawal, scaled to the right axis.
               </p>
 
               <div className="chart-wrap">
+                <div
+                  className={`progress-bar${running ? "" : " done"}`}
+                  style={{ width: `${progress * 100}%` }}
+                ></div>
                 <svg
                   className="chart"
                   viewBox={`0 0 ${W} ${H}`}
@@ -885,6 +971,7 @@ function RetirementSimulator() {
               with the chosen volatility as standard deviation. Past performance does not guarantee future results;
               this model is illustrative, not advisory.
             </p>
+            </>}
           </main>
         </div>
       </div>
