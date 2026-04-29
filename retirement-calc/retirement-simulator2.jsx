@@ -741,7 +741,7 @@ function RetirementSimulator() {
                 <h2 className="chart-title">Portfolio Trajectory</h2>
               </div>
               <p className="chart-subtitle">
-                Shaded bands show the spread of {SIM_RUNS} Monte Carlo paths. Outer band, 10th–90th percentile;
+                Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo paths. Outer band, 10th–90th percentile;
                 inner band, 25th–75th. The dashed line marks median annual withdrawal, scaled to the right axis.
               </p>
 
