@@ -552,9 +552,15 @@ function RetirementSimulator() {
 
   // Y-axis ticks
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => t * maxVal);
-  const xTicks = years <= 15
-    ? Array.from({ length: years + 1 }, (_, i) => i).filter(i => i % Math.ceil((years + 1) / 8) === 0 || i === years)
-    : Array.from({ length: Math.floor(years / 5) + 1 }, (_, i) => i * 5).filter(v => v <= years);
+  const xTicks = (() => {
+    const pxPerYear = innerW / Math.max(years, 1);
+    const minPx = 24;
+    const step = [1, 2, 5, 10, 20].find(s => pxPerYear * s >= minPx) ?? 25;
+    const ticks = [];
+    for (let i = 0; i <= years; i += step) ticks.push(i);
+    if (ticks[ticks.length - 1] !== years) ticks.push(years);
+    return ticks;
+  })();
 
   // Hover handler
   const onMove = (e) => {
@@ -1072,7 +1078,7 @@ function RetirementSimulator() {
 
     .tooltip {
       position: absolute;
-      background: var(--ink);
+      background: rgba(26, 22, 18, 0.7);
       color: var(--cream);
       padding: 10px 12px;
       font-family: 'JetBrains Mono', monospace;
@@ -1669,24 +1675,37 @@ function RetirementSimulator() {
                     }}
                   >
                     <div className="tooltip-year">YEAR {hover}</div>
-                    <div className="tooltip-row">
-                      <span>90th</span><span>{fmtMoneyFull(hoverData.p90)}</span>
-                    </div>
-                    <div className="tooltip-row">
-                      <span>75th</span><span>{fmtMoneyFull(hoverData.p75)}</span>
-                    </div>
-                    <div className="tooltip-row median">
-                      <span>Median</span><span>{fmtMoneyFull(hoverData.p50)}</span>
-                    </div>
-                    <div className="tooltip-row">
-                      <span>25th</span><span>{fmtMoneyFull(hoverData.p25)}</span>
-                    </div>
-                    <div className="tooltip-row">
-                      <span>10th</span><span>{fmtMoneyFull(hoverData.p10)}</span>
-                    </div>
-                    <div className="tooltip-row median">
-                      <span>Withdrawal</span><span>{fmtMoneyFull(hoverWithdrawal)}</span>
-                    </div>
+                    {hover === 0 ? (
+                      <>
+                        <div className="tooltip-row">
+                          <span>Starting balance</span><span>{fmtMoneyFull(hoverData.p50)}</span>
+                        </div>
+                        <div className="tooltip-row median">
+                          <span>Withdrawal</span><span>{fmtMoneyFull(hoverWithdrawal)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="tooltip-row">
+                          <span>90th</span><span>{fmtMoneyFull(hoverData.p90)}</span>
+                        </div>
+                        <div className="tooltip-row">
+                          <span>75th</span><span>{fmtMoneyFull(hoverData.p75)}</span>
+                        </div>
+                        <div className="tooltip-row median">
+                          <span>Median</span><span>{fmtMoneyFull(hoverData.p50)}</span>
+                        </div>
+                        <div className="tooltip-row">
+                          <span>25th</span><span>{fmtMoneyFull(hoverData.p25)}</span>
+                        </div>
+                        <div className="tooltip-row">
+                          <span>10th</span><span>{fmtMoneyFull(hoverData.p10)}</span>
+                        </div>
+                        <div className="tooltip-row median">
+                          <span>Withdrawal</span><span>{fmtMoneyFull(hoverWithdrawal)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
