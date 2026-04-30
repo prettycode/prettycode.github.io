@@ -534,31 +534,49 @@ function RetirementSimulator() {
   const innerH = H - padT - padB;
 
   const maxVal = sim ? Math.max(...sim.percentiles.map(p => p.p90), balance) * 1.05 : balance * 1.05;
-  const x = (y) => padL + (y / years) * innerW;
+  // Render against the sim we have, not the input slider. A slider change
+  // updates `years` synchronously but the worker takes a tick to return new
+  // percentiles — using `years` as the loop bound during that gap reads past
+  // the end of `sim.percentiles` and crashes with `undefined.p50`.
+  const simYears = sim ? sim.percentiles.length - 1 : years;
+  const x = (y) => padL + (y / simYears) * innerW;
   const yScale = (v) => padT + innerH - (v / maxVal) * innerH;
 
   // Withdrawal scale (left axis)
   const maxW = sim ? Math.max(...sim.percentiles.map(p => p.withdrawal)) * 1.15 : 1;
   const yScaleW = (v) => padT + innerH - (v / maxW) * innerH;
 
-  const buildPath = (key) =>
-    sim.percentiles.map((p, i) => `${i === 0 ? "M" : "L"} ${x(p.year)} ${yScale(p[key])}`).join(" ");
+  // Each year y, the withdrawal at percentiles[y].withdrawal is taken at the
+  // start of year y — i.e. immediately after tick Y(y-1). Render that as a
+  // vertical step-down at x(y-1), then the year's growth as a diagonal to
+  // (x(y), p[y]). Clamp post-withdrawal values at 0 so depletion years don't
+  // dip below the axis.
+  const stepDown = (key, i) =>
+    Math.max(0, sim.percentiles[i-1][key] - sim.percentiles[i].withdrawal);
 
   const buildArea = (kHigh, kLow) => {
-    const top = sim.percentiles.map((p, i) => `${i === 0 ? "M" : "L"} ${x(p.year)} ${yScale(p[kHigh])}`).join(" ");
-    const bot = sim.percentiles.slice().reverse().map(p => `L ${x(p.year)} ${yScale(p[kLow])}`).join(" ");
+    let top = `M ${x(0)} ${yScale(sim.percentiles[0][kHigh])}`;
+    for (let i = 1; i <= simYears; i++) {
+      top += ` L ${x(i-1)} ${yScale(stepDown(kHigh, i))}`;
+      top += ` L ${x(i)} ${yScale(sim.percentiles[i][kHigh])}`;
+    }
+    let bot = ` L ${x(simYears)} ${yScale(sim.percentiles[simYears][kLow])}`;
+    for (let i = simYears; i >= 1; i--) {
+      bot += ` L ${x(i-1)} ${yScale(stepDown(kLow, i))}`;
+      bot += ` L ${x(i-1)} ${yScale(sim.percentiles[i-1][kLow])}`;
+    }
     return `${top} ${bot} Z`;
   };
 
   // Y-axis ticks
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => t * maxVal);
   const xTicks = (() => {
-    const pxPerYear = innerW / Math.max(years, 1);
+    const pxPerYear = innerW / Math.max(simYears, 1);
     const minPx = 24;
     const step = [1, 2, 5, 10, 20].find(s => pxPerYear * s >= minPx) ?? 25;
     const ticks = [];
-    for (let i = 0; i <= years; i += step) ticks.push(i);
-    if (ticks[ticks.length - 1] !== years) ticks.push(years);
+    for (let i = 0; i <= simYears; i += step) ticks.push(i);
+    if (ticks[ticks.length - 1] !== simYears) ticks.push(simYears);
     return ticks;
   })();
 
@@ -567,8 +585,8 @@ function RetirementSimulator() {
     const svg = e.currentTarget;
     const rect = svg.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * W;
-    const yearIdx = Math.round(((px - padL) / innerW) * years);
-    if (yearIdx >= 0 && yearIdx <= years) {
+    const yearIdx = Math.round(((px - padL) / innerW) * simYears);
+    if (yearIdx >= 0 && yearIdx <= simYears) {
       setHover(yearIdx);
     }
   };
@@ -581,7 +599,7 @@ function RetirementSimulator() {
   // median portfolio.
   const medianDepletion = (() => {
     if (!sim) return null;
-    for (let i = 1; i <= years; i++) {
+    for (let i = 1; i <= simYears; i++) {
       if (sim.percentiles[i].p50 <= 0) {
         return { year: i, withdrawal: sim.percentiles[i].withdrawal };
       }
@@ -1090,10 +1108,25 @@ function RetirementSimulator() {
     }
 
     .tooltip-year {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      opacity: 0.6;
+      border-bottom: 1px solid rgba(244,237,224,0.2);
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+    }
+
+    .tooltip-section {
       font-size: 9px;
       letter-spacing: 0.2em;
       opacity: 0.6;
-      margin-bottom: 6px;
+      margin: 6px 0 2px;
+    }
+
+    .tooltip-section.divided {
+      border-top: 1px solid rgba(244,237,224,0.2);
+      padding-top: 8px;
+      margin-top: 6px;
     }
 
     .tooltip-row {
@@ -1213,15 +1246,20 @@ function RetirementSimulator() {
     }
   `;
 
-  const hoverData = hover !== null && sim ? sim.percentiles[hover] : null;
+  // Bounds-check against the sim's actual length, not `years`: a slider change
+  // can move `years` past the worker's current output, leaving a stale hover
+  // index that points off the end of the percentiles array.
+  const hoverData = hover !== null && sim && hover <= simYears
+    ? sim.percentiles[hover]
+    : null;
   // Withdrawal at hover tick h is the draw taken at the start of year h+1.
   // At the final tick we've run out of simulated years, so project one more
   // year of inflation onto the last withdrawal — assumes retirement continues
   // for as long as the portfolio sustains it.
-  const hoverWithdrawal = hover !== null && sim
-    ? (hover < years
+  const hoverWithdrawal = hoverData
+    ? (hover < simYears
         ? sim.percentiles[hover + 1].withdrawal
-        : Math.floor(sim.percentiles[years].withdrawal * (1 + inflation)))
+        : Math.floor(sim.percentiles[simYears].withdrawal * (1 + inflation)))
     : null;
 
   return (
@@ -1414,7 +1452,7 @@ function RetirementSimulator() {
               <div className="stat-cell">
                 <div className="stat-label">Final Withdrawal</div>
                 <div className="stat-value">
-                  {fmtMoney(sim.percentiles[years].withdrawal)}
+                  {fmtMoney(sim.percentiles[simYears].withdrawal)}
                 </div>
               </div>
               <div className="stat-cell">
@@ -1582,9 +1620,10 @@ function RetirementSimulator() {
                       along the bottom axis frame. */}
                   <path
                     d={(() => {
-                      const lastYear = medianDepletion ? medianDepletion.year : years;
+                      const lastYear = medianDepletion ? medianDepletion.year : simYears;
                       let d = `M ${x(0)} ${yScale(sim.percentiles[0].p50)}`;
                       for (let i = 1; i <= lastYear; i++) {
+                        d += ` L ${x(i-1)} ${yScale(stepDown("p50", i))}`;
                         d += ` L ${x(i)} ${yScale(sim.percentiles[i].p50)}`;
                       }
                       return d;
@@ -1624,7 +1663,7 @@ function RetirementSimulator() {
                   />
 
                   {/* Hover guide */}
-                  {hover !== null && (
+                  {hoverData && (
                     <>
                       <line
                         x1={x(hover)} x2={x(hover)}
@@ -1675,37 +1714,65 @@ function RetirementSimulator() {
                     }}
                   >
                     <div className="tooltip-year">YEAR {hover}</div>
-                    {hover === 0 ? (
-                      <>
-                        <div className="tooltip-row">
-                          <span>Starting balance</span><span>{fmtMoneyFull(hoverData.p50)}</span>
-                        </div>
-                        <div className="tooltip-row median">
-                          <span>Withdrawal</span><span>{fmtMoneyFull(hoverWithdrawal)}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="tooltip-row">
-                          <span>90th</span><span>{fmtMoneyFull(hoverData.p90)}</span>
-                        </div>
-                        <div className="tooltip-row">
-                          <span>75th</span><span>{fmtMoneyFull(hoverData.p75)}</span>
-                        </div>
-                        <div className="tooltip-row median">
-                          <span>Median</span><span>{fmtMoneyFull(hoverData.p50)}</span>
-                        </div>
-                        <div className="tooltip-row">
-                          <span>25th</span><span>{fmtMoneyFull(hoverData.p25)}</span>
-                        </div>
-                        <div className="tooltip-row">
-                          <span>10th</span><span>{fmtMoneyFull(hoverData.p10)}</span>
-                        </div>
-                        <div className="tooltip-row median">
-                          <span>Withdrawal</span><span>{fmtMoneyFull(hoverWithdrawal)}</span>
-                        </div>
-                      </>
-                    )}
+                    {(() => {
+                      const post = (v) => Math.max(0, v - hoverWithdrawal);
+                      if (hover === 0) {
+                        return (
+                          <>
+                            <div className="tooltip-section">BEFORE WITHDRAWAL</div>
+                            <div className="tooltip-row">
+                              <span>Balance</span><span>{fmtMoneyFull(hoverData.p50)}</span>
+                            </div>
+                            <div className="tooltip-row median">
+                              <span>Withdrawal</span><span>{fmtMoneyFull(hoverWithdrawal)}</span>
+                            </div>
+                            <div className="tooltip-section divided">AFTER WITHDRAWAL</div>
+                            <div className="tooltip-row">
+                              <span>Balance</span><span>{fmtMoneyFull(post(hoverData.p50))}</span>
+                            </div>
+                          </>
+                        );
+                      }
+                      return (
+                        <>
+                          <div className="tooltip-section">BEFORE WITHDRAWAL</div>
+                          <div className="tooltip-row">
+                            <span>90th</span><span>{fmtMoneyFull(hoverData.p90)}</span>
+                          </div>
+                          <div className="tooltip-row">
+                            <span>75th</span><span>{fmtMoneyFull(hoverData.p75)}</span>
+                          </div>
+                          <div className="tooltip-row">
+                            <span>Median</span><span>{fmtMoneyFull(hoverData.p50)}</span>
+                          </div>
+                          <div className="tooltip-row">
+                            <span>25th</span><span>{fmtMoneyFull(hoverData.p25)}</span>
+                          </div>
+                          <div className="tooltip-row">
+                            <span>10th</span><span>{fmtMoneyFull(hoverData.p10)}</span>
+                          </div>
+                          <div className="tooltip-row median">
+                            <span>Withdrawal</span><span>{fmtMoneyFull(hoverWithdrawal)}</span>
+                          </div>
+                          <div className="tooltip-section divided">AFTER WITHDRAWAL</div>
+                          <div className="tooltip-row">
+                            <span>90th</span><span>{fmtMoneyFull(post(hoverData.p90))}</span>
+                          </div>
+                          <div className="tooltip-row">
+                            <span>75th</span><span>{fmtMoneyFull(post(hoverData.p75))}</span>
+                          </div>
+                          <div className="tooltip-row">
+                            <span>Median</span><span>{fmtMoneyFull(post(hoverData.p50))}</span>
+                          </div>
+                          <div className="tooltip-row">
+                            <span>25th</span><span>{fmtMoneyFull(post(hoverData.p25))}</span>
+                          </div>
+                          <div className="tooltip-row">
+                            <span>10th</span><span>{fmtMoneyFull(post(hoverData.p10))}</span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
