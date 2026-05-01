@@ -1,41 +1,59 @@
 const { useState, useEffect } = React;
 
+// useState wrapper that persists through UserSettings: initial value comes
+// from storage (or the default), and every change writes back. Storage is
+// pruned to non-default values inside UserSettings.set, so no extra logic
+// here.
+function usePersistedState(key) {
+  const [value, setValue] = useState(() => UserSettings.get(key));
+  useEffect(() => { UserSettings.set(key, value); }, [key, value]);
+  return [value, setValue];
+}
+
 // ─── Main Component ─────────────────────────────────────────────────────────
 function RetirementSimulator() {
-  const [balance, setBalance] = useState(4_000_000);
-  const [withdrawal, setWithdrawal] = useState(152_000);
-  const [withdrawalFrequency, setWithdrawalFrequency] = useState('annual');
-  const [upfrontYears, setUpfrontYears] = useState(1);
-  const [inflationAdjustBucket, setInflationAdjustBucket] = useState(false);
-  const [bucketEarnsTBills, setBucketEarnsTBills] = useState(false);
-  // Initial market assumptions come from a preset so the simulator boots with
-  // a coherent (region × scenario) combo rather than ad-hoc numbers, and the
-  // toggles below light up on load.
-  const INITIAL_REGION = 'world';
-  const INITIAL_SCENARIO = 'historical';
-  const initialPreset = MARKET_PRESETS[INITIAL_REGION][INITIAL_SCENARIO];
-  const [cagr, setCagr] = useState(initialPreset.cagr);
-  const [volatility, setVolatility] = useState(initialPreset.volatility);
-  const [inflation, setInflation] = useState(initialPreset.inflation);
-  const [years, setYears] = useState(40);
+  const [balance, setBalance] = usePersistedState('balance');
+  const [withdrawal, setWithdrawal] = usePersistedState('withdrawal');
+  const [withdrawalFrequency, setWithdrawalFrequency] = usePersistedState('withdrawalFrequency');
+  const [upfrontYears, setUpfrontYears] = usePersistedState('upfrontYears');
+  const [inflationAdjustBucket, setInflationAdjustBucket] = usePersistedState('inflationAdjustBucket');
+  const [bucketEarnsTBills, setBucketEarnsTBills] = usePersistedState('bucketEarnsTBills');
+  const [cagr, setCagr] = usePersistedState('cagr');
+  const [volatility, setVolatility] = usePersistedState('volatility');
+  const [inflation, setInflation] = usePersistedState('inflation');
+  const [years, setYears] = usePersistedState('years');
+  const [advancedOpen, setAdvancedOpen] = usePersistedState('advancedOpen');
 
-  // Last-clicked axis values, used so a single button click can apply a full
-  // (region × scenario) combo. The active toggle state below is *derived* from
-  // the current slider values, so manual slider drags clear both highlights.
-  const [lastRegion, setLastRegion] = useState(INITIAL_REGION);
-  const [lastScenario, setLastScenario] = useState(INITIAL_SCENARIO);
-
-  const activePreset = (() => {
+  // Reverse-lookup (cagr, volatility, inflation) → preset cell. Used both
+  // for the active-toggle highlight and for seeding lastRegion/lastScenario
+  // from the persisted market values.
+  const matchPreset = (c, v, i) => {
     for (const region of Object.keys(MARKET_PRESETS)) {
       for (const scenario of Object.keys(MARKET_PRESETS[region])) {
         const p = MARKET_PRESETS[region][scenario];
-        if (p.cagr === cagr && p.volatility === volatility && p.inflation === inflation) {
+        if (p.cagr === c && p.volatility === v && p.inflation === i) {
           return { region, scenario };
         }
       }
     }
     return null;
-  })();
+  };
+
+  // Last-clicked axis values, used so a single button click can apply a full
+  // (region × scenario) combo. The active toggle state below is *derived* from
+  // the current slider values, so manual slider drags clear both highlights.
+  // Seeded from whatever preset the persisted market values match (if any) so
+  // the orthogonal axis composes naturally on the next click after a reload.
+  const INITIAL_REGION = 'world';
+  const INITIAL_SCENARIO = 'historical';
+  const [lastRegion, setLastRegion] = useState(() =>
+    matchPreset(UserSettings.get('cagr'), UserSettings.get('volatility'), UserSettings.get('inflation'))?.region ?? INITIAL_REGION
+  );
+  const [lastScenario, setLastScenario] = useState(() =>
+    matchPreset(UserSettings.get('cagr'), UserSettings.get('volatility'), UserSettings.get('inflation'))?.scenario ?? INITIAL_SCENARIO
+  );
+
+  const activePreset = matchPreset(cagr, volatility, inflation);
 
   const applyMarketPreset = (region, scenario) => {
     const p = MARKET_PRESETS[region][scenario];
@@ -295,7 +313,11 @@ function RetirementSimulator() {
               format={fmtPct}
             />
 
-            <details className="advanced">
+            <details
+              className="advanced"
+              open={advancedOpen}
+              onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
+            >
               <summary>Advanced</summary>
               <div className="advanced-body">
                 <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 14 }}>
@@ -393,6 +415,24 @@ function RetirementSimulator() {
                       </button>
                     </div>
                   </div>
+                </div>
+                <div className="settings-mgmt">
+                  <div className="settings-mgmt-heading">Saved Settings</div>
+                  <div className="settings-mgmt-sub">
+                    Sidebar values are remembered in your browser between visits.
+                  </div>
+                  <button
+                    type="button"
+                    className="clear-storage-btn"
+                    onClick={() => {
+                      if (window.confirm('Reset all sidebar settings to defaults? This will reload the page.')) {
+                        UserSettings.clear();
+                        window.location.reload();
+                      }
+                    }}
+                  >
+                    Reset to Defaults
+                  </button>
                 </div>
               </div>
             </details>

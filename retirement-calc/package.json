@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Retirement simulator",
   "scripts": {
-    "start": "node start.js"
+    "start": "npx serve ."
   },
   "keywords": [
     "retirement",
