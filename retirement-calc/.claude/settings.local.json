@@ -1,36 +1,7 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(move:*)",
-      "Bash(npm:*)",
-      "Bash(node:*)",
-      "Bash(start chrome:*)",
-      "Bash(powershell:*)",
-      "Bash(find:*)",
-      "Bash(sort:*)",
-      "Bash(findstr:*)",
-      "Bash(curl:*)",
-      "Bash(ls:*)",
-      "Bash(dir:*)",
-      "Bash(pwd)",
-      "Bash(which:*)",
-      "Bash(where:*)",
-      "Bash(file:*)",
-      "Bash(wc:*)",
-      "Bash(date)",
-      "Bash(git status:*)",
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git show:*)",
-      "Bash(git branch:*)",
-      "Bash(git rev-parse:*)",
-      "Bash(git ls-files:*)",
-      "Bash(git blame:*)",
-      "Bash(git remote:*)",
-      "Bash(git config --get:*)",
-      "Bash(git stash list:*)"
-    ],
-    "deny": [],
-    "ask": []
+    "additionalDirectories": [
+      "c:\\GitHub\\prettycode.github.io\\.claude"
+    ]
   }
 }

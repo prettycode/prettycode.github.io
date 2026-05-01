@@ -1,17 +1,54 @@
 {
   "permissions": {
     "allow": [
-      "Bash(move:*)",
       "Bash(npm:*)",
       "Bash(node:*)",
       "Bash(start chrome:*)",
-      "Bash(powershell:*)",
       "Bash(find:*)",
       "Bash(sort:*)",
       "Bash(findstr:*)",
-      "Bash(curl:*)"
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Bash(pwd)",
+      "Bash(which:*)",
+      "Bash(where:*)",
+      "Bash(file:*)",
+      "Bash(wc:*)",
+      "Bash(date)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git blame:*)",
+      "Bash(git remote:*)",
+      "Bash(git config --get:*)",
+      "Bash(git stash list:*)"
     ],
-    "deny": [],
-    "ask": []
+    "deny": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git stash:*)",
+      "Bash(git reset:*)",
+      "Bash(git restore:*)",
+      "Bash(git checkout:*)",
+      "Bash(git rm:*)",
+      "Bash(git clean:*)",
+      "Bash(git rebase:*)",
+      "Bash(git merge:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git revert:*)",
+      "Bash(git tag:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)"
+    ],
+    "ask": [
+      "Bash(move:*)",
+      "Bash(curl:*)",
+      "Bash(powershell:*)"
+    ]
   }
 }
