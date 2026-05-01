@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historical Market Data</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0f1117;
+    color: #e2e4e9;
+    padding: 40px 24px;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 880px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: #6b7080;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  .table-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #6b7080;
+    margin-bottom: 10px;
+  }
+
+  .table-wrap {
+    background: #181a20;
+    border: 1px solid #25272f;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  thead th {
+    background: #1e2028;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #8b8fa3;
+    padding: 14px 20px;
+    text-align: left;
+    border-bottom: 1px solid #25272f;
+  }
+
+  thead th:not(:first-child) {
+    text-align: right;
+  }
+
+  tbody td {
+    padding: 13px 20px;
+    border-bottom: 1px solid #1f2129;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+  }
+
+  tbody td:first-child {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    color: #c8cad0;
+    font-size: 13.5px;
+  }
+
+  tbody td:not(:first-child) {
+    text-align: right;
+    color: #e2e4e9;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover {
+    background: #1c1e26;
+  }
+
+  .period-col {
+    color: #6b7080 !important;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 12px !important;
+  }
+
+  .section-header td {
+    background: #14151b;
+    font-family: 'DM Sans', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #4a8eff !important;
+    padding: 10px 20px;
+  }
+
+  .footnotes {
+    margin-top: 24px;
+    font-size: 11.5px;
+    color: #555868;
+    line-height: 1.7;
+  }
+
+  .footnotes strong {
+    color: #6b7080;
+  }
+
+  .source-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #4a6a90;
+    background: #182030;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Historical Stock Market &amp; Inflation Data</h1>
+    <p class="subtitle">Nominal total returns (including dividends). All figures annualized.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Time Frame</th>
+            <th>Full-Period Value</th>
+            <th>Worst 30-Yr Period</th>
+            <th>Worst 30-Yr Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="section-header"><td colspan="5">Returns</td></tr>
+          <tr>
+            <td>CAGR — U.S. Stocks</td>
+            <td class="period-col">1871–2024</td>
+            <td>9.3%</td>
+            <td class="period-col">1903–1932</td>
+            <td>4.7%</td>
+          </tr>
+          <tr>
+            <td>CAGR — World Stocks</td>
+            <td class="period-col">1900–2024</td>
+            <td>8.3%</td>
+            <td class="period-col">~1914–1944</td>
+            <td>~4.0%</td>
+          </tr>
+          <tr class="section-header"><td colspan="5">Volatility</td></tr>
+          <tr>
+            <td>Std Dev — U.S. Stocks</td>
+            <td class="period-col">1926–2024</td>
+            <td>19.8%</td>
+            <td class="period-col">~1925–1955</td>
+            <td>~28%</td>
+          </tr>
+          <tr>
+            <td>Std Dev — World Stocks</td>
+            <td class="period-col">1900–2024</td>
+            <td>17.4%</td>
+            <td class="period-col">~1914–1944</td>
+            <td>~23%</td>
+          </tr>
+          <tr class="section-header"><td colspan="5">Inflation</td></tr>
+          <tr>
+            <td>U.S. CPI Inflation</td>
+            <td class="period-col">1900–2024</td>
+            <td>2.9%</td>
+            <td class="period-col">~1950–1980</td>
+            <td>~4.6%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footnotes">
+      <strong>Sources:</strong> UBS Global Investment Returns Yearbook 2025 (Dimson, Marsh &amp; Staunton); Ibbotson/Morningstar SBBI data; Shiller CAPE dataset; NYU Stern historical returns; BLS CPI data.<br><br>
+      <strong>Notes:</strong> U.S. Stocks = S&amp;P 500 and predecessor indices. World Stocks = DMS global equity index (23–35 countries, cap-weighted). "~" prefix indicates an approximate figure where precise rolling 30-year data for the global index is less granular than for U.S. data. Volatility is the annualized standard deviation of nominal returns. The world volatility figure of 17.4% reflects the diversified index, which benefits from cross-country correlation &lt; 1.
+    </div>
+    <div class="source-tag">Nominal · Total Return · Annualized</div>
+  </div>
+</body>
+</html>

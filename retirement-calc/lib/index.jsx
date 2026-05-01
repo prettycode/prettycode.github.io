@@ -8,10 +8,51 @@ function RetirementSimulator() {
   const [upfrontYears, setUpfrontYears] = useState(1);
   const [inflationAdjustBucket, setInflationAdjustBucket] = useState(false);
   const [bucketEarnsTBills, setBucketEarnsTBills] = useState(false);
-  const [cagr, setCagr] = useState(0.098);
-  const [volatility, setVolatility] = useState(0.175);
-  const [inflation, setInflation] = useState(0.03);
+  // Initial market assumptions come from a preset so the simulator boots with
+  // a coherent (region × scenario) combo rather than ad-hoc numbers, and the
+  // toggles below light up on load.
+  const INITIAL_REGION = 'world';
+  const INITIAL_SCENARIO = 'historical';
+  const initialPreset = MARKET_PRESETS[INITIAL_REGION][INITIAL_SCENARIO];
+  const [cagr, setCagr] = useState(initialPreset.cagr);
+  const [volatility, setVolatility] = useState(initialPreset.volatility);
+  const [inflation, setInflation] = useState(initialPreset.inflation);
   const [years, setYears] = useState(40);
+
+  // Last-clicked axis values, used so a single button click can apply a full
+  // (region × scenario) combo. The active toggle state below is *derived* from
+  // the current slider values, so manual slider drags clear both highlights.
+  const [lastRegion, setLastRegion] = useState(INITIAL_REGION);
+  const [lastScenario, setLastScenario] = useState(INITIAL_SCENARIO);
+
+  const activePreset = (() => {
+    for (const region of Object.keys(MARKET_PRESETS)) {
+      for (const scenario of Object.keys(MARKET_PRESETS[region])) {
+        const p = MARKET_PRESETS[region][scenario];
+        if (p.cagr === cagr && p.volatility === volatility && p.inflation === inflation) {
+          return { region, scenario };
+        }
+      }
+    }
+    return null;
+  })();
+
+  const applyMarketPreset = (region, scenario) => {
+    const p = MARKET_PRESETS[region][scenario];
+    setCagr(p.cagr);
+    setVolatility(p.volatility);
+    setInflation(p.inflation);
+  };
+
+  const selectRegion = (r) => {
+    setLastRegion(r);
+    applyMarketPreset(r, lastScenario);
+  };
+
+  const selectScenario = (s) => {
+    setLastScenario(s);
+    applyMarketPreset(lastRegion, s);
+  };
 
   const [sim, setSim] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -227,7 +268,7 @@ function RetirementSimulator() {
               value={cagr}
               min={0.01}
               max={0.12}
-              step={0.005}
+              step={0.001}
               onChange={setCagr}
               format={fmtPct}
             />
@@ -238,7 +279,7 @@ function RetirementSimulator() {
               value={volatility}
               min={0.02}
               max={0.30}
-              step={0.01}
+              step={0.001}
               onChange={setVolatility}
               format={fmtPct}
             />
@@ -249,7 +290,7 @@ function RetirementSimulator() {
               value={inflation}
               min={0}
               max={0.08}
-              step={0.0025}
+              step={0.001}
               onChange={setInflation}
               format={fmtPct}
             />
@@ -260,7 +301,7 @@ function RetirementSimulator() {
                 <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 14 }}>
                   <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
                   <div style={{ flex: 1 }}>
-                    <div className="toggle-label">Withdrawal frequency</div>
+                    <div className="toggle-label">Withdrawal Frequency</div>
                     <div className="toggle-sub" style={{ marginBottom: 8 }}>When draws are taken from the portfolio.</div>
                     <div className="freq-toggle">
                       <button
@@ -304,6 +345,55 @@ function RetirementSimulator() {
                     </div>
                   </div>
                 </label>
+                <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
+                  <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
+                  <div style={{ flex: 1 }}>
+                    <div className="toggle-label">Market Assumptions</div>
+                    <div className="toggle-sub" style={{ marginBottom: 8 }}>
+                      Apply CAGR, volatility, and inflation from historical data.{' '}
+                      <a
+                        className="presets-source-inline"
+                        href="Historical-Stock-Market-And-Inflation-Data.html"
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        ↗
+                      </a>
+                    </div>
+                    <div className="freq-toggle" style={{ marginBottom: 6 }}>
+                      <button
+                        type="button"
+                        className={`freq-btn${activePreset?.region === 'us' ? ' active' : ''}`}
+                        onClick={() => selectRegion('us')}
+                      >
+                        U.S.
+                      </button>
+                      <button
+                        type="button"
+                        className={`freq-btn${activePreset?.region === 'world' ? ' active' : ''}`}
+                        onClick={() => selectRegion('world')}
+                      >
+                        World
+                      </button>
+                    </div>
+                    <div className="freq-toggle">
+                      <button
+                        type="button"
+                        className={`freq-btn${activePreset?.scenario === 'historical' ? ' active' : ''}`}
+                        onClick={() => selectScenario('historical')}
+                      >
+                        Historical
+                      </button>
+                      <button
+                        type="button"
+                        className={`freq-btn${activePreset?.scenario === 'worst' ? ' active' : ''}`}
+                        onClick={() => selectScenario('worst')}
+                      >
+                        Worst 30-Yr
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </details>
           </aside>

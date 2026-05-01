@@ -12,6 +12,19 @@ const SIM_RUNS = 1_000_000;
 // Used so the T-Bill rate tracks the inflation slider (rate = inflation + this).
 const T_BILL_REAL_PREMIUM = 0.005;
 
+// Market-assumption presets sourced from Historical-Stock-Market-And-Inflation-Data.html.
+// Inflation comes from U.S. CPI in both regions — the source has no separate world-CPI series.
+const MARKET_PRESETS = {
+  us: {
+    historical: { cagr: 0.093, volatility: 0.198, inflation: 0.029 },
+    worst:      { cagr: 0.047, volatility: 0.28,  inflation: 0.046 },
+  },
+  world: {
+    historical: { cagr: 0.083, volatility: 0.174, inflation: 0.029 },
+    worst:      { cagr: 0.040, volatility: 0.23,  inflation: 0.046 },
+  },
+};
+
 // Convert a target CAGR to the per-year arithmetic mean μ that the worker's
 // additive-shock model needs. With (1+R) ~ N(1+μ, σ²), the long-run geometric
 // mean satisfies E[ln(1+R)] ≈ ln(1+μ) − σ²/(2(1+μ)²); inverting gives the
