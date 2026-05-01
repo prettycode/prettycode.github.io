@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"const styles\\\\|^    \\\\`;\\\\|^\\\\`;\" /c/GitHub/prettycode.github.io/retirement-calc/retirement-simulator2.jsx)",
+      "Bash(grep -nE \"^[[:space:]]*\\\\`;\" /c/GitHub/prettycode.github.io/retirement-calc/retirement-simulator2.jsx)"
+    ]
+  }
+}

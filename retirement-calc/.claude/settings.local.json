@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx serve --help)"
+      "Bash(npx serve --help)",
+      "Read(//c/Program Files/Google/Chrome/Application/**)",
+      "Read(//c/Program Files \\(x86\\)/Microsoft/Edge/Application/**)",
+      "Bash(curl -s http://127.0.0.1:5500/monte-carlo2.html)"
     ],
     "deny": [],
     "ask": []
