@@ -219,7 +219,7 @@ input[type="range"]::-moz-range-thumb {
   gap: 22px;
   align-items: center;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--ink);
+  border: 1px dashed var(--ink);
 }
 
 @media (max-width: 720px) {

@@ -1,13 +1,18 @@
 {
   "name": "retirement-calc",
   "version": "1.0.0",
-  "description": "Retirement calculator application",
+  "description": "Retirement simulator",
   "scripts": {
     "start": "node start.js"
   },
   "keywords": [
     "retirement",
-    "calculator"
+    "simulator",
+    "calculator",
+    "finance",
+    "investment",
+    "planning",
+    "monte-carlo"
   ],
   "author": "",
   "license": "ISC"
