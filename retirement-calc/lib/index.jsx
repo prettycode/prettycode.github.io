@@ -460,6 +460,9 @@ function RetirementSimulator() {
               <div className="stat-cell">
                 <div className="stat-label">Median Ending</div>
                 <div className="stat-value">{fmtMoney(sim.medianEnding)}</div>
+                <div className="stat-sub">
+                  ≈ {fmtMoney(sim.medianEnding / Math.pow(1 + inflation, simYears))} today
+                </div>
               </div>
               <div className="stat-cell">
                 <div className="stat-label">Total Drawn</div>
@@ -479,7 +482,7 @@ function RetirementSimulator() {
                   {medianDepletion ? `Year ${medianDepletion.year}` : "None"}
                 </div>
                 {medianDepletion && (
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: '0.05em', color: 'var(--ink-2)', marginTop: 4, textTransform: 'uppercase', fontVariantNumeric: 'tabular-nums' }}>
+                  <div className="stat-sub">
                     {fmtMoney(medianDepletion.withdrawal)} draw
                   </div>
                 )}
