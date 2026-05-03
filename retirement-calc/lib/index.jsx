@@ -216,7 +216,7 @@ function RetirementSimulator() {
         {/* MASTHEAD */}
         <header className="masthead">
           <h1 className="masthead-title">
-            The Retirement <span className="reg">Ledger</span>
+            Retirement Simulator<span className="reg"></span>
           </h1>
           <div className="masthead-meta">
             <div className="vol">VOL. I · MONTE CARLO EDITION</div>

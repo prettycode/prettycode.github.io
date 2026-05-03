@@ -1,6 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500;700&family=Inter+Tight:wght@400;500;600&display=swap');
 
 .sim-root {
+  --cream: #faf8f5;
+  --cream-2: #f5f1ed;
+  --ink: #3d3330;
+  --ink-2: #7a7269;
+  --rule: #e5ddd5;
+  --accent: #ff6b4a;
+  --accent-2: #009688;
+  --gold: #ffb300;
+  --green: #66bb6a;
+  --withdrawal: #ff6b4a;
+  /*
+  Alternative palette (more muted, "vintage newspaper" vibes):
   --cream: #f4ede0;
   --cream-2: #ede4d3;
   --ink: #1a1612;
@@ -11,7 +23,7 @@
   --gold: #a87f2a;
   --green: #3a7d44;
   --withdrawal: #8b3a1f;
-
+  */
   font-family: 'Inter Tight', sans-serif;
   background: var(--cream);
   color: var(--ink);
