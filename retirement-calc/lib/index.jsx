@@ -555,12 +555,16 @@ function RetirementSimulator() {
               simYears={simYears}
             />
 
-            <p className="footer-note">
-              {withdrawalFrequency === 'monthly'
-                ? "Returns are sampled monthly, with the annual mean and volatility rescaled so twelve compounded months match the annual factor's mean and variance. "
-                : "Returns are sampled annually from a normal distribution; the input CAGR is converted to the per-year arithmetic mean by adding back the variance drag (≈ σ²/2), so the long-run geometric mean of paths tracks the chosen CAGR. "}
-              Past performance does not guarantee future results; this model is illustrative, not advisory.
-            </p>
+            <div className="footer-note">
+              <p>
+                {withdrawalFrequency === 'monthly'
+                  ? "Returns are sampled monthly, with the annual mean and volatility rescaled so twelve compounded months match the annual factor's mean and variance."
+                  : "Returns are sampled annually from a normal distribution; the input CAGR is converted to the per-year arithmetic mean by adding back the variance drag (≈ σ²/2), so the long-run geometric mean of paths tracks the chosen CAGR."}
+              </p>
+              <p>
+                Past performance does not guarantee future results; this model is illustrative, not advisory.
+              </p>
+            </div>
             </>}
           </main>
         </div>
