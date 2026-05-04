@@ -350,11 +350,9 @@ function PortfolioChart({
             }}
           >
             <div className="tooltip-year">
-              {hover === 0
-                ? "RETIREMENT START"
-                : hover === simYears
-                  ? `END OF YEAR ${simYears}`
-                  : `START OF YEAR ${upcomingYear.year}`}
+              {hover === simYears
+                  ? `RETIREMENT YEAR ${simYears} END`
+                  : `RETIREMENT YEAR ${upcomingYear.year} START`}
             </div>
             {(() => {
               const post = (v) => Math.max(0, v - hoverWithdrawal);
