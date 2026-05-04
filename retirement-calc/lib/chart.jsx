@@ -106,7 +106,7 @@ function PortfolioChart({
       </div>
       <p className="chart-subtitle">
         Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo paths. Outer band, 10th–90th percentile;
-        inner band, 25th–75th. The stepped line marks median annual withdrawal, scaled to the left axis.
+        inner band, 25th–75th. Vertical marks show each year's median withdrawal, scaled to the left axis.
       </p>
 
       <div className={`chart-wrap${running ? " running" : ""}`}>
@@ -245,72 +245,43 @@ function PortfolioChart({
             strokeLinejoin="round"
           />
 
-          {/* Withdrawal step-line (solid, on left axis). Shifted one
-              tick left of the balance series: withdrawal[y] is the draw
-              taken at the start of year y, so each step starts at
-              x(y-1) — the moment the money leaves — and runs flat for
-              that year's duration before stepping to the next year. */}
-          <path
-            d={(() => {
-              const pts = sim.percentiles.slice(1);
-              const lastYear = medianDepletion ? medianDepletion.year : pts.length;
-              // Year y's draw on the median path. The intended schedule keeps
-              // inflating, but on the depletion year the median portfolio
-              // can't pay more than its remaining balance — medianDepletion
-              // already carries that capped figure.
-              const wAt = (y) =>
-                medianDepletion && y === medianDepletion.year
-                  ? medianDepletion.withdrawal
-                  : pts[y-1].withdrawal;
-              // When the depletion-year withdrawal alone exhausts the
-              // portfolio, the median path drops to $0 at x(lastYear-1)
-              // — the moment of withdrawal — rather than running flat
-              // through year N. Mirror that on the withdrawal line.
-              const endsAtWithdrawal = medianDepletion
-                && sim.percentiles[medianDepletion.year - 1].p50
-                   <= sim.percentiles[medianDepletion.year].withdrawal;
-              // With a multi-year cash bucket, year 1's draw is a single
-              // lump that funds years 1..upfrontYears outside the
-              // portfolio. Detect by the bucket's signature — year 1 has
-              // a draw, year 2 doesn't — and render the lump as a spike
-              // at x(0) (the moment it leaves) instead of running flat
-              // through year 1 like a normal annual withdrawal.
-              const isLumpSum = pts.length >= 2
-                && pts[0].withdrawal > 0
-                && pts[1].withdrawal === 0;
-              let d = `M ${x(0)} ${yScaleW(wAt(1))}`;
-              let startI = 1;
-              if (isLumpSum) {
-                d += ` L ${x(0)} ${yScaleW(wAt(2))}`;
-                startI = 2;
-              }
-              for (let i = startI; i < lastYear; i++) {
-                d += ` L ${x(i)} ${yScaleW(wAt(i))}`;
-                d += ` L ${x(i)} ${yScaleW(wAt(i+1))}`;
-              }
-              if (endsAtWithdrawal) {
-                // Drop to $0 at x(lastYear-1) — same tick as the median
-                // path's drop. Year N's withdrawal happens and exhausts
-                // the portfolio in the same instant; there's no year-N
-                // duration to run flat across.
-                d += ` L ${x(lastYear - 1)} ${yScaleW(0)}`;
-              } else {
-                d += ` L ${x(lastYear)} ${yScaleW(wAt(lastYear))}`;
-                if (medianDepletion) {
-                  // Growth-shock depletion: year N's withdrawal was paid
-                  // in full but a market shock then took the balance to
-                  // $0 by year-end. Drop at x(lastYear) to match the
-                  // median line's diagonal landing at (x(N), 0).
-                  d += ` L ${x(lastYear)} ${yScaleW(0)}`;
-                }
-              }
-              return d;
-            })()}
-            fill="none"
-            stroke="var(--withdrawal)"
-            strokeWidth="1.5"
-            strokeLinejoin="miter"
-          />
+          {/* Withdrawal lollipops (left axis). Each draw is a discrete
+              event: year y's withdrawal is taken at the start of year y,
+              so the mark sits at x(y-1) — the moment the money leaves —
+              with a thin stem rising from the axis to a dot at the
+              withdrawal value. Bucket-funded years naturally show no
+              mark (withdrawal is 0); years past depletion are skipped. */}
+          {(() => {
+            const pts = sim.percentiles.slice(1);
+            const lastYear = medianDepletion ? medianDepletion.year : pts.length;
+            const wAt = (y) =>
+              medianDepletion && y === medianDepletion.year
+                ? medianDepletion.withdrawal
+                : pts[y-1].withdrawal;
+            const marks = [];
+            for (let y = 1; y <= lastYear; y++) {
+              const w = wAt(y);
+              if (w <= 0) continue;
+              const cx = x(y - 1);
+              const cy = yScaleW(w);
+              marks.push(
+                <g key={y}>
+                  <line
+                    x1={cx} x2={cx}
+                    y1={yScaleW(0)} y2={cy}
+                    stroke="var(--withdrawal)"
+                    strokeWidth="1"
+                    opacity="0.55"
+                  />
+                  <circle
+                    cx={cx} cy={cy} r="2.5"
+                    fill="var(--withdrawal)"
+                  />
+                </g>
+              );
+            }
+            return marks;
+          })()}
 
           {/* Hover guide */}
           {hoverData && (
@@ -443,26 +414,21 @@ function PortfolioChart({
           Median path
         </div>
         <div className="legend-item">
-          <span className="legend-swatch" style={{
-            background: "transparent",
-            borderTop: "2px solid var(--withdrawal)",
-            borderBottom: "none",
-            borderLeft: "none",
-            borderRight: "none",
-            height: "0",
-            marginTop: "5px"
-          }}></span>
+          <svg width="16" height="12" style={{ overflow: "visible" }}>
+            <line x1="8" x2="8" y1="11" y2="3" stroke="var(--withdrawal)" strokeWidth="1" opacity="0.55"/>
+            <circle cx="8" cy="3" r="2.5" fill="var(--withdrawal)"/>
+          </svg>
           Annual withdrawal
         </div>
       </div>
 
       <p className="chart-footnote">
         {withdrawalFrequency === 'monthly'
-          ? "Withdrawals are taken in twelve equal monthly draws; each step on the chart aggregates them into the year's total, beginning one tick left of the balance series — the step at Y0 covers year 1's draws, Y1 covers year 2's, and so on. "
-          : "Withdrawals are taken at the start of the year they fund, so each step begins one tick left of the balance series: the step starting at Y0 is the draw that funds year 1, Y1 the draw that funds year 2, and so on. "}
-        With a multi-year cash bucket, Y0's step is the lump-sum drawn from the portfolio at retirement; the bucket-funded
-        years that follow show zero portfolio withdrawal. The hover value at the final tick projects one more year of
-        inflation onto the last simulated withdrawal — assuming retirement continues for as long as the portfolio sustains it.
+          ? "Withdrawals are taken in twelve equal monthly draws; each mark on the chart aggregates them into the year's total and sits one tick left of the balance series — the mark at Y0 covers year 1's draws, Y1 covers year 2's, and so on. "
+          : "Withdrawals are taken at the start of the year they fund, so each mark sits one tick left of the balance series: the mark at Y0 is the draw that funds year 1, Y1 the draw that funds year 2, and so on. "}
+        With a multi-year cash bucket, Y0's mark is the lump-sum drawn from the portfolio at retirement; the bucket-funded
+        years that follow show no mark. The hover value at the final tick projects one more year of inflation onto the
+        last simulated withdrawal — assuming retirement continues for as long as the portfolio sustains it.
       </p>
     </div>
   );
