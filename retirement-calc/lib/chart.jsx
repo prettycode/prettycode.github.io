@@ -86,11 +86,17 @@ function PortfolioChart({
   // Withdrawal at hover tick h is the draw taken at the start of year h+1.
   // At the final tick we've run out of simulated years, so project one more
   // year of inflation onto the last withdrawal — assumes retirement continues
-  // for as long as the portfolio sustains it.
+  // for as long as the portfolio sustains it. Past the median's depletion
+  // year the chart's withdrawal line is gone (it dropped to $0 at depletion),
+  // so the tooltip mirrors that with 0 instead of the still-inflating draw.
   const hoverWithdrawal = hoverData
-    ? (hover < simYears
-        ? sim.percentiles[hover + 1].withdrawal
-        : Math.floor(sim.percentiles[simYears].withdrawal * (1 + inflation)))
+    ? (medianDepletion && hover >= medianDepletion.year
+        ? 0
+        : medianDepletion && hover === medianDepletion.year - 1
+          ? medianDepletion.withdrawal
+          : hover < simYears
+            ? sim.percentiles[hover + 1].withdrawal
+            : Math.floor(sim.percentiles[simYears].withdrawal * (1 + inflation)))
     : null;
 
   return (
@@ -209,14 +215,27 @@ function PortfolioChart({
 
           {/* Median portfolio line — truncated at depletion year so
               the line clearly terminates at $0 instead of vanishing
-              along the bottom axis frame. */}
+              along the bottom axis frame. When the depletion-year
+              withdrawal alone exhausts the portfolio (intended draw ≥
+              prior balance), the path ends at the moment of withdrawal
+              — x(lastYear-1) — rather than running flat along the axis
+              to x(lastYear). The growth-shock case (withdrawal leaves
+              a positive balance that a market shock then takes to $0)
+              still ends with a diagonal to x(lastYear). */}
           <path
             d={(() => {
               const lastYear = medianDepletion ? medianDepletion.year : simYears;
+              const endsAtWithdrawal = medianDepletion
+                && sim.percentiles[medianDepletion.year - 1].p50
+                   <= sim.percentiles[medianDepletion.year].withdrawal;
+              const fullYears = endsAtWithdrawal ? lastYear - 1 : lastYear;
               let d = `M ${x(0)} ${yScale(sim.percentiles[0].p50)}`;
-              for (let i = 1; i <= lastYear; i++) {
+              for (let i = 1; i <= fullYears; i++) {
                 d += ` L ${x(i-1)} ${yScale(stepDown("p50", i))}`;
                 d += ` L ${x(i)} ${yScale(sim.percentiles[i].p50)}`;
+              }
+              if (endsAtWithdrawal) {
+                d += ` L ${x(fullYears)} ${yScale(0)}`;
               }
               return d;
             })()}
@@ -235,16 +254,55 @@ function PortfolioChart({
             d={(() => {
               const pts = sim.percentiles.slice(1);
               const lastYear = medianDepletion ? medianDepletion.year : pts.length;
-              let d = `M ${x(0)} ${yScaleW(pts[0].withdrawal)}`;
-              for (let i = 1; i < lastYear; i++) {
-                d += ` L ${x(i)} ${yScaleW(pts[i-1].withdrawal)}`;
-                d += ` L ${x(i)} ${yScaleW(pts[i].withdrawal)}`;
+              // Year y's draw on the median path. The intended schedule keeps
+              // inflating, but on the depletion year the median portfolio
+              // can't pay more than its remaining balance — medianDepletion
+              // already carries that capped figure.
+              const wAt = (y) =>
+                medianDepletion && y === medianDepletion.year
+                  ? medianDepletion.withdrawal
+                  : pts[y-1].withdrawal;
+              // When the depletion-year withdrawal alone exhausts the
+              // portfolio, the median path drops to $0 at x(lastYear-1)
+              // — the moment of withdrawal — rather than running flat
+              // through year N. Mirror that on the withdrawal line.
+              const endsAtWithdrawal = medianDepletion
+                && sim.percentiles[medianDepletion.year - 1].p50
+                   <= sim.percentiles[medianDepletion.year].withdrawal;
+              // With a multi-year cash bucket, year 1's draw is a single
+              // lump that funds years 1..upfrontYears outside the
+              // portfolio. Detect by the bucket's signature — year 1 has
+              // a draw, year 2 doesn't — and render the lump as a spike
+              // at x(0) (the moment it leaves) instead of running flat
+              // through year 1 like a normal annual withdrawal.
+              const isLumpSum = pts.length >= 2
+                && pts[0].withdrawal > 0
+                && pts[1].withdrawal === 0;
+              let d = `M ${x(0)} ${yScaleW(wAt(1))}`;
+              let startI = 1;
+              if (isLumpSum) {
+                d += ` L ${x(0)} ${yScaleW(wAt(2))}`;
+                startI = 2;
               }
-              d += ` L ${x(lastYear)} ${yScaleW(pts[lastYear-1].withdrawal)}`;
-              if (medianDepletion) {
-                // Drop to $0 at the depletion year and terminate —
-                // matches the median portfolio line.
-                d += ` L ${x(lastYear)} ${yScaleW(0)}`;
+              for (let i = startI; i < lastYear; i++) {
+                d += ` L ${x(i)} ${yScaleW(wAt(i))}`;
+                d += ` L ${x(i)} ${yScaleW(wAt(i+1))}`;
+              }
+              if (endsAtWithdrawal) {
+                // Drop to $0 at x(lastYear-1) — same tick as the median
+                // path's drop. Year N's withdrawal happens and exhausts
+                // the portfolio in the same instant; there's no year-N
+                // duration to run flat across.
+                d += ` L ${x(lastYear - 1)} ${yScaleW(0)}`;
+              } else {
+                d += ` L ${x(lastYear)} ${yScaleW(wAt(lastYear))}`;
+                if (medianDepletion) {
+                  // Growth-shock depletion: year N's withdrawal was paid
+                  // in full but a market shock then took the balance to
+                  // $0 by year-end. Drop at x(lastYear) to match the
+                  // median line's diagonal landing at (x(N), 0).
+                  d += ` L ${x(lastYear)} ${yScaleW(0)}`;
+                }
               }
               return d;
             })()}
@@ -267,7 +325,9 @@ function PortfolioChart({
               />
               <circle cx={x(hover)} cy={yScale(hoverData.p50)} r="4" fill="var(--ink)"/>
               <circle cx={x(hover)} cy={yScale(hoverData.p50)} r="2" fill="var(--cream)"/>
-              <circle cx={x(hover)} cy={yScaleW(hoverWithdrawal)} r="3" fill="var(--withdrawal)"/>
+              {hoverWithdrawal > 0 && (
+                <circle cx={x(hover)} cy={yScaleW(hoverWithdrawal)} r="3" fill="var(--withdrawal)"/>
+              )}
             </>
           )}
 
@@ -297,7 +357,7 @@ function PortfolioChart({
           </text>
         </svg>
 
-        {hoverData && (
+        {hoverData && hoverData.p90 > 0 && (
           <div
             className="tooltip"
             style={{
@@ -305,7 +365,7 @@ function PortfolioChart({
               top: `${(yScale(hoverData.p50) / H) * 100}%`,
             }}
           >
-            <div className="tooltip-year">YEAR {hover}</div>
+            <div className="tooltip-year">{hover === 0 ? "RETIREMENT START" : `START OF YEAR ${hover}`}</div>
             {(() => {
               const post = (v) => Math.max(0, v - hoverWithdrawal);
               if (hover === 0) {

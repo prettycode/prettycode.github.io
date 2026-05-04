@@ -197,14 +197,19 @@ function RetirementSimulator() {
   // Derived stats
   const successColor = sim && sim.successRate >= 0.9 ? "#3a7d44" : sim && sim.successRate >= 0.7 ? "#c89a3a" : "#a83232";
 
-  // First year the median (p50) path hits $0. The withdrawal at that year is
-  // the inflation-adjusted intended draw — i.e. the spend that broke the
-  // median portfolio.
+  // First year the median (p50) path hits $0. The intended draw schedule keeps
+  // inflating regardless, but a real retiree can only spend what's actually
+  // there — so cap the depletion-year withdrawal at the median balance going
+  // into the year (sim.percentiles[i-1].p50). Everything downstream (chart's
+  // withdrawal line, tooltip, stat-cells) reads this capped value so the
+  // visualization respects "you can't withdraw more than the portfolio holds."
   const medianDepletion = (() => {
     if (!sim) return null;
     for (let i = 1; i <= simYears; i++) {
       if (sim.percentiles[i].p50 <= 0) {
-        return { year: i, withdrawal: sim.percentiles[i].withdrawal };
+        const intended = sim.percentiles[i].withdrawal;
+        const priorBalance = sim.percentiles[i-1].p50;
+        return { year: i, withdrawal: Math.min(intended, priorBalance) };
       }
     }
     return null;
