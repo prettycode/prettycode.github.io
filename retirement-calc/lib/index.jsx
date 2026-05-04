@@ -197,19 +197,29 @@ function RetirementSimulator() {
   // Derived stats
   const successColor = sim && sim.successRate >= 0.9 ? "#3a7d44" : sim && sim.successRate >= 0.7 ? "#c89a3a" : "#a83232";
 
-  // First year the median (p50) path hits $0. The intended draw schedule keeps
-  // inflating regardless, but a real retiree can only spend what's actually
-  // there — so cap the depletion-year withdrawal at the median balance going
-  // into the year (sim.percentiles[i-1].p50). Everything downstream (chart's
-  // withdrawal line, tooltip, stat-cells) reads this capped value so the
-  // visualization respects "you can't withdraw more than the portfolio holds."
+  // First year the synthetic median path hits $0. Two ways that can happen:
+  //   (a) start-of-year withdrawal exceeds the prior median balance — the
+  //       capped draw zeros the portfolio at year start. Synthetic line
+  //       drops to $0 at x(i-1), so stat-cell labels this Y(i-1).
+  //   (b) post-withdrawal balance survives but the year's growth shock takes
+  //       percentiles[i].p50 to $0 by year-end. Line hits 0 at x(i), so
+  //       stat-cell labels this Y(i).
+  // Check (a) first: when both apply at the same i, (a) is what the chart's
+  // step-line actually shows dropping to $0. The reported withdrawal is the
+  // capped draw — a real retiree can only spend what's actually there.
+  // `year` is the worker-year index (chart code uses it to look up
+  // percentiles); `displayYear` is the X-axis tick where the line dies, so
+  // the stat-cell label aligns with what the user sees on the chart.
   const medianDepletion = (() => {
     if (!sim) return null;
     for (let i = 1; i <= simYears; i++) {
+      const intended = sim.percentiles[i].withdrawal;
+      const priorBalance = sim.percentiles[i-1].p50;
+      if (priorBalance <= intended) {
+        return { year: i, displayYear: i - 1, withdrawal: priorBalance };
+      }
       if (sim.percentiles[i].p50 <= 0) {
-        const intended = sim.percentiles[i].withdrawal;
-        const priorBalance = sim.percentiles[i-1].p50;
-        return { year: i, withdrawal: Math.min(intended, priorBalance) };
+        return { year: i, displayYear: i, withdrawal: intended };
       }
     }
     return null;
@@ -478,7 +488,7 @@ function RetirementSimulator() {
               <div className="stat-cell">
                 <div className="stat-label">Depletion (Median)</div>
                 <div className="stat-value">
-                  {medianDepletion ? `Year ${medianDepletion.year}` : "None"}
+                  {medianDepletion ? `Year ${medianDepletion.displayYear}` : "None"}
                 </div>
                 {medianDepletion && (
                   <div className="stat-sub">

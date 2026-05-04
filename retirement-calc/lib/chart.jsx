@@ -172,10 +172,20 @@ function PortfolioChart({
                 fontSize="10"
                 fill="var(--ink-2)"
               >
-                Y{t}
+                {t}
               </text>
             </g>
           ))}
+          <text
+            x={padL + innerW / 2} y={padT + innerH + 36}
+            textAnchor="middle"
+            fontFamily="JetBrains Mono"
+            fontSize="9"
+            letterSpacing="0.15em"
+            fill="var(--ink-2)"
+          >
+            YEAR
+          </text>
 
           {/* Left axis (withdrawal) — own ticks + frame */}
           <line
