@@ -434,6 +434,7 @@ input[type="range"]::-moz-range-thumb {
 .stats-row {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: auto auto auto;
   gap: 0;
   border-top: 1px solid var(--ink);
   border-bottom: 1px solid var(--ink);
@@ -444,6 +445,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .stat-cell {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
   padding: 14px 18px;
   border-right: 1px solid var(--rule);
 }

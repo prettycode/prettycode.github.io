@@ -490,11 +490,6 @@ function RetirementSimulator() {
                 <div className="stat-value">
                   {medianDepletion ? `Year ${medianDepletion.displayYear}` : "None"}
                 </div>
-                {medianDepletion && (
-                  <div className="stat-sub">
-                    {fmtMoney(medianDepletion.withdrawal)} draw
-                  </div>
-                )}
               </div>
               <div className="stat-cell">
                 <div className="stat-label">Total Drawn</div>
