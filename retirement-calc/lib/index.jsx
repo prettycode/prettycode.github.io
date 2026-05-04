@@ -497,7 +497,7 @@ function RetirementSimulator() {
                 </div>
               </div>
               <div className="stat-cell">
-                <div className="stat-label">Depletion (Median) During</div>
+                <div className="stat-label">Depletion at start of (Median)</div>
                 <div className="stat-value">
                   {medianDepletion ? `Year ${medianDepletion.year}` : "None"}
                 </div>
