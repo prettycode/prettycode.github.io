@@ -392,7 +392,7 @@ function PortfolioChart({
             height: "0",
             marginTop: "5px"
           }}></span>
-          Annual withdrawal (left axis)
+          Annual withdrawal
         </div>
       </div>
 

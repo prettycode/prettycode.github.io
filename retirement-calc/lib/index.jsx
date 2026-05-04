@@ -452,32 +452,26 @@ function RetirementSimulator() {
             {/* STATS */}
             <div className="stats-row fade">
               <div className="stat-cell">
-                <div className="stat-label">Success Rate</div>
+                <div className="stat-label">Strategy Success Rate</div>
                 <div className="stat-value success" style={{ color: successColor }}>
                   {`${(sim.successRate * 100).toFixed(2)}%`}
                 </div>
               </div>
               <div className="stat-cell">
-                <div className="stat-label">Median Ending</div>
+                <div className="stat-label">Ending Portfolio Balance (Median)</div>
                 <div className="stat-value">{fmtMoney(sim.medianEnding)}</div>
                 <div className="stat-sub">
                   ≈ {fmtMoney(sim.medianEnding / Math.pow(1 + inflation, simYears))} today
                 </div>
               </div>
               <div className="stat-cell">
-                <div className="stat-label">Total Drawn</div>
+                <div className="stat-label">Final Annual Withdrawal (Median)</div>
                 <div className="stat-value">
-                  {fmtMoney(sim.percentiles.reduce((a, b) => a + b.withdrawal, 0))}
+                  {fmtMoney(medianDepletion ? medianDepletion.withdrawal : sim.percentiles[simYears].withdrawal)}
                 </div>
               </div>
               <div className="stat-cell">
-                <div className="stat-label">Final Withdrawal</div>
-                <div className="stat-value">
-                  {fmtMoney(sim.percentiles[simYears].withdrawal)}
-                </div>
-              </div>
-              <div className="stat-cell">
-                <div className="stat-label">Median Depletion</div>
+                <div className="stat-label">Depletion (Median)</div>
                 <div className="stat-value">
                   {medianDepletion ? `Year ${medianDepletion.year}` : "None"}
                 </div>
@@ -486,6 +480,12 @@ function RetirementSimulator() {
                     {fmtMoney(medianDepletion.withdrawal)} draw
                   </div>
                 )}
+              </div>
+              <div className="stat-cell">
+                <div className="stat-label">Total Drawn</div>
+                <div className="stat-value">
+                  {fmtMoney(sim.percentiles.reduce((a, b) => a + b.withdrawal, 0))}
+                </div>
               </div>
             </div>
 
