@@ -197,33 +197,44 @@ function RetirementSimulator() {
   // Derived stats
   const successColor = sim && sim.successRate >= 0.9 ? "#3a7d44" : sim && sim.successRate >= 0.7 ? "#c89a3a" : "#a83232";
 
-  // First year the synthetic median path hits $0. Two ways that can happen:
-  //   (a) start-of-year withdrawal exceeds the prior median balance — the
-  //       capped draw zeros the portfolio at year start. Synthetic line
-  //       drops to $0 at x(i-1), so stat-cell labels this Y(i-1).
-  //   (b) post-withdrawal balance survives but the year's growth shock takes
-  //       percentiles[i].p50 to $0 by year-end. Line hits 0 at x(i), so
-  //       stat-cell labels this Y(i).
-  // Check (a) first: when both apply at the same i, (a) is what the chart's
-  // step-line actually shows dropping to $0. The reported withdrawal is the
-  // capped draw — a real retiree can only spend what's actually there.
-  // `year` is the worker-year index (chart code uses it to look up
-  // percentiles); `displayYear` is the X-axis tick where the line dies, so
-  // the stat-cell label aligns with what the user sees on the chart.
-  const medianDepletion = (() => {
+  // ─── Canonical per-year dataset ─────────────────────────────────────────
+  // Single source of truth for every UI element — stat-cells, chart lines,
+  // lollipops, hover tooltip. Direct sim.percentiles access in renderers is
+  // how the chart and stat-cells drifted out of sync (the prior bug had
+  // medianDepletion computed one way and the chart's synthetic step-line
+  // another). yearData[y] is the year-y record, 1-indexed; year 0 is unused.
+  // The chart renders year y's lollipop at x(y-1) and labels that column
+  // "Year y" in its tooltip, so any "Year y" we display in a stat-cell
+  // points at the same chart column the user is looking at.
+  const yearData = (() => {
     if (!sim) return null;
-    for (let i = 1; i <= simYears; i++) {
-      const intended = sim.percentiles[i].withdrawal;
-      const priorBalance = sim.percentiles[i-1].p50;
-      if (priorBalance <= intended) {
-        return { year: i, displayYear: i - 1, withdrawal: priorBalance };
-      }
-      if (sim.percentiles[i].p50 <= 0) {
-        return { year: i, displayYear: i, withdrawal: intended };
-      }
+    const data = [null];
+    for (let y = 1; y <= simYears; y++) {
+      const startBalance = sim.percentiles[y - 1]; // entering year y's draw
+      const endBalance   = sim.percentiles[y];     // after year y's growth
+      const intended     = sim.percentiles[y].withdrawal;
+      // Two ways the synthetic median path hits $0 in year y:
+      //   (a) intended draw exceeds the prior median balance — capped;
+      //   (b) post-withdrawal balance positive but growth shock takes the
+      //       per-year median to $0 by year-end.
+      const startDepleted = startBalance.p50 <= intended;
+      const endDepleted   = endBalance.p50 <= 0;
+      data.push({
+        year: y,
+        startBalance, endBalance, intended,
+        actual: startDepleted ? Math.max(0, startBalance.p50) : intended,
+        startDepleted, endDepleted,
+        depleted: startDepleted || endDepleted,
+      });
     }
-    return null;
+    return data;
   })();
+
+  // First year the synthetic median path hits $0 — returns the matching
+  // yearData record (or null) so callers stay coupled to the same row.
+  const medianDepletion = yearData
+    ? yearData.slice(1).find(d => d.depleted) ?? null
+    : null;
 
   return (
     <div className="sim-root">
@@ -480,21 +491,21 @@ function RetirementSimulator() {
                 </div>
               </div>
               <div className="stat-cell">
-                <div className="stat-label">Final Annual Withdrawal (Median)</div>
+                <div className="stat-label">Last Annual Withdrawal (Median)</div>
                 <div className="stat-value">
-                  {fmtMoney(medianDepletion ? medianDepletion.withdrawal : sim.percentiles[simYears].withdrawal)}
+                  {fmtMoney((medianDepletion ?? yearData[simYears]).actual)}
                 </div>
               </div>
               <div className="stat-cell">
-                <div className="stat-label">Depletion (Median)</div>
+                <div className="stat-label">Depletion (Median) During</div>
                 <div className="stat-value">
-                  {medianDepletion ? `Year ${medianDepletion.displayYear}` : "None"}
+                  {medianDepletion ? `Year ${medianDepletion.year}` : "None"}
                 </div>
               </div>
               <div className="stat-cell">
                 <div className="stat-label">Total Drawn</div>
                 <div className="stat-value">
-                  {fmtMoney(sim.percentiles.reduce((a, b) => a + b.withdrawal, 0))}
+                  {fmtMoney(yearData.slice(1).reduce((sum, d) => sum + d.actual, 0))}
                 </div>
               </div>
             </div>
@@ -534,11 +545,11 @@ function RetirementSimulator() {
 
             {/* CHART */}
             <PortfolioChart
-              sim={sim}
+              yearData={yearData}
+              retirementBalance={sim.percentiles[0]}
               running={running}
               progress={progress}
               balance={balance}
-              inflation={inflation}
               withdrawalFrequency={withdrawalFrequency}
               medianDepletion={medianDepletion}
               simYears={simYears}
