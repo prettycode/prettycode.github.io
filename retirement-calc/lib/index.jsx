@@ -503,7 +503,7 @@ function RetirementSimulator() {
                 </div>
               </div>
               <div className="stat-cell">
-                <div className="stat-label">Total Drawn (Median)</div>
+                <div className="stat-label">Total Drawn</div>
                 <div className="stat-value">
                   {fmtMoney(yearData.slice(1).reduce((sum, d) => sum + d.actual, 0))}
                 </div>
