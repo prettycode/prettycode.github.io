@@ -34,6 +34,30 @@ export const etfCatalog: ETF[] = [
     ),
 
     createETF(
+        'RSIT',
+        [
+            {
+                exposure: {
+                    assetClass: 'Equity',
+                    marketRegion: 'International Developed',
+                    factorStyle: 'Blend',
+                    sizeFactor: 'Large Cap',
+                },
+                amount: 1.0,
+            },
+            { exposure: { assetClass: 'Managed Futures' }, amount: 1.0 },
+        ],
+        'Stacked',
+        {
+            name: 'Return Stacked® International Stocks & Managed Futures ETF',
+            inceptionDate: '2026-05-05',
+            expenseRatio: 0.98,
+            netAssets: '$3M',
+            yield: 0,
+        }
+    ),
+
+    createETF(
         'RSSX',
         [
             {
