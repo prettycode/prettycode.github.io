@@ -180,6 +180,30 @@ export const etfCatalog: ETF[] = [
         }
     ),
 
+    createETF(
+        'SPLS',
+        [
+            {
+                exposure: {
+                    assetClass: 'Equity',
+                    marketRegion: 'U.S.',
+                    factorStyle: 'Blend',
+                    sizeFactor: 'Large Cap',
+                },
+                amount: 1.0,
+            },
+            { exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.0 },
+        ],
+        'Stacked',
+        {
+            name: 'PIMCO U.S. Stocks PLUS Active Bond ETF',
+            inceptionDate: '2026-01-16',
+            expenseRatio: 0.18,
+            netAssets: '$50M',
+            yield: 0,
+        }
+    ),
+
     createETF('TMF', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 3.0 }], 'Daily Reset'),
     createETF('UBT', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 2.0 }], 'Daily Reset'),
     createETF('ZROZ', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.5 }], 'Extended Duration'),
