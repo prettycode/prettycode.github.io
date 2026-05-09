@@ -3,8 +3,8 @@
  * Handles rebalancing, redistribution, and allocation updates with exact precision
  */
 
-import type { Holding } from '../domain/Holding';
-import { percentToBasisPoints, basisPointsToPercent, ensureBasisPoints, MAX_BASIS_POINTS } from './precision';
+import type { Holding } from '../domain/Portfolio';
+import { percentToBasisPoints, basisPointsToPercent, ensureBasisPoints, MAX_BASIS_POINTS } from './Precision';
 
 /**
  * Redistributes allocation when an ETF is removed from holdings
@@ -69,7 +69,9 @@ export const redistributeAfterRemoval = (holdings: Map<string, Holding>, ticker:
                 targetBasisPoints = holdingBasisPoints + (deletedBasisPoints - distributedBasisPoints);
             } else {
                 const proportion =
-                    currentAdjustableBasisPoints > 0 ? holdingBasisPoints / currentAdjustableBasisPoints : 1 / availableETFs.length;
+                    currentAdjustableBasisPoints > 0
+                        ? holdingBasisPoints / currentAdjustableBasisPoints
+                        : 1 / availableETFs.length;
                 const additionalBasisPoints = Math.round(deletedBasisPoints * proportion);
                 targetBasisPoints = holdingBasisPoints + additionalBasisPoints;
                 distributedBasisPoints += additionalBasisPoints;
@@ -93,7 +95,11 @@ export const redistributeAfterRemoval = (holdings: Map<string, Holding>, ticker:
  * Updates an ETF's allocation and rebalances others to maintain exact 100% total
  * Uses basis points internally for precision
  */
-export const updateAllocation = (holdings: Map<string, Holding>, ticker: string, newPercentage: number): Map<string, Holding> | null => {
+export const updateAllocation = (
+    holdings: Map<string, Holding>,
+    ticker: string,
+    newPercentage: number
+): Map<string, Holding> | null => {
     const currentHolding = holdings.get(ticker);
     if (!currentHolding) {
         return null;
@@ -172,7 +178,9 @@ export const updateAllocation = (holdings: Map<string, Holding>, ticker: string,
         } else {
             const holdingBasisPoints = holding.basisPoints ?? percentToBasisPoints(holding.percentage);
             const proportion =
-                currentAdjustableBasisPoints > 0 ? holdingBasisPoints / currentAdjustableBasisPoints : 1 / adjustableETFs.length;
+                currentAdjustableBasisPoints > 0
+                    ? holdingBasisPoints / currentAdjustableBasisPoints
+                    : 1 / adjustableETFs.length;
             targetBasisPoints = Math.round(remainingBasisPoints * proportion);
             distributedBasisPoints += targetBasisPoints;
         }
@@ -255,4 +263,3 @@ export const redistributeAmongAvailable = (
 
     return holdings;
 };
-

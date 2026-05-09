@@ -2,9 +2,7 @@
  * Serialization utilities - framework-agnostic functions for data conversion
  */
 
-import type { Portfolio } from '../domain/Portfolio';
-import type { SerializedPortfolio } from '../domain/SerializedPortfolio';
-import type { Holding } from '../domain/Holding';
+import type { Portfolio, SerializedPortfolio, Holding } from '../domain/Portfolio';
 
 /**
  * Serializes a portfolio for storage (converts Map to Array)

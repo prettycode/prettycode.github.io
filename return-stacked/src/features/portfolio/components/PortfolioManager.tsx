@@ -1,51 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
-import type { SerializedPortfolio } from '@/features/portfolio/core/domain/SerializedPortfolio';
-import { DEFAULT_PORTFOLIO_NAME, PRECISION_TOLERANCE, ALLOCATION_TOTAL_TARGET } from '@/features/portfolio/core/data/constants';
+import type { Portfolio, SerializedPortfolio } from '@/features/portfolio/core/domain/Portfolio';
+import {
+    DEFAULT_PORTFOLIO_NAME,
+    PRECISION_TOLERANCE,
+    ALLOCATION_TOTAL_TARGET,
+} from '@/features/portfolio/core/data/constants/PortfolioConstants';
 import { etfCatalog } from '@/features/portfolio/core/data/catalogs/EtfCatalog';
 import { examplePortfolios } from '@/features/portfolio/core/data/catalogs/PortfolioTemplates';
 import { isPortfolioModified } from '@/features/portfolio/core/utils/PortfolioComparison';
-import { logger } from '@/features/portfolio/core/utils/Logger';
-import { LocalStorageAdapter } from '@/features/portfolio/adapters/storage/LocalStorageAdapter';
+import { saveUserPortfolio } from '@/features/portfolio/storage/SavedPortfolios';
+import { clonePortfolio } from '@/features/portfolio/core/PortfolioOperations';
 import { usePortfolio } from '@/features/portfolio/hooks/UsePortfolio';
 import { usePersistence } from '@/features/portfolio/hooks/UsePersistence';
-import Builder from './components/builder/Builder';
-import SaveModal from './components/builder/SaveModal';
-import Analysis from './components/analysis/Analysis';
+import Builder from './builder/Builder';
+import SaveModal from './builder/SaveModal';
+import Analysis from './analysis/Analysis';
 import { useToast } from '@/shared/components/ui/Toast';
 import { serializePortfolio, deserializePortfolio } from '@/features/portfolio/core/utils/Serialization';
 
-/**
- * Allocation update for bulk operations
- */
 interface AllocationUpdate {
     ticker: string;
     percentage: number;
 }
 
-/**
- * Temporary input state for controlled inputs
- */
 interface TempInputs {
     [ticker: string]: number | undefined;
 }
 
-/**
- * Converts example portfolio to custom portfolio format with holding metadata
- */
-const convertExampleToCustomPortfolio = (examplePortfolio: Portfolio, service: ReturnType<typeof usePortfolio>['service']): Portfolio => {
+const convertExampleToCustomPortfolio = (examplePortfolio: Portfolio): Portfolio => {
     const holdings = new Map(examplePortfolio.holdings);
-    return service.clone({ ...examplePortfolio, holdings }, examplePortfolio.name);
+    return clonePortfolio({ ...examplePortfolio, holdings }, examplePortfolio.name);
 };
 
 const PortfolioManager: React.FC = () => {
     const { showToast } = useToast();
-    const [storageAdapter] = useState(() => new LocalStorageAdapter());
 
-    // Use the new hooks!
-    const portfolioHook = usePortfolio({
-        initialPortfolio: undefined, // Will be created by the hook
-    });
+    const portfolioHook = usePortfolio({});
 
     const { savedPortfolios } = usePersistence();
 
@@ -69,7 +59,8 @@ const PortfolioManager: React.FC = () => {
                 e.preventDefault();
                 const currentTotal = portfolioHook.totalAllocation;
                 const isPortfolioValid =
-                    Math.abs(currentTotal - ALLOCATION_TOTAL_TARGET) < PRECISION_TOLERANCE && portfolioHook.portfolio.holdings.size > 0;
+                    Math.abs(currentTotal - ALLOCATION_TOTAL_TARGET) < PRECISION_TOLERANCE &&
+                    portfolioHook.portfolio.holdings.size > 0;
                 if (isPortfolioValid) {
                     openSaveModal();
                 }
@@ -84,7 +75,11 @@ const PortfolioManager: React.FC = () => {
         return (): void => window.removeEventListener('keydown', handleKeyDown);
     }, [portfolioHook.totalAllocation, portfolioHook.portfolio.holdings.size, showSaveModal]);
 
-    const updatePortfolio = (portfolioData: Partial<Portfolio>, isTemplateLoad = false, templateData: Portfolio | null = null): void => {
+    const updatePortfolio = (
+        portfolioData: Partial<Portfolio>,
+        isTemplateLoad = false,
+        templateData: Portfolio | null = null
+    ): void => {
         const fullPortfolio: Portfolio = {
             name: portfolioData.name ?? DEFAULT_PORTFOLIO_NAME,
             holdings: portfolioData.holdings ?? new Map(),
@@ -175,7 +170,7 @@ const PortfolioManager: React.FC = () => {
 
     const resetToTemplate = (): void => {
         if (originalTemplate) {
-            const restoredPortfolio = convertExampleToCustomPortfolio(originalTemplate, portfolioHook.service);
+            const restoredPortfolio = convertExampleToCustomPortfolio(originalTemplate);
             portfolioHook.loadPortfolio(restoredPortfolio);
             setHasUnsavedChanges(false);
         }
@@ -263,15 +258,14 @@ const PortfolioManager: React.FC = () => {
         setShowSaveModal(true);
     };
 
-    const saveCustomPortfolio = async (portfolioName: string): Promise<void> => {
+    const saveCustomPortfolio = (portfolioName: string): void => {
         try {
             const portfolioToSave: Portfolio = {
                 ...portfolioHook.portfolio,
                 name: portfolioName,
             };
 
-            const serialized = serializePortfolio(portfolioToSave);
-            await storageAdapter.savePortfolio(serialized);
+            saveUserPortfolio(serializePortfolio(portfolioToSave));
 
             portfolioHook.setPortfolio((prev) => ({
                 ...prev,
@@ -283,7 +277,7 @@ const PortfolioManager: React.FC = () => {
 
             showToast(`Portfolio "${portfolioName}" saved successfully!`, 'success');
         } catch (error) {
-            logger.error('Error saving portfolio', error);
+            console.error('Error saving portfolio', error);
             showToast('There was an error saving your portfolio. Please try again.', 'error');
         }
     };
@@ -307,7 +301,7 @@ const PortfolioManager: React.FC = () => {
             URL.revokeObjectURL(url);
             showToast('Portfolio exported successfully!', 'success');
         } catch (error) {
-            logger.error('Error exporting portfolio', error);
+            console.error('Error exporting portfolio', error);
             showToast('Failed to export portfolio. Please try again.', 'error');
         }
     };
@@ -327,7 +321,7 @@ const PortfolioManager: React.FC = () => {
             setHasUnsavedChanges(true);
             showToast(`Portfolio "${portfolio.name}" imported successfully!`, 'success');
         } catch (error) {
-            logger.error('Error importing portfolio', error);
+            console.error('Error importing portfolio', error);
             showToast('Failed to import portfolio. Please check the file format.', 'error');
         }
 
@@ -380,7 +374,9 @@ const PortfolioManager: React.FC = () => {
                 isOpen={showSaveModal}
                 onClose={() => setShowSaveModal(false)}
                 onSave={saveCustomPortfolio}
-                initialName={portfolioHook.portfolio.name !== DEFAULT_PORTFOLIO_NAME ? portfolioHook.portfolio.name : ''}
+                initialName={
+                    portfolioHook.portfolio.name !== DEFAULT_PORTFOLIO_NAME ? portfolioHook.portfolio.name : ''
+                }
             />
         </div>
     );

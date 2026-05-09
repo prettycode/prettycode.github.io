@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { cn } from '@/shared/lib/Utils';
+import { cn } from '@/shared/lib/Cn';
 
 function Table({ className, ...props }: React.ComponentProps<'table'>): React.ReactElement {
     return (
@@ -20,7 +20,11 @@ function TableBody({ className, ...props }: React.ComponentProps<'tbody'>): Reac
 
 function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>): React.ReactElement {
     return (
-        <tfoot data-slot="table-footer" className={cn('bg-muted/50 border-t font-medium [&>tr]:last:border-b-0', className)} {...props} />
+        <tfoot
+            data-slot="table-footer"
+            className={cn('bg-muted/50 border-t font-medium [&>tr]:last:border-b-0', className)}
+            {...props}
+        />
     );
 }
 
@@ -61,7 +65,9 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>): React.R
 }
 
 function TableCaption({ className, ...props }: React.ComponentProps<'caption'>): React.ReactElement {
-    return <caption data-slot="table-caption" className={cn('text-muted-foreground mt-4 text-sm', className)} {...props} />;
+    return (
+        <caption data-slot="table-caption" className={cn('text-muted-foreground mt-4 text-sm', className)} {...props} />
+    );
 }
 
 export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption };

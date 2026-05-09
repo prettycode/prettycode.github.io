@@ -4,19 +4,13 @@
  */
 
 import type { Portfolio } from '../domain/Portfolio';
-import { percentToBasisPoints } from '../calculators/precision';
+import { percentToBasisPoints } from '../calculators/Precision';
 
-/**
- * Compares two portfolios for equality based on holdings and allocations
- * Uses basis points for exact comparison (10 basis points = 0.1%)
- */
 export function arePortfoliosEqual(portfolio1: Portfolio, portfolio2: Portfolio): boolean {
-    // Check if number of holdings is different
     if (portfolio1.holdings.size !== portfolio2.holdings.size) {
         return false;
     }
 
-    // Compare each holding using basis points for precision
     for (const [ticker, holding1] of portfolio1.holdings.entries()) {
         const holding2 = portfolio2.holdings.get(ticker);
 
@@ -24,19 +18,8 @@ export function arePortfoliosEqual(portfolio1: Portfolio, portfolio2: Portfolio)
             return false;
         }
 
-        // Extract percentage from holding (could be number or Holding object)
-        const percentage1 = typeof holding1 === 'number' ? holding1 : holding1.percentage;
-        const percentage2 = typeof holding2 === 'number' ? holding2 : holding2.percentage;
-
-        // Convert to basis points for exact comparison
-        const basisPoints1 =
-            holding1 && typeof holding1 === 'object' && 'basisPoints' in holding1
-                ? holding1.basisPoints
-                : percentToBasisPoints(percentage1);
-        const basisPoints2 =
-            holding2 && typeof holding2 === 'object' && 'basisPoints' in holding2
-                ? holding2.basisPoints
-                : percentToBasisPoints(percentage2);
+        const basisPoints1 = holding1.basisPoints ?? percentToBasisPoints(holding1.percentage);
+        const basisPoints2 = holding2.basisPoints ?? percentToBasisPoints(holding2.percentage);
 
         if (basisPoints1 !== basisPoints2) {
             return false;

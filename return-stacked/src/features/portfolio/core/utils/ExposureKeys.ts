@@ -2,8 +2,7 @@
  * Exposure key utilities - framework-agnostic functions for exposure serialization
  */
 
-import type { Exposure } from '../domain/Exposure';
-import type { AssetClass } from '../domain/AssetClass';
+import type { Exposure, AssetClass } from '../domain/Exposure';
 
 /**
  * Creates a unique key for exposure categorization

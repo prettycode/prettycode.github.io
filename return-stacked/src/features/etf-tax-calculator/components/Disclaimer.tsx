@@ -15,7 +15,10 @@ const DISCLAIMER_ITEMS = [
 
 export const Disclaimer = memo(() => {
     return (
-        <aside className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200" aria-labelledby="disclaimer-heading">
+        <aside
+            className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200"
+            aria-labelledby="disclaimer-heading"
+        >
             <div className="flex items-start">
                 <Info className="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" aria-hidden="true" />
                 <div className="text-sm text-gray-700">

@@ -1,7 +1,4 @@
-/**
- * ETF definition with exposures
- */
-import type { LeverageType } from './LeverageType';
+export type LeverageType = 'None' | 'Stacked' | 'Daily Reset' | 'Extended Duration';
 
 export interface ETFMetadata {
     name?: string;

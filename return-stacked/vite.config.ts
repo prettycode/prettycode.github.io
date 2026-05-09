@@ -9,8 +9,8 @@ export default defineConfig(({ command }) => ({
         react(),
         {
             name: 'serve-dev-html-at-root',
-            configureServer(server) {
-                server.middlewares.use((req, _res, next) => {
+            configureServer(server): void {
+                server.middlewares.use((req, _res, next): void => {
                     if (req.url === '/' || req.url === '/index.html') {
                         req.url = '/dev.html';
                     }

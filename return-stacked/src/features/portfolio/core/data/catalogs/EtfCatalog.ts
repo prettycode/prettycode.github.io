@@ -207,30 +207,20 @@ export const etfCatalog: ETF[] = [
     createETF('TMF', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 3.0 }], 'Daily Reset'),
     createETF('UBT', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 2.0 }], 'Daily Reset'),
     createETF('ZROZ', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.5 }], 'Extended Duration'),
-    createETF(
-        'EDV',
-        [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.5 }],
-        'Extended Duration',
-        {
-            name: 'Vanguard Extended Duration Treasury ETF',
-            inceptionDate: '2007-12-06',
-            expenseRatio: 0.05,
-            netAssets: '$4.57B',
-            yield: 4.2,
-        }
-    ),
-    createETF(
-        'GOVZ',
-        [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.5 }],
-        'Extended Duration',
-        {
-            name: 'iShares 25+ Year Treasury STRIPS Bond ETF',
-            inceptionDate: '2020-09-22',
-            expenseRatio: 0.1,
-            netAssets: '$122M',
-            yield: 4.5,
-        }
-    ),
+    createETF('EDV', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.5 }], 'Extended Duration', {
+        name: 'Vanguard Extended Duration Treasury ETF',
+        inceptionDate: '2007-12-06',
+        expenseRatio: 0.05,
+        netAssets: '$4.57B',
+        yield: 4.2,
+    }),
+    createETF('GOVZ', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.5 }], 'Extended Duration', {
+        name: 'iShares 25+ Year Treasury STRIPS Bond ETF',
+        inceptionDate: '2020-09-22',
+        expenseRatio: 0.1,
+        netAssets: '$122M',
+        yield: 4.5,
+    }),
     createETF('TLT', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1.0 }]),
     createETF('UGL', [{ exposure: { assetClass: 'Gold' }, amount: 2.0 }], 'Daily Reset'),
     createETF('GLDM', [{ exposure: { assetClass: 'Gold' }, amount: 1.0 }]),

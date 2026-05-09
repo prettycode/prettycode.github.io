@@ -4,7 +4,7 @@
 
 import type { Portfolio } from '../domain/Portfolio';
 import type { PortfolioAnalysis } from '../domain/PortfolioAnalysis';
-import { percentToWeight, weightToPercent, calculateRelativePercent } from './precision';
+import { percentToWeight, weightToPercent, calculateRelativePercent } from './Precision';
 import { getETFByTicker } from '../data/catalogs/EtfCatalog';
 
 /**
@@ -15,11 +15,8 @@ export const analyzePortfolio = (portfolio: Portfolio): PortfolioAnalysis => {
     const assetClasses = new Map<string, number>();
     let totalExposure = 0;
 
-    for (const [ticker, holdingData] of portfolio.holdings) {
-        const percentage = typeof holdingData === 'number' ? holdingData : holdingData.percentage;
-        const isDisabled = typeof holdingData === 'object' && holdingData.disabled;
-
-        if (isDisabled) {
+    for (const [ticker, holding] of portfolio.holdings) {
+        if (holding.disabled) {
             continue;
         }
 
@@ -29,7 +26,7 @@ export const analyzePortfolio = (portfolio: Portfolio): PortfolioAnalysis => {
             continue;
         }
 
-        const weight = percentToWeight(percentage);
+        const weight = percentToWeight(holding.percentage);
 
         for (const [key, amount] of etf.exposures) {
             const weightedAmount = amount * weight;

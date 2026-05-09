@@ -44,7 +44,7 @@ Before you change anything, give me a short numbered list of proposed changes wi
 - **Floating-point percentages.** Any `parseFloat(...).toFixed(1)` round-trip in a calculation chain is a bug waiting to happen. Replace with integer math.
 - **Recomputed derived data per component.** Two components running their own `.map(...).reduce(...)` over the same source array. Lift it to a memoized hook or a precomputed dataset.
 - **`useEffect` for derivations.** If a value is derived from props/state, compute it during render (or `useMemo`), not in an effect that sets state.
-- **Documentation files that duplicate the code.** A 300-line `ARCHITECTURE.md` listing every service goes stale within weeks. Prefer a short README that explains the *non-obvious* decisions; let the code be the spec for the rest.
+- **Documentation files that duplicate the code.** A 300-line `ARCHITECTURE.md` listing every service goes stale within weeks. Prefer a short README that explains the _non-obvious_ decisions; let the code be the spec for the rest.
 - **Celebratory or marketing-tone docs** ("🎉 Modularization Complete!", checkmark lists of benefits). Replace with terse, factual notes.
 
 ### Process

@@ -148,7 +148,9 @@ const service = usePortfolioService();
 Main hook for portfolio state management:
 
 ```typescript
-const { portfolio, addHolding, removeHolding, updateAllocation, analysis, warnings, totalAllocation } = usePortfolio({ initialPortfolio });
+const { portfolio, addHolding, removeHolding, updateAllocation, analysis, warnings, totalAllocation } = usePortfolio({
+    initialPortfolio,
+});
 ```
 
 ### usePersistence

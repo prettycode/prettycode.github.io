@@ -1,33 +1,16 @@
-/**
- * usePersistence - React hook for portfolio persistence operations
- * Loads saved portfolios from storage
- */
-
-
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { Portfolio } from '../core/domain/Portfolio';
-import { usePortfolioService } from './UsePortfolioService';
+import { loadSavedPortfolios } from '../storage/SavedPortfolios';
+import { deserializePortfolio } from '../core/utils/Serialization';
 
 export function usePersistence(): {
     savedPortfolios: Portfolio[];
 } {
-    const service = usePortfolioService();
     const [savedPortfolios, setSavedPortfolios] = useState<Portfolio[]>([]);
 
-    const loadSavedPortfolios = useCallback(async () => {
-        try {
-            const portfolios = await service.loadAll();
-            setSavedPortfolios(portfolios);
-        } catch (err) {
-            console.error('Error loading portfolios:', err);
-        }
-    }, [service]);
-
     useEffect(() => {
-        loadSavedPortfolios();
-    }, [loadSavedPortfolios]);
+        setSavedPortfolios(loadSavedPortfolios().map(deserializePortfolio));
+    }, []);
 
-    return {
-        savedPortfolios,
-    };
+    return { savedPortfolios };
 }

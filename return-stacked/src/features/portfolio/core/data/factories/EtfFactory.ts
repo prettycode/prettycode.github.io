@@ -2,9 +2,8 @@
  * ETF factory - Creates ETF instances with mapped exposures
  */
 
-import type { ETF, ETFMetadata } from '../../domain/ETF';
-import type { ExposureAmount } from '../../domain/ExposureAmount';
-import type { LeverageType } from '../../domain/LeverageType';
+import type { ETF, ETFMetadata, LeverageType } from '../../domain/ETF';
+import type { ExposureAmount } from '../../domain/Exposure';
 import { createExposureKey } from '../../utils/ExposureKeys';
 
 /**

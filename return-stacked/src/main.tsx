@@ -3,9 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './app/globals.css';
 import { ToastProvider } from '@/shared/components/ui/Toast';
-import Home from './app/page';
-import ETFCalculatorPage from './app/etf-calculator/page';
-import ETFInfoPage from './app/etf-info/page';
+import Home from './app/Home';
+import ETFCalculatorPage from './app/etf-calculator/EtfCalculatorPage';
+import ETFInfoPage from './app/etf-info/EtfInfoPage';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -23,5 +23,5 @@ createRoot(rootElement).render(
                 </Routes>
             </ToastProvider>
         </BrowserRouter>
-    </StrictMode>,
+    </StrictMode>
 );

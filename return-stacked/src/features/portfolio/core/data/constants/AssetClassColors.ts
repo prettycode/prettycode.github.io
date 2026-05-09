@@ -2,7 +2,7 @@
  * Asset class color mappings for visualization
  */
 
-import type { ColorMap } from '../../domain/ColorMap';
+import type { ColorMap } from '../../domain/Exposure';
 
 export const assetClassColors: ColorMap = {
     Equity: 'oklch(.623 .175 259.815)',
