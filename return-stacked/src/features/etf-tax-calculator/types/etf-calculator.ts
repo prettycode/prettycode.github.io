@@ -10,26 +10,6 @@ export interface TaxBracket {
     max: number;
 }
 
-export interface ETFYieldData {
-    ticker: string;
-    name: string;
-    yield: number;
-    expenseRatio: number; // in percentage (e.g., 0.05 for 0.05%)
-    netAssets?: string; // e.g., "$50.2B"
-    managementStyle: 'active' | 'passive';
-    duration: Duration;
-    fetchedAt: string;
-    success: boolean;
-}
-
-export interface YieldMap {
-    [ticker: string]: number;
-}
-
-export interface FetchTimeMap {
-    [ticker: string]: string;
-}
-
 export interface ETFData {
     name: string;
     ticker?: string;

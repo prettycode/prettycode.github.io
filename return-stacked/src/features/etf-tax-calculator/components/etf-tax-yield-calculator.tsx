@@ -6,13 +6,10 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Calculator, Building, Landmark, ChevronDown, ChevronUp, Info, Trophy, Target, BarChart3 } from 'lucide-react';
 import { TAX_EXEMPT_MUNI_ETFS, TAXABLE_TREASURY_ETFS, DURATION_LABELS, type BondETF } from '../constants/etf-data';
 import { findTaxBracket } from '../constants/tax-brackets';
-import { useETFData } from '../hooks/useETFData';
 import type { Duration } from '../types/etf-calculator';
-import { LoadingState, ErrorAlert, Disclaimer } from './index';
+import { Disclaimer } from './index';
 
 interface ETFWithYield extends BondETF {
-    name: string;
-    expenseRatio: number;
     currentYield: number;
     afterTaxYield: number;
     taxEquivalentYield: number;
@@ -27,9 +24,6 @@ const ETFTaxYieldCalculator: React.FC = () => {
     const [showAllETFs, setShowAllETFs] = useState(false);
     const [selectedMuniTicker, setSelectedMuniTicker] = useState<string>('');
     const [selectedTreasuryTicker, setSelectedTreasuryTicker] = useState<string>('');
-
-    // Fetch ETF data
-    const { etfDataMap, loading, error } = useETFData();
 
     // Calculate tax rate from income and update customTaxRate when income changes
     const calculatedTaxRate = useMemo(() => {
@@ -56,55 +50,29 @@ const ETFTaxYieldCalculator: React.FC = () => {
     // Process ETF data with calculations
     const processedData = useMemo(() => {
         const taxRateDecimal = effectiveTaxRate / 100;
+        const matchesDuration = (etf: BondETF): boolean =>
+            !selectedDuration || selectedDuration === 'any' || etf.duration === selectedDuration;
 
-        const munis: ETFWithYield[] = TAX_EXEMPT_MUNI_ETFS.filter((etf) => {
-            if (!etfDataMap[etf.ticker]) {
-                return false;
-            }
-            if (selectedDuration && selectedDuration !== 'any' && etf.duration !== selectedDuration) {
-                return false;
-            }
-            return true;
-        })
-            .map((etf) => {
-                const apiData = etfDataMap[etf.ticker]!;
-                const currentYield = apiData.yield ?? 0;
-                return {
-                    ...etf,
-                    name: apiData.name ?? 'Unknown',
-                    expenseRatio: apiData.expenseRatio ?? 0,
-                    currentYield,
-                    afterTaxYield: currentYield, // Tax-exempt
-                    taxEquivalentYield: currentYield / (1 - taxRateDecimal),
-                };
-            })
+        const munis: ETFWithYield[] = TAX_EXEMPT_MUNI_ETFS.filter(matchesDuration)
+            .map((etf) => ({
+                ...etf,
+                currentYield: etf.yield,
+                afterTaxYield: etf.yield, // Tax-exempt
+                taxEquivalentYield: etf.yield / (1 - taxRateDecimal),
+            }))
             .sort((a, b) => b.afterTaxYield - a.afterTaxYield);
 
-        const treasuries: ETFWithYield[] = TAXABLE_TREASURY_ETFS.filter((etf) => {
-            if (!etfDataMap[etf.ticker]) {
-                return false;
-            }
-            if (selectedDuration && selectedDuration !== 'any' && etf.duration !== selectedDuration) {
-                return false;
-            }
-            return true;
-        })
-            .map((etf) => {
-                const apiData = etfDataMap[etf.ticker]!;
-                const currentYield = apiData.yield ?? 0;
-                return {
-                    ...etf,
-                    name: apiData.name ?? 'Unknown',
-                    expenseRatio: apiData.expenseRatio ?? 0,
-                    currentYield,
-                    afterTaxYield: currentYield * (1 - taxRateDecimal),
-                    taxEquivalentYield: currentYield,
-                };
-            })
+        const treasuries: ETFWithYield[] = TAXABLE_TREASURY_ETFS.filter(matchesDuration)
+            .map((etf) => ({
+                ...etf,
+                currentYield: etf.yield,
+                afterTaxYield: etf.yield * (1 - taxRateDecimal),
+                taxEquivalentYield: etf.yield,
+            }))
             .sort((a, b) => b.afterTaxYield - a.afterTaxYield);
 
         return { munis, treasuries };
-    }, [etfDataMap, effectiveTaxRate, selectedDuration]);
+    }, [effectiveTaxRate, selectedDuration]);
 
     // Get selected or best ETFs for comparison
     const comparison = useMemo(() => {
@@ -147,10 +115,6 @@ const ETFTaxYieldCalculator: React.FC = () => {
         setSelectedTreasuryTicker('');
     }, []);
 
-    if (loading) {
-        return <LoadingState />;
-    }
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6">
             <div className="max-w-7xl mx-auto">
@@ -170,8 +134,6 @@ const ETFTaxYieldCalculator: React.FC = () => {
                 </header>
 
                 <main className="space-y-6">
-                    {error && <ErrorAlert message={error} />}
-
                     {/* Configuration Panel - Redesigned */}
                     <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
                         {/* Tax Configuration Section */}

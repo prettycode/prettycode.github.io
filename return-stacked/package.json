@@ -4,7 +4,6 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "data:refresh": "tsx scripts/fetch-bond-yields.ts",
         "dev": "vite --port 1984",
         "build": "tsc --noEmit && vite build",
         "preview": "vite preview --port 1984",
@@ -44,12 +43,10 @@
         "@types/react": "^19.2.2",
         "@types/react-dom": "^19.2.2",
         "@vitejs/plugin-react": "^4.3.4",
-        "dotenv": "^17.2.3",
         "eslint": "^9.38.0",
         "eslint-plugin-react-hooks": "^5.0.0",
         "globals": "^15.14.0",
         "tailwindcss": "^4",
-        "tsx": "^4.19.2",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.18.0",
         "vite": "^6.0.0"

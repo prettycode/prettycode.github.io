@@ -9,6 +9,7 @@
             "Bash(findstr:*)",
             "Bash(ls:*)",
             "Bash(dir:*)",
+            "Bash(cd:*)",
             "Bash(pwd)",
             "Bash(which:*)",
             "Bash(where:*)",
@@ -25,7 +26,8 @@
             "Bash(git blame:*)",
             "Bash(git remote:*)",
             "Bash(git config --get:*)",
-            "Bash(git stash list:*)"
+            "Bash(git stash list:*)",
+            "Bash(npx:*)"
         ],
         "deny": [
             "Bash(git commit:*)",

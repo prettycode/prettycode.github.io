@@ -1,16 +1,18 @@
-// Shared ETF data used across the application
-// This contains only the static configuration data that cannot be fetched from APIs
-// Dynamic data (name, expenseRatio, yield, netAssets) is fetched via the fetch-bond-yields script
+// Static ETF data used across the application.
+// Values are illustrative — not live quotes.
 
 export type ManagementStyle = 'active' | 'passive';
 
+export type Duration = 'any' | 'cash' | 'ultra-short' | 'short' | 'intermediate' | 'long' | 'extended' | 'total-market';
+
 export interface BondETF {
     ticker: string;
+    name: string;
     duration: Duration;
     managementStyle: ManagementStyle;
+    yield: number;
+    expenseRatio: number;
 }
-
-export type Duration = 'any' | 'cash' | 'ultra-short' | 'short' | 'intermediate' | 'long' | 'extended' | 'total-market';
 
 export const DURATION_LABELS: Record<Duration, string> = {
     any: 'Any Duration',
@@ -23,34 +25,29 @@ export const DURATION_LABELS: Record<Duration, string> = {
     'total-market': 'Total',
 };
 
-// Tax-Exempt Municipal Bond ETFs
 export const TAX_EXEMPT_MUNI_ETFS: BondETF[] = [
-    { ticker: 'SUB', duration: 'short', managementStyle: 'passive' },
-    { ticker: 'VTES', duration: 'short', managementStyle: 'passive' },
-    { ticker: 'VTEI', duration: 'intermediate', managementStyle: 'passive' },
-    { ticker: 'VWIUX', duration: 'intermediate', managementStyle: 'passive' },
-    { ticker: 'VTEL', duration: 'long', managementStyle: 'passive' },
-    { ticker: 'VTEB', duration: 'total-market', managementStyle: 'passive' },
-    { ticker: 'VCRM', duration: 'total-market', managementStyle: 'active' },
-    { ticker: 'MUB', duration: 'total-market', managementStyle: 'passive' },
-    { ticker: 'AVMU', duration: 'total-market', managementStyle: 'active' },
-    { ticker: 'DFNM', duration: 'total-market', managementStyle: 'passive' },
+    { ticker: 'SUB', name: 'iShares Short-Term National Muni Bond ETF', duration: 'short', managementStyle: 'passive', yield: 2.5, expenseRatio: 0.07 },
+    { ticker: 'VTES', name: 'Vanguard Short-Term Tax-Exempt Bond ETF', duration: 'short', managementStyle: 'passive', yield: 2.47, expenseRatio: 0.05 },
+    { ticker: 'VTEI', name: 'Vanguard Intermediate-Term Tax-Exempt Bond ETF', duration: 'intermediate', managementStyle: 'passive', yield: 3.03, expenseRatio: 0.08 },
+    { ticker: 'VWIUX', name: 'Vanguard Intermediate-Term Tax-Exempt Fund Admiral Shares', duration: 'intermediate', managementStyle: 'passive', yield: 3.05, expenseRatio: 0.09 },
+    { ticker: 'VTEL', name: 'Vanguard Long-Term Tax-Exempt Bond ETF', duration: 'long', managementStyle: 'passive', yield: 4.0, expenseRatio: 0.09 },
+    { ticker: 'VTEB', name: 'Vanguard Tax-Exempt Bond Index Fund ETF', duration: 'total-market', managementStyle: 'passive', yield: 3.51, expenseRatio: 0.03 },
+    { ticker: 'VCRM', name: 'Vanguard Core Tax-Exempt Bond ETF', duration: 'total-market', managementStyle: 'active', yield: 3.18, expenseRatio: 0.12 },
+    { ticker: 'MUB', name: 'iShares National Muni Bond ETF', duration: 'total-market', managementStyle: 'passive', yield: 3.36, expenseRatio: 0.05 },
+    { ticker: 'AVMU', name: 'Avantis Core Municipal Fixed Income ETF', duration: 'total-market', managementStyle: 'active', yield: 3.5, expenseRatio: 0.15 },
+    { ticker: 'DFNM', name: 'Dimensional National Municipal Bond ETF', duration: 'total-market', managementStyle: 'passive', yield: 2.97, expenseRatio: 0.17 },
 ];
 
-// Taxable Treasury Bond ETFs
 export const TAXABLE_TREASURY_ETFS: BondETF[] = [
-    { ticker: 'SGOV', duration: 'cash', managementStyle: 'passive' },
-    { ticker: 'VBIL', duration: 'cash', managementStyle: 'passive' },
-    { ticker: 'VGUS', duration: 'ultra-short', managementStyle: 'passive' },
-    { ticker: 'GOVT', duration: 'total-market', managementStyle: 'passive' },
-    { ticker: 'VTG', duration: 'total-market', managementStyle: 'passive' },
-    { ticker: 'ZROZ', duration: 'extended', managementStyle: 'passive' },
-    { ticker: 'VGSH', duration: 'short', managementStyle: 'passive' },
-    { ticker: 'VGIT', duration: 'intermediate', managementStyle: 'passive' },
-    { ticker: 'VGLT', duration: 'long', managementStyle: 'passive' },
-    { ticker: 'EDV', duration: 'extended', managementStyle: 'passive' },
-    { ticker: 'GOVZ', duration: 'extended', managementStyle: 'passive' },
+    { ticker: 'SGOV', name: 'iShares 0-3 Month Treasury Bond ETF', duration: 'cash', managementStyle: 'passive', yield: 3.54, expenseRatio: 0.09 },
+    { ticker: 'VBIL', name: 'Vanguard 0-3 Month Treasury Bill ETF', duration: 'cash', managementStyle: 'passive', yield: 3.56, expenseRatio: 0.06 },
+    { ticker: 'VGUS', name: 'Vanguard Ultra-Short Treasury ETF', duration: 'ultra-short', managementStyle: 'passive', yield: 3.61, expenseRatio: 0.07 },
+    { ticker: 'GOVT', name: 'iShares U.S. Treasury Bond ETF', duration: 'total-market', managementStyle: 'passive', yield: 4.06, expenseRatio: 0.05 },
+    { ticker: 'VTG', name: 'Vanguard Total Treasury ETF', duration: 'total-market', managementStyle: 'passive', yield: 3.89, expenseRatio: 0.03 },
+    { ticker: 'ZROZ', name: 'PIMCO 25+ Year Zero Coupon U.S. Treasury Index ETF', duration: 'extended', managementStyle: 'passive', yield: 4.99, expenseRatio: 0.15 },
+    { ticker: 'VGSH', name: 'Vanguard Short-Term Treasury Index Fund ETF', duration: 'short', managementStyle: 'passive', yield: 3.76, expenseRatio: 0.03 },
+    { ticker: 'VGIT', name: 'Vanguard Intermediate-Term Treasury Index Fund ETF', duration: 'intermediate', managementStyle: 'passive', yield: 3.95, expenseRatio: 0.03 },
+    { ticker: 'VGLT', name: 'Vanguard Long-Term Treasury Index Fund ETF', duration: 'long', managementStyle: 'passive', yield: 4.9, expenseRatio: 0.03 },
+    { ticker: 'EDV', name: 'Vanguard Extended Duration Treasury Index Fund ETF', duration: 'extended', managementStyle: 'passive', yield: 5.19, expenseRatio: 0.05 },
+    { ticker: 'GOVZ', name: 'iShares 25+ Year Treasury STRIPS Bond ETF', duration: 'extended', managementStyle: 'passive', yield: 5.01, expenseRatio: 0.1 },
 ];
-
-// All ETFs combined (for fetching data)
-export const ALL_BOND_ETFS: BondETF[] = [...TAX_EXEMPT_MUNI_ETFS, ...TAXABLE_TREASURY_ETFS];
