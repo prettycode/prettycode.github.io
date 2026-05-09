@@ -3,7 +3,6 @@
  * Wraps PortfolioService with React state management
  */
 
-'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Portfolio } from '../core/domain/Portfolio';

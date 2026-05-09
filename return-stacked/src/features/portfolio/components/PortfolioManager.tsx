@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
 import type { SerializedPortfolio } from '@/features/portfolio/core/domain/SerializedPortfolio';

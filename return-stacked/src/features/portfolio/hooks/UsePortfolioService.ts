@@ -3,7 +3,6 @@
  * This is the main React adapter for the framework-agnostic business logic
  */
 
-'use client';
 
 import { useMemo } from 'react';
 import { PortfolioService } from '../core/services/PortfolioService';

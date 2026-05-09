@@ -3,7 +3,6 @@
  * Loads saved portfolios from storage
  */
 
-'use client';
 
 import { useState, useCallback, useEffect } from 'react';
 import type { Portfolio } from '../core/domain/Portfolio';

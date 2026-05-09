@@ -1,7 +1,5 @@
-'use client';
-
 import React from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/Table';
@@ -51,7 +49,7 @@ export default function ETFInfoPage(): React.ReactElement {
                 {/* Header */}
                 <div className="mb-6">
                     <Link
-                        href="/"
+                        to="/"
                         className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors w-fit mb-4"
                     >
                         <ArrowLeft className="w-5 h-5" />
