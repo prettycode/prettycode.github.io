@@ -5,7 +5,20 @@ import tailwindcss from '@tailwindcss/postcss';
 
 export default defineConfig({
     base: '/return-stacked/dist/',
-    plugins: [react()],
+    plugins: [
+        react(),
+        {
+            name: 'serve-dev-html-at-root',
+            configureServer(server) {
+                server.middlewares.use((req, _res, next) => {
+                    if (req.url === '/' || req.url === '/index.html') {
+                        req.url = '/dev.html';
+                    }
+                    next();
+                });
+            },
+        },
+    ],
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
@@ -18,5 +31,10 @@ export default defineConfig({
     },
     server: {
         port: 1984,
+    },
+    build: {
+        rollupOptions: {
+            input: path.resolve(__dirname, 'dev.html'),
+        },
     },
 });
