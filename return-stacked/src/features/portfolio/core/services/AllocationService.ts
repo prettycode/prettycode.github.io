@@ -8,7 +8,6 @@ import type { Holding } from '../domain/Holding';
 import { redistributeAfterRemoval, updateAllocation, redistributeAmongAvailable } from '../calculators/AllocationCalculator';
 import {
     calculateTotalAllocation,
-    isPortfolioPrecise,
     ensureBasisPoints,
     percentToBasisPoints,
     basisPointsToPercent,
@@ -210,40 +209,9 @@ export class AllocationService {
     }
 
     /**
-     * Redistributes allocation equally among all unlocked holdings
-     */
-    public equalWeight(portfolio: Portfolio): Portfolio {
-        const newHoldings = new Map(portfolio.holdings);
-        const unlocked = Array.from(newHoldings.entries()).filter(([, h]) => !h.locked && !h.disabled);
-
-        if (unlocked.length === 0) {
-            return portfolio;
-        }
-
-        redistributeAmongAvailable(
-            newHoldings,
-            unlocked.map(([t]) => t),
-            100,
-            true
-        );
-
-        return {
-            ...portfolio,
-            holdings: newHoldings,
-        };
-    }
-
-    /**
      * Gets total allocation percentage
      */
     public getTotalAllocation(portfolio: Portfolio): number {
         return calculateTotalAllocation(portfolio.holdings);
-    }
-
-    /**
-     * Checks if portfolio has exact 100% allocation
-     */
-    public isPrecise(portfolio: Portfolio): boolean {
-        return isPortfolioPrecise(portfolio.holdings);
     }
 }

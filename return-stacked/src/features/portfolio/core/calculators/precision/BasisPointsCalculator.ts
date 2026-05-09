@@ -25,20 +25,6 @@ export const basisPointsToPercent = (basisPoints: number): number => {
     return basisPoints / BASIS_POINTS_PER_PERCENT;
 };
 
-const calculateTotalBasisPoints = (holdings: Map<string, Holding>): number => {
-    return Array.from(holdings.entries())
-        .filter(([, holding]) => !holding.disabled)
-        .reduce((sum, [, holding]) => sum + (holding.basisPoints ?? percentToBasisPoints(holding.percentage)), 0);
-};
-
-/**
- * Validates portfolio precision - should always be exactly 10000 basis points
- */
-export const isPortfolioPrecise = (holdings: Map<string, Holding>): boolean => {
-    const totalBasisPoints = calculateTotalBasisPoints(holdings);
-    return totalBasisPoints === MAX_BASIS_POINTS;
-};
-
 /**
  * Ensures holding has basis points synchronized with percentage
  * Clamps values to valid range [0, 100%]

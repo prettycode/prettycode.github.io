@@ -22,16 +22,9 @@ export function usePortfolio(options: UsePortfolioOptions = {}): {
     bulkUpdateAllocations: (updates: Array<{ ticker: string; percentage: number }>) => void;
     lockHolding: (ticker: string, locked: boolean) => void;
     disableHolding: (ticker: string, disabled: boolean) => void;
-    equalWeight: () => void;
     loadPortfolio: (newPortfolio: Portfolio) => void;
     resetPortfolio: (name: string) => void;
-    clonePortfolio: (newName?: string) => void;
-    analysis: ReturnType<ReturnType<typeof usePortfolioService>['analyze']>;
-    templateDetails: ReturnType<ReturnType<typeof usePortfolioService>['getTemplateDetails']>;
-    warnings: ReturnType<ReturnType<typeof usePortfolioService>['validate']>;
-    equityBreakdown: ReturnType<ReturnType<typeof usePortfolioService>['getEquityBreakdown']>;
     totalAllocation: number;
-    isPrecise: boolean;
     service: ReturnType<typeof usePortfolioService>;
 } {
     const service = usePortfolioService();
@@ -88,10 +81,6 @@ export function usePortfolio(options: UsePortfolioOptions = {}): {
         [service]
     );
 
-    const equalWeight = useCallback(() => {
-        setPortfolio((prev) => service.equalWeight(prev));
-    }, [service]);
-
     // Portfolio management
     const loadPortfolio = useCallback((newPortfolio: Portfolio) => {
         setPortfolio(newPortfolio);
@@ -104,49 +93,20 @@ export function usePortfolio(options: UsePortfolioOptions = {}): {
         [service]
     );
 
-    const clonePortfolio = useCallback(
-        (newName?: string) => {
-            setPortfolio((prev) => service.clone(prev, newName));
-        },
-        [service]
-    );
-
-    // Analysis
-    const analysis = service.analyze(portfolio);
-    const templateDetails = service.getTemplateDetails(portfolio);
-    const warnings = service.validate(portfolio);
-    const equityBreakdown = service.getEquityBreakdown(portfolio);
     const totalAllocation = service.getTotalAllocation(portfolio);
-    const isPrecise = service.isPrecise(portfolio);
 
     return {
-        // State
         portfolio,
         setPortfolio,
-
-        // Allocation operations
         addHolding,
         removeHolding,
         updateAllocation,
         bulkUpdateAllocations,
         lockHolding,
         disableHolding,
-        equalWeight,
-
-        // Portfolio operations
         loadPortfolio,
         resetPortfolio,
-        clonePortfolio,
-
-        // Analysis (computed)
-        analysis,
-        templateDetails,
-        warnings,
-        equityBreakdown,
         totalAllocation,
-        isPrecise,
-
-        // Service reference (for advanced usage)
         service,
     };
 }
