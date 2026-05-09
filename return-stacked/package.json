@@ -4,17 +4,17 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "vite --port 1984",
+        "dev": "vite --open --port 1984",
         "build": "tsc --noEmit && vite build && node -e \"require('fs').renameSync('dist/dev.html','index.html')\"",
         "preview": "vite preview --port 1984",
         "start": "npm run build && npm run preview",
         "lint:ci": "eslint . --max-warnings=0",
         "lint:fix": "eslint . --fix",
-        "prettier:fix": "prettier --write .",
-        "prettier:ci": "prettier --check .",
+        "format:fix": "prettier --write .",
+        "format:ci": "prettier --check .",
         "tsc:ci": "tsc --noEmit",
-        "test": "npm update --save && npm run prettier:fix && npm run lint:fix && npm run test:ci",
-        "test:ci": "npm audit && npm run lint:ci && npm run tsc:ci && npm run prettier:ci && npm run build"
+        "test": "npm update --save && npm run format:fix && npm run lint:fix && npm run test:ci",
+        "test:ci": "npm audit && npm run lint:ci && npm run tsc:ci && npm run format:ci && npm run build"
     },
     "dependencies": {
         "@radix-ui/react-dialog": "^1.1.15",

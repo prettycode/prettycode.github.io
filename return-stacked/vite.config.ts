@@ -29,9 +29,6 @@ export default defineConfig(({ command }) => ({
             plugins: [tailwindcss()],
         },
     },
-    server: {
-        port: 1984,
-    },
     build: {
         rollupOptions: {
             input: path.resolve(__dirname, 'dev.html'),
