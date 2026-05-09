@@ -13,13 +13,6 @@ export const roundForDisplay = (percentage: number): number => {
 };
 
 /**
- * Safely retrieves display percentage from holding using dual-precision architecture
- */
-export const getDisplayPercentage = (holding: Holding): number => {
-    return holding.displayPercentage ?? holding.percentage ?? 0;
-};
-
-/**
  * Converts percentage to decimal weight (for multiplication)
  * Example: 25% -> 0.25
  */

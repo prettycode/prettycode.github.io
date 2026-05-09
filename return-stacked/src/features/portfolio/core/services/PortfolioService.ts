@@ -8,16 +8,12 @@ import type { PortfolioAnalysis } from '../domain/PortfolioAnalysis';
 import type { TemplateDetails } from '../domain/TemplateDetails';
 import type { Warning } from '../domain/Warning';
 import type { EquityBreakdown } from '../domain/EquityBreakdown';
-import type { SerializedPortfolio } from '../domain/SerializedPortfolio';
 import type { Holding } from '../domain/Holding';
 import { AllocationService } from './AllocationService';
 import { AnalysisService } from './AnalysisService';
 import { ValidationService } from './ValidationService';
 import type { IStorageAdapter } from './IStorageAdapter';
-import { deserializePortfolio, serializePortfolio } from '../utils/Serialization';
-import { examplePortfolios } from '../data/catalogs/PortfolioTemplates';
-import { createPortfolio } from '../data/factories/PortfolioFactory';
-import { etfCatalog } from '../data/catalogs/EtfCatalog';
+import { deserializePortfolio } from '../utils/Serialization';
 
 export class PortfolioService {
     private allocationService: AllocationService;
@@ -36,9 +32,6 @@ export class PortfolioService {
     // Portfolio Creation & Management
     // ============================================================
 
-    /**
-     * Creates a new empty portfolio
-     */
     public createEmptyPortfolio(name: string): Portfolio {
         return {
             name,
@@ -47,30 +40,6 @@ export class PortfolioService {
         };
     }
 
-    /**
-     * Creates a portfolio from template
-     */
-    public createFromTemplate(name: string, allocations: Array<{ ticker: string; percentage: number }>): Portfolio {
-        return createPortfolio(name, allocations);
-    }
-
-    /**
-     * Gets all available example portfolios
-     */
-    public getExamplePortfolios(): Portfolio[] {
-        return examplePortfolios;
-    }
-
-    /**
-     * Gets all available ETFs from catalog
-     */
-    public getAvailableETFs(): typeof etfCatalog {
-        return etfCatalog;
-    }
-
-    /**
-     * Clones a portfolio
-     */
     public clone(portfolio: Portfolio, newName?: string): Portfolio {
         return {
             ...portfolio,
@@ -136,14 +105,6 @@ export class PortfolioService {
         return this.analysisService.getEquityBreakdown(portfolio);
     }
 
-    public isLevered(portfolio: Portfolio): boolean {
-        return this.analysisService.isLevered(portfolio);
-    }
-
-    public getTotalLeverage(portfolio: Portfolio): number {
-        return this.analysisService.getTotalLeverage(portfolio);
-    }
-
     // ============================================================
     // Validation (delegates to ValidationService)
     // ============================================================
@@ -152,22 +113,9 @@ export class PortfolioService {
         return this.validationService.validate(portfolio);
     }
 
-    public getExposures(portfolio: Portfolio): ReturnType<ValidationService['getExposures']> {
-        return this.validationService.getExposures(portfolio);
-    }
-
     // ============================================================
     // Persistence (requires storage adapter)
     // ============================================================
-
-    public async save(portfolio: Portfolio): Promise<void> {
-        if (!this.storageAdapter) {
-            throw new Error('Storage adapter not configured');
-        }
-
-        const serialized = serializePortfolio(portfolio);
-        await this.storageAdapter.savePortfolio(serialized);
-    }
 
     public async loadAll(): Promise<Portfolio[]> {
         if (!this.storageAdapter) {
@@ -176,41 +124,5 @@ export class PortfolioService {
 
         const serialized = await this.storageAdapter.loadPortfolios();
         return serialized.map(deserializePortfolio);
-    }
-
-    public async delete(name: string): Promise<void> {
-        if (!this.storageAdapter) {
-            throw new Error('Storage adapter not configured');
-        }
-
-        await this.storageAdapter.deletePortfolio(name);
-    }
-
-    public async exists(name: string): Promise<boolean> {
-        if (!this.storageAdapter) {
-            throw new Error('Storage adapter not configured');
-        }
-
-        return await this.storageAdapter.portfolioExists(name);
-    }
-
-    // ============================================================
-    // Import/Export
-    // ============================================================
-
-    /**
-     * Exports portfolio to JSON string
-     */
-    public exportToJSON(portfolio: Portfolio): string {
-        const serialized = serializePortfolio(portfolio);
-        return JSON.stringify(serialized, null, 2);
-    }
-
-    /**
-     * Imports portfolio from JSON string
-     */
-    public importFromJSON(json: string): Portfolio {
-        const serialized = JSON.parse(json) as SerializedPortfolio;
-        return deserializePortfolio(serialized);
     }
 }

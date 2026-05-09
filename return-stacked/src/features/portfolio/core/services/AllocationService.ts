@@ -5,12 +5,7 @@
 
 import type { Portfolio } from '../domain/Portfolio';
 import type { Holding } from '../domain/Holding';
-import {
-    redistributeAfterRemoval,
-    updateAllocation,
-    redistributeAmongAvailable,
-    roundHoldingPercentages,
-} from '../calculators/AllocationCalculator';
+import { redistributeAfterRemoval, updateAllocation, redistributeAmongAvailable } from '../calculators/AllocationCalculator';
 import {
     calculateTotalAllocation,
     isPortfolioPrecise,
@@ -250,18 +245,5 @@ export class AllocationService {
      */
     public isPrecise(portfolio: Portfolio): boolean {
         return isPortfolioPrecise(portfolio.holdings);
-    }
-
-    /**
-     * Rounds all holding percentages (for display)
-     */
-    public roundPercentages(portfolio: Portfolio): Portfolio {
-        const newHoldings = new Map(portfolio.holdings);
-        roundHoldingPercentages(newHoldings);
-
-        return {
-            ...portfolio,
-            holdings: newHoldings,
-        };
     }
 }

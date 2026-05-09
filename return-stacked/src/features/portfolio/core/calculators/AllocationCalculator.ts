@@ -4,7 +4,7 @@
  */
 
 import type { Holding } from '../domain/Holding';
-import { percentToBasisPoints, basisPointsToPercent, roundForDisplay, ensureBasisPoints, MAX_BASIS_POINTS } from './precision';
+import { percentToBasisPoints, basisPointsToPercent, ensureBasisPoints, MAX_BASIS_POINTS } from './precision';
 
 /**
  * Redistributes allocation when an ETF is removed from holdings
@@ -256,100 +256,3 @@ export const redistributeAmongAvailable = (
     return holdings;
 };
 
-/**
- * Rounds all holding percentages for display (deprecated - now automatic)
- * Kept for backward compatibility
- */
-export const roundHoldingPercentages = (holdings: Map<string, Holding>): Map<string, Holding> => {
-    for (const [etf, holding] of holdings.entries()) {
-        holdings.set(etf, ensureBasisPoints(holding));
-    }
-    return holdings;
-};
-
-/**
- * Redistributes allocation with precision constraints, guaranteeing exact 100% total
- */
-export const redistributeWithPrecisionConstraints = (
-    holdings: Map<string, Holding>,
-    changedTicker: string,
-    newPercentage: number
-): Map<string, Holding> | null => {
-    const newBasisPoints = percentToBasisPoints(newPercentage);
-
-    const adjustableEntries = Array.from(holdings.entries()).filter(
-        ([ticker, holding]) => ticker !== changedTicker && !holding.locked && !holding.disabled
-    );
-
-    if (adjustableEntries.length === 0) {
-        return null;
-    }
-
-    const lockedBasisPoints = Array.from(holdings.entries())
-        .filter(([ticker, holding]) => ticker !== changedTicker && (holding.locked || holding.disabled))
-        .reduce((sum, [, holding]) => sum + (holding.disabled ? 0 : (holding.basisPoints ?? 0)), 0);
-
-    const remainingBasisPoints = MAX_BASIS_POINTS - lockedBasisPoints - newBasisPoints;
-
-    if (remainingBasisPoints < 0) {
-        return null;
-    }
-
-    const currentAdjustableBasisPoints = adjustableEntries.reduce((sum, [, holding]) => sum + (holding.basisPoints ?? 0), 0);
-
-    const newHoldings = new Map(holdings);
-
-    const changedHolding = holdings.get(changedTicker);
-    if (changedHolding) {
-        newHoldings.set(changedTicker, {
-            ...changedHolding,
-            basisPoints: newBasisPoints,
-            percentage: basisPointsToPercent(newBasisPoints),
-            displayPercentage: roundForDisplay(basisPointsToPercent(newBasisPoints)),
-        });
-    }
-
-    if (adjustableEntries.length === 1) {
-        const [singleTicker, singleHolding] = adjustableEntries[0];
-        newHoldings.set(singleTicker, {
-            ...singleHolding,
-            basisPoints: remainingBasisPoints,
-            percentage: basisPointsToPercent(remainingBasisPoints),
-            displayPercentage: roundForDisplay(basisPointsToPercent(remainingBasisPoints)),
-        });
-    } else {
-        let distributedBasisPoints = 0;
-
-        const distributions = adjustableEntries.map(([ticker, holding], index) => {
-            const isLast = index === adjustableEntries.length - 1;
-
-            let targetBasisPoints: number;
-            if (isLast) {
-                targetBasisPoints = remainingBasisPoints - distributedBasisPoints;
-            } else {
-                const proportion =
-                    currentAdjustableBasisPoints > 0
-                        ? (holding.basisPoints ?? 0) / currentAdjustableBasisPoints
-                        : 1 / adjustableEntries.length;
-                targetBasisPoints = Math.round(remainingBasisPoints * proportion);
-                distributedBasisPoints += targetBasisPoints;
-            }
-
-            return { ticker, targetBasisPoints };
-        });
-
-        distributions.forEach(({ ticker, targetBasisPoints }) => {
-            const holding = holdings.get(ticker);
-            if (holding) {
-                newHoldings.set(ticker, {
-                    ...holding,
-                    basisPoints: targetBasisPoints,
-                    percentage: basisPointsToPercent(targetBasisPoints),
-                    displayPercentage: roundForDisplay(basisPointsToPercent(targetBasisPoints)),
-                });
-            }
-        });
-    }
-
-    return newHoldings;
-};

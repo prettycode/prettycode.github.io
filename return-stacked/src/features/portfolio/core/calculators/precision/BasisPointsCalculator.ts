@@ -25,10 +25,7 @@ export const basisPointsToPercent = (basisPoints: number): number => {
     return basisPoints / BASIS_POINTS_PER_PERCENT;
 };
 
-/**
- * Calculates total allocation in basis points (should always be 10000 for valid portfolios)
- */
-export const calculateTotalBasisPoints = (holdings: Map<string, Holding>): number => {
+const calculateTotalBasisPoints = (holdings: Map<string, Holding>): number => {
     return Array.from(holdings.entries())
         .filter(([, holding]) => !holding.disabled)
         .reduce((sum, [, holding]) => sum + (holding.basisPoints ?? percentToBasisPoints(holding.percentage)), 0);

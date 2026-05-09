@@ -230,11 +230,4 @@ export class ValidationService {
         }
         return null;
     }
-
-    /**
-     * Gets portfolio exposures (public method)
-     */
-    public getExposures(portfolio: Portfolio): PortfolioExposures {
-        return this.getPortfolioExposures(portfolio);
-    }
 }

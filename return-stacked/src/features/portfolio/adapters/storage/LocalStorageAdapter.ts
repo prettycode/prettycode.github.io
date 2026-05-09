@@ -59,31 +59,4 @@ export class LocalStorageAdapter implements IStorageAdapter {
         }
     }
 
-    /**
-     * Deletes a portfolio from localStorage by name
-     */
-    async deletePortfolio(name: string): Promise<void> {
-        try {
-            const savedPortfolios = await this.loadPortfolios();
-            const updatedPortfolios = savedPortfolios.filter((portfolio) => portfolio.name !== name);
-
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPortfolios));
-        } catch (error) {
-            console.error('Error deleting portfolio:', error);
-            throw new Error('Failed to delete portfolio');
-        }
-    }
-
-    /**
-     * Checks if a portfolio with the given name exists
-     */
-    async portfolioExists(name: string): Promise<boolean> {
-        try {
-            const portfolios = await this.loadPortfolios();
-            return portfolios.some((p) => p.name === name);
-        } catch (error) {
-            console.error('Error checking portfolio existence:', error);
-            return false;
-        }
-    }
 }

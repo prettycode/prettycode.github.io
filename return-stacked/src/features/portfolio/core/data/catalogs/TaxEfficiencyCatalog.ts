@@ -84,7 +84,3 @@ export const taxEfficiencyByTicker: Record<string, TaxEfficiencyEntry> = {
     CTA: { score: 5, rationale: 'Section 1256 60/40 blended treatment, annual mark-to-market; 1099 (not K-1).' },
     DBMF: { score: 5, rationale: 'Section 1256 60/40 blended treatment, annual mark-to-market; 1099 (not K-1).' },
 };
-
-export const getTaxEfficiencyByTicker = (ticker: string): TaxEfficiencyEntry | undefined => {
-    return taxEfficiencyByTicker[ticker];
-};

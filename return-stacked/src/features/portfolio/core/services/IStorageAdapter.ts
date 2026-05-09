@@ -15,14 +15,4 @@ export interface IStorageAdapter {
      * Loads all saved portfolios
      */
     loadPortfolios(): Promise<SerializedPortfolio[]>;
-
-    /**
-     * Deletes a portfolio by name
-     */
-    deletePortfolio(name: string): Promise<void>;
-
-    /**
-     * Checks if a portfolio with the given name exists
-     */
-    portfolioExists(name: string): Promise<boolean>;
 }

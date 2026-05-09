@@ -92,20 +92,4 @@ export class AnalysisService {
     public getEquityBreakdown(portfolio: Portfolio): EquityBreakdown | null {
         return calculateEquityBreakdown(portfolio);
     }
-
-    /**
-     * Checks if a portfolio is levered
-     */
-    public isLevered(portfolio: Portfolio): boolean {
-        const analysis = this.analyze(portfolio);
-        return analysis.isLevered;
-    }
-
-    /**
-     * Gets total leverage of a portfolio
-     */
-    public getTotalLeverage(portfolio: Portfolio): number {
-        const analysis = this.analyze(portfolio);
-        return analysis.totalLeverage;
-    }
 }
