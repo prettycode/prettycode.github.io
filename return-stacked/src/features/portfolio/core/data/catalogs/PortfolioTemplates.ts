@@ -20,7 +20,7 @@ export const examplePortfolios: Portfolio[] = [
     ]),
     createPortfolio('Return Stacked® Max', [
         { ticker: 'RSSB', percentage: 25 },
-        { ticker: 'RSST', percentage: 25 },
+        { ticker: 'RSIT', percentage: 25 },
         { ticker: 'RSSY', percentage: 25 },
         { ticker: 'RSSX', percentage: 25 },
     ]),

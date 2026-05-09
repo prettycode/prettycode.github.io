@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AssetClassExposureBar from './AssetClassExposureBar';
 import DetailedExposures from './DetailedExposures';
+import TaxRollupCard from './TaxRollupCard';
 import WarningsCard from './WarningsCard';
 import { Card, CardContent } from '@/shared/components/ui/Card';
 import { ViewToggle } from '@/shared/components/ui/ViewToggle';
@@ -125,6 +126,7 @@ const Analysis: React.FC<AnalysisProps> = ({ portfolio }) => {
                         expandedCategories={expandedCategories}
                         onToggleCategory={toggleExpandedCategory}
                     />
+                    <TaxRollupCard portfolio={portfolio} />
                     {showWarnings && <WarningsCard portfolio={portfolio} />}
                 </div>
             )}
