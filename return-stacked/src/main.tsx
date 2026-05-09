@@ -14,7 +14,7 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
     <StrictMode>
-        <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+        <BrowserRouter basename={import.meta.env.PROD ? '/return-stacked' : '/'}>
             <ToastProvider>
                 <Routes>
                     <Route path="/" element={<Home />} />
