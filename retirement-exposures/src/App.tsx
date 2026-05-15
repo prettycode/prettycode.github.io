@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { Fragment, useState, useCallback, useRef, useMemo } from 'react';
 import type {
   AssetClass,
   FactorStyle,
@@ -8,111 +8,13 @@ import type {
 } from './types';
 import { parsePortfolioCSV } from './utils/parsePortfolio';
 import { ASSET_CLASS_COLORS, ASSET_CLASS_ORDER } from './data/colors';
-
-const C_EQUITY_BAR = '#2563eb';
-
-const REGION_ORDER: MarketRegion[] = ['U.S.', 'International Developed', 'Emerging'];
-const REGION_LABEL: Record<MarketRegion, string> = {
-  'U.S.': 'US',
-  'International Developed': "Int'l",
-  'Emerging': 'EM',
-};
-
-const STYLE_ORDER: FactorStyle[] = ['Blend', 'Value', 'Growth'];
-const SIZE_ORDER: SizeFactor[] = ['Large Cap', 'Small Cap'];
-const SIZE_LABEL: Record<SizeFactor, string> = {
-  'Large Cap': 'Large',
-  'Small Cap': 'Small',
-};
-
-const ASSET_CLASS_LABEL: Partial<Record<AssetClass, string>> = {
-  'U.S. Treasuries': 'Treasuries',
-  'Managed Futures': 'Trend',
-  'Futures Yield': 'Carry',
-};
-
-function labelFor(ac: AssetClass): string {
-  return ASSET_CLASS_LABEL[ac] ?? ac;
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-function formatCurrencyShort(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatPercent(part: number, total: number, digits = 1): string {
-  if (total === 0) return '—';
-  return ((part / total) * 100).toFixed(digits) + '%';
-}
-
-interface BarSegment {
-  label: string;
-  value: number;
-  color: string;
-}
-
-function StackedBar({ segments, total, height = 8 }: { segments: BarSegment[]; total: number; height?: number }) {
-  if (total <= 0) return <div className="w-full bg-neutral-100" style={{ height }} />;
-  return (
-    <div className="flex w-full overflow-hidden bg-neutral-100" style={{ height }}>
-      {segments.map((s, i) =>
-        s.value > 0 ? (
-          <div
-            key={i}
-            title={`${s.label}: ${formatPercent(s.value, total)}`}
-            style={{ width: `${(s.value / total) * 100}%`, backgroundColor: s.color }}
-          />
-        ) : null
-      )}
-    </div>
-  );
-}
-
-function LegendItem({
-  label, color, value, total, denominatorLabel,
-}: {
-  label: string; color: string; value: number; total: number; denominatorLabel?: string;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <span
-        className="inline-block w-1.5 flex-shrink-0 mt-1.5"
-        style={{ backgroundColor: color, height: 10 }}
-      />
-      <div className="min-w-0">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-[10px] font-medium tracking-[0.15em] text-neutral-500 uppercase">
-            {label}
-          </span>
-          <span className="text-sm font-medium text-neutral-900 tabular-nums">
-            {formatPercent(value, total)}
-          </span>
-          {denominatorLabel && (
-            <span className="text-[9px] tracking-[0.1em] text-neutral-400 uppercase">
-              {denominatorLabel}
-            </span>
-          )}
-        </div>
-        <div className="text-xs text-neutral-400 tabular-nums mt-0.5">
-          {formatCurrencyShort(value)}
-        </div>
-      </div>
-    </div>
-  );
-}
+import { formatCurrency, formatCurrencyShort, formatPercent } from './utils/format';
+import { labelFor } from './utils/labels';
+import { assetClassSegments } from './utils/assetClassSegments';
+import { StackedBar } from './components/StackedBar';
+import { AssetClassAllocation } from './components/AssetClassAllocation';
+import { AssetClassBreakdown } from './components/AssetClassBreakdown';
+import { EquityBreakdown } from './components/EquityBreakdown';
 
 interface Aggregated {
   byAssetClass: Map<AssetClass, number>;
@@ -152,55 +54,21 @@ function aggregate(portfolios: PortfolioData[]): Aggregated {
   };
 }
 
-function assetClassSegments(byAssetClass: Map<AssetClass, number>): BarSegment[] {
-  return ASSET_CLASS_ORDER
-    .map(ac => ({ label: labelFor(ac), value: byAssetClass.get(ac) ?? 0, color: ASSET_CLASS_COLORS[ac] }))
-    .filter(s => s.value > 0)
-    .sort((a, b) => b.value - a.value);
-}
-
-function EquityBreakdown({
-  title, items, total,
-}: {
-  title: string;
-  items: Array<{ label: string; value: number }>;
-  total: number;
-}) {
-  const visible = items.filter(i => i.value > 0);
-  if (visible.length === 0 || total === 0) return null;
-  return (
-    <div>
-      <p className="text-[10px] font-medium tracking-[0.15em] text-neutral-400 uppercase mb-3">
-        {title}
-      </p>
-      <div className="space-y-2.5">
-        {visible.map(({ label, value }) => {
-          const pct = (value / total) * 100;
-          return (
-            <div key={label}>
-              <div className="flex items-baseline justify-between text-xs mb-1">
-                <span className="text-neutral-700">{label}</span>
-                <span className="tabular-nums text-neutral-500">{pct.toFixed(1)}%</span>
-              </div>
-              <div className="h-1.5 bg-neutral-100 overflow-hidden">
-                <div
-                  className="h-full"
-                  style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: C_EQUITY_BAR }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const [portfolios, setPortfolios] = useState<PortfolioData[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const toggleExpanded = (index: number) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
 
   const processFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
@@ -255,7 +123,6 @@ export default function App() {
   const agg = useMemo(() => aggregate(portfolios), [portfolios]);
   const hasData = portfolios.length > 0;
 
-  const assetSegments = assetClassSegments(agg.byAssetClass);
   const leverage = agg.totalValue > 0 ? agg.totalExposure / agg.totalValue : 0;
   const isLevered = leverage > 1.0001;
 
@@ -365,65 +232,29 @@ export default function App() {
               </div>
             </section>
 
-            {/* Asset Class Allocation */}
             <section className="pt-10 pb-12 border-b border-neutral-200">
-              <p className="text-[10px] font-medium tracking-[0.2em] text-neutral-400 uppercase mb-5">
-                Asset Class Allocation
-              </p>
-              <StackedBar segments={assetSegments} total={agg.totalExposure} height={20} />
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-5 mt-6">
-                {ASSET_CLASS_ORDER.map(ac => {
-                  const value = agg.byAssetClass.get(ac) ?? 0;
-                  if (value <= 0) return null;
-                  return (
-                    <LegendItem
-                      key={ac}
-                      label={labelFor(ac)}
-                      color={ASSET_CLASS_COLORS[ac]}
-                      value={value}
-                      total={agg.totalValue}
-                      denominatorLabel="of NAV"
-                    />
-                  );
-                })}
-              </div>
+              <AssetClassAllocation
+                byAssetClass={agg.byAssetClass}
+                totalExposure={agg.totalExposure}
+                totalValue={agg.totalValue}
+              />
             </section>
 
-            {/* Equity sub-breakdowns */}
+            <section className="pt-10 pb-12 border-b border-neutral-200">
+              <AssetClassBreakdown
+                byAssetClass={agg.byAssetClass}
+                totalValue={agg.totalValue}
+              />
+            </section>
+
             {agg.totalEquity > 0 && (
               <section className="pt-10 pb-12 border-b border-neutral-200">
-                <p className="text-[10px] font-medium tracking-[0.2em] text-neutral-400 uppercase mb-5">
-                  Equity Breakdown
-                  <span className="text-[10px] text-neutral-400 normal-case tracking-normal ml-2">
-                    {formatCurrencyShort(agg.totalEquity)} total · % of equity
-                  </span>
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                  <EquityBreakdown
-                    title="Region"
-                    total={agg.totalEquity}
-                    items={REGION_ORDER.map(r => ({
-                      label: REGION_LABEL[r],
-                      value: agg.byMarketRegion.get(r) ?? 0,
-                    }))}
-                  />
-                  <EquityBreakdown
-                    title="Factor Style"
-                    total={agg.totalEquity}
-                    items={STYLE_ORDER.map(s => ({
-                      label: s,
-                      value: agg.byFactorStyle.get(s) ?? 0,
-                    }))}
-                  />
-                  <EquityBreakdown
-                    title="Size"
-                    total={agg.totalEquity}
-                    items={SIZE_ORDER.map(s => ({
-                      label: SIZE_LABEL[s],
-                      value: agg.bySizeFactor.get(s) ?? 0,
-                    }))}
-                  />
-                </div>
+                <EquityBreakdown
+                  byMarketRegion={agg.byMarketRegion}
+                  byFactorStyle={agg.byFactorStyle}
+                  bySizeFactor={agg.bySizeFactor}
+                  totalEquity={agg.totalEquity}
+                />
               </section>
             )}
 
@@ -459,17 +290,42 @@ export default function App() {
                       .map(({ p, i }) => {
                       const segments = assetClassSegments(p.byAssetClass);
                       const lev = p.totalValue > 0 ? p.totalExposure / p.totalValue : 0;
+                      const isExpanded = expanded.has(i);
+                      const hasEquity = p.totalEquity > 0;
                       return (
-                        <tr key={i} className="border-b border-neutral-100 group">
+                        <Fragment key={i}>
+                        <tr
+                          className={`border-b border-neutral-100 group ${hasEquity ? 'cursor-pointer hover:bg-neutral-50' : ''}`}
+                          onClick={hasEquity ? () => toggleExpanded(i) : undefined}
+                        >
                           <td className="py-4 pr-4 align-top">
-                            <div className="font-medium text-neutral-900 leading-tight">
-                              {p.accountName || p.fileName}
-                            </div>
-                            {p.accountNumber && (
-                              <div className="font-mono text-[11px] text-neutral-400 mt-1 tracking-wide">
-                                {p.accountNumber}
+                            <div className="flex items-start gap-2">
+                              {hasEquity && (
+                                <svg
+                                  width="8"
+                                  height="8"
+                                  viewBox="0 0 8 8"
+                                  className={`mt-1.5 flex-shrink-0 text-neutral-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M2 1l4 3-4 3" />
+                                </svg>
+                              )}
+                              <div className={hasEquity ? '' : 'pl-[16px]'}>
+                                <div className="font-medium text-neutral-900 leading-tight">
+                                  {p.accountName || p.fileName}
+                                </div>
+                                {p.accountNumber && (
+                                  <div className="font-mono text-[11px] text-neutral-400 mt-1 tracking-wide">
+                                    {p.accountNumber}
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            </div>
                           </td>
                           <td className="py-4 px-4 text-right text-neutral-700 tabular-nums align-top">
                             {formatCurrency(p.totalValue)}
@@ -504,7 +360,7 @@ export default function App() {
                           </td>
                           <td className="py-4 pl-2 text-right align-top">
                             <button
-                              onClick={() => removePortfolio(i)}
+                              onClick={(e) => { e.stopPropagation(); removePortfolio(i); }}
                               className="text-neutral-300 hover:text-neutral-900 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                               title="Remove"
                               aria-label="Remove portfolio"
@@ -515,6 +371,27 @@ export default function App() {
                             </button>
                           </td>
                         </tr>
+                        {isExpanded && hasEquity && (
+                          <tr key={`${i}-expanded`} className="border-b border-neutral-100 bg-neutral-50/60">
+                            <td colSpan={5} className="py-6 px-8">
+                              <div className="mb-8">
+                                <AssetClassBreakdown
+                                  byAssetClass={p.byAssetClass}
+                                  totalValue={p.totalValue}
+                                  level="nested"
+                                />
+                              </div>
+                              <EquityBreakdown
+                                byMarketRegion={p.byMarketRegion}
+                                byFactorStyle={p.byFactorStyle}
+                                bySizeFactor={p.bySizeFactor}
+                                totalEquity={p.totalEquity}
+                                level="nested"
+                              />
+                            </td>
+                          </tr>
+                        )}
+                        </Fragment>
                       );
                     })}
                   </tbody>
@@ -526,7 +403,7 @@ export default function App() {
                           {formatCurrency(agg.totalValue)}
                         </td>
                         <td className="pt-5 px-4 align-top">
-                          <StackedBar segments={assetSegments} total={agg.totalExposure} height={6} />
+                          <StackedBar segments={assetClassSegments(agg.byAssetClass)} total={agg.totalExposure} height={6} />
                         </td>
                         <td
                           className="pt-5 pl-4 text-right font-medium tabular-nums align-top"
