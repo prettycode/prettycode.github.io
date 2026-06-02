@@ -244,6 +244,7 @@ export default function App() {
               <AssetClassBreakdown
                 byAssetClass={agg.byAssetClass}
                 totalValue={agg.totalValue}
+                collapsible
               />
             </section>
 
@@ -254,6 +255,7 @@ export default function App() {
                   byFactorStyle={agg.byFactorStyle}
                   bySizeFactor={agg.bySizeFactor}
                   totalEquity={agg.totalEquity}
+                  collapsible
                 />
               </section>
             )}
