@@ -44,20 +44,24 @@ export default function ETFInfoPage(): React.ReactElement {
         });
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-background">
             <div className="max-w-7xl mx-auto p-6">
                 {/* Header */}
                 <div className="mb-6">
                     <Link
                         to="/"
-                        className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors w-fit mb-4"
+                        className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors w-fit mb-4"
                     >
                         <ArrowLeft className="w-5 h-5" />
                         <span className="font-medium">Back to Portfolio Builder</span>
                     </Link>
 
-                    <h1 className="text-4xl font-bold text-gray-900 mb-2">Stacked ETF Information</h1>
-                    <p className="text-gray-600">Complete list of all Stacked ETFs with their key characteristics</p>
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-2">
+                        Stacked ETF Information
+                    </h1>
+                    <p className="text-muted-foreground">
+                        Complete list of all Stacked ETFs with their key characteristics
+                    </p>
                 </div>
 
                 {/* Main Content */}
@@ -66,7 +70,7 @@ export default function ETFInfoPage(): React.ReactElement {
                         <CardTitle>Stacked ETF Catalog</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="mb-4 text-sm text-gray-500">
+                        <div className="mb-4 text-sm text-muted-foreground">
                             Showing {stackedETFs.length} stacked strategy ETFs
                         </div>
 
@@ -88,7 +92,9 @@ export default function ETFInfoPage(): React.ReactElement {
                                         <TableRow key={etf.ticker}>
                                             <TableCell className="font-mono font-semibold">{etf.ticker}</TableCell>
                                             <TableCell className="font-medium">{etf.name}</TableCell>
-                                            <TableCell className="text-sm text-gray-600">{etf.description}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">
+                                                {etf.description}
+                                            </TableCell>
                                             <TableCell className="text-right">{etf.expenseRatio.toFixed(2)}%</TableCell>
                                             <TableCell className="text-right">
                                                 {etf.yield > 0 ? `${etf.yield.toFixed(2)}%` : 'N/A'}

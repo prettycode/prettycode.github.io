@@ -247,11 +247,7 @@ const CompositionPanel: React.FC<CompositionPanelProps> = ({
                                     )}
                                     style={{ transitionDuration: `${EXPAND_COLLAPSE_DURATION_MS}ms` }}
                                 >
-                                    <Switch
-                                        checked={showDetailColumns}
-                                        onCheckedChange={onToggleDetailColumns}
-                                        className="data-[state=checked]:bg-blue-500"
-                                    />
+                                    <Switch checked={showDetailColumns} onCheckedChange={onToggleDetailColumns} />
                                     <label
                                         className="text-xs text-muted-foreground cursor-pointer"
                                         onClick={onToggleDetailColumns}

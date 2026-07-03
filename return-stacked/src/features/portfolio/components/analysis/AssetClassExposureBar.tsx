@@ -56,7 +56,8 @@ const AssetClassExposureBar: React.FC<AssetClassExposureBarProps> = ({
                     <div className="flex items-center">
                         <h3 className="font-medium text-sm mr-2">Asset Allocation</h3>
                         <Badge
-                            className="flex items-center gap-1 font-medium px-2 py-1 text-xs bg-gray-100 text-black border-0 cursor-help"
+                            variant="secondary"
+                            className="flex items-center gap-1 font-medium px-2 py-1 text-xs cursor-help"
                             title={`Total Leverage: ${totalLeverage.toFixed(4)}x`}
                         >
                             <span>{totalLeverage.toFixed(2)}x</span> levered

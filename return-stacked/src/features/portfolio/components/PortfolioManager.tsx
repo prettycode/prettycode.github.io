@@ -333,7 +333,7 @@ const PortfolioManager: React.FC = () => {
     const serializedSavedPortfolios: SerializedPortfolio[] = savedPortfolios.map(serializePortfolio);
 
     return (
-        <div className="max-w-full mx-auto p-6 bg-gray-50">
+        <div className="max-w-full mx-auto px-6">
             <div className="flex flex-col md:flex-row gap-6">
                 <div className="md:w-11/20 flex flex-col">
                     <div className="mb-6">
