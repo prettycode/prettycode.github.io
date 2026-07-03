@@ -1,11 +1,25 @@
 import { useState } from "react";
-import type { AssetClass } from "../types";
+import type { AssetClass, AssetClassGroup } from "../types";
 import { ASSET_CLASS_COLORS, ASSET_CLASS_ORDER } from "../data/colors";
 import { formatCurrencyShort, formatPercent } from "../utils/format";
-import { labelFor } from "../utils/labels";
+import { labelFor, labelForAssetClassGroup, labelForAssetClassNode } from "../utils/labels";
+import {
+  aggregateAssetClassSubgroups,
+  aggregateTopLevelAssetClasses,
+  ASSET_CLASS_SUBGROUP_ORDER,
+  ASSET_CLASS_GROUP_COLORS,
+  type AssetClassNode,
+  TOP_LEVEL_ASSET_CLASS_ORDER,
+} from "../utils/assetClassHierarchy";
 import { StackedBar, type BarSegment } from "./StackedBar";
 
-const ALTERNATIVES_COLOR = "#7c3aed";
+type AllocationGrouping = "top-level" | "subgroups" | "detailed";
+
+const GROUPING_OPTIONS: { value: AllocationGrouping; label: string }[] = [
+  { value: "top-level", label: "Top Level" },
+  { value: "subgroups", label: "Subgroups" },
+  { value: "detailed", label: "Detailed" },
+];
 
 interface Row {
   label: string;
@@ -13,11 +27,19 @@ interface Row {
   value: number;
 }
 
+function isAssetClassGroup(node: AssetClassNode): node is AssetClassGroup {
+  return node === "Equity" || node === "U.S. Treasuries" || node === "Alternatives" || node === "Managed Futures" || node === "Crypto";
+}
+
+function colorForNode(node: AssetClassNode): string {
+  return isAssetClassGroup(node) ? ASSET_CLASS_GROUP_COLORS[node] : ASSET_CLASS_COLORS[node];
+}
+
 function buildRows(
   byAssetClass: Map<AssetClass, number>,
-  grouped: boolean,
+  grouping: AllocationGrouping,
 ): Row[] {
-  if (!grouped) {
+  if (grouping === "detailed") {
     return ASSET_CLASS_ORDER.map((ac) => ({
       label: labelFor(ac),
       color: ASSET_CLASS_COLORS[ac],
@@ -25,23 +47,21 @@ function buildRows(
     })).filter((r) => r.value > 0);
   }
 
-  let alternatives = 0;
-  for (const [ac, v] of byAssetClass) {
-    if (ac !== "Equity" && ac !== "U.S. Treasuries") alternatives += v;
+  if (grouping === "subgroups") {
+    const subgroups = aggregateAssetClassSubgroups(byAssetClass);
+    return ASSET_CLASS_SUBGROUP_ORDER.map((node) => ({
+      label: labelForAssetClassNode(node),
+      color: colorForNode(node),
+      value: subgroups.get(node) ?? 0,
+    })).filter((r) => r.value > 0);
   }
-  return [
-    {
-      label: "Equity",
-      color: ASSET_CLASS_COLORS["Equity"],
-      value: byAssetClass.get("Equity") ?? 0,
-    },
-    {
-      label: "Treasuries",
-      color: ASSET_CLASS_COLORS["U.S. Treasuries"],
-      value: byAssetClass.get("U.S. Treasuries") ?? 0,
-    },
-    { label: "Alternatives", color: ALTERNATIVES_COLOR, value: alternatives },
-  ].filter((r) => r.value > 0);
+
+  const topLevel = aggregateTopLevelAssetClasses(byAssetClass);
+  return TOP_LEVEL_ASSET_CLASS_ORDER.map((group) => ({
+    label: labelForAssetClassGroup(group),
+    color: ASSET_CLASS_GROUP_COLORS[group],
+    value: topLevel.get(group) ?? 0,
+  })).filter((r) => r.value > 0);
 }
 
 function LegendItem({
@@ -94,8 +114,8 @@ export function AssetClassAllocation({
   totalExposure: number;
   totalValue: number;
 }) {
-  const [grouped, setGrouped] = useState(true);
-  const rows = buildRows(byAssetClass, grouped).sort((a, b) => b.value - a.value);
+  const [grouping, setGrouping] = useState<AllocationGrouping>("top-level");
+  const rows = buildRows(byAssetClass, grouping).sort((a, b) => b.value - a.value);
   const segments: BarSegment[] = rows;
   return (
     <>
@@ -104,19 +124,18 @@ export function AssetClassAllocation({
           Asset Class Allocation
         </p>
         <div className="flex items-baseline gap-3 text-[10px] font-medium tracking-[0.15em] uppercase">
-          <button
-            onClick={() => setGrouped(true)}
-            className={`transition-colors ${grouped ? "text-neutral-900" : "text-neutral-400 hover:text-neutral-900"}`}
-          >
-            Grouped
-          </button>
-          <span className="text-neutral-300">/</span>
-          <button
-            onClick={() => setGrouped(false)}
-            className={`transition-colors ${grouped ? "text-neutral-400 hover:text-neutral-900" : "text-neutral-900"}`}
-          >
-            Detailed
-          </button>
+          {GROUPING_OPTIONS.map((option, index) => (
+            <span key={option.value} className="inline-flex items-baseline gap-3">
+              {index > 0 && <span className="text-neutral-300">/</span>}
+              <button
+                type="button"
+                onClick={() => setGrouping(option.value)}
+                className={`transition-colors ${grouping === option.value ? "text-neutral-900" : "text-neutral-400 hover:text-neutral-900"}`}
+              >
+                {option.label}
+              </button>
+            </span>
+          ))}
         </div>
       </div>
       <StackedBar segments={segments} total={totalExposure} height={20} />

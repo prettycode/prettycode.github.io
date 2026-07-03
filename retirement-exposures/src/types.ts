@@ -1,13 +1,20 @@
 export type AssetClass =
   | 'Equity'
   | 'U.S. Treasuries'
-  | 'Managed Futures'
-  | 'Futures Yield'
+  | 'Trend'
+  | 'Carry'
   | 'Gold'
   | 'Bitcoin'
   | 'Ethereum'
   | 'Cash'
   | 'Unknown';
+
+export type AssetClassGroup =
+  | 'Equity'
+  | 'U.S. Treasuries'
+  | 'Alternatives'
+  | 'Managed Futures'
+  | 'Crypto';
 
 export type MarketRegion = 'U.S.' | 'International Developed' | 'Emerging';
 

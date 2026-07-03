@@ -1,4 +1,4 @@
-import type { AssetClass, FactorStyle, MarketRegion, SizeFactor } from '../types';
+import type { AssetClass, AssetClassGroup, FactorStyle, MarketRegion, SizeFactor } from '../types';
 
 export const REGION_ORDER: MarketRegion[] = ['U.S.', 'International Developed', 'Emerging'];
 export const REGION_LABEL: Record<MarketRegion, string> = {
@@ -17,10 +17,23 @@ export const SIZE_LABEL: Record<SizeFactor, string> = {
 
 const ASSET_CLASS_LABEL: Partial<Record<AssetClass, string>> = {
   'U.S. Treasuries': 'Treasuries',
-  'Managed Futures': 'Trend',
-  'Futures Yield': 'Carry',
 };
 
 export function labelFor(ac: AssetClass): string {
   return ASSET_CLASS_LABEL[ac] ?? ac;
+}
+
+const ASSET_CLASS_GROUP_LABEL: Partial<Record<AssetClassGroup, string>> = {
+  'U.S. Treasuries': 'Treasuries',
+};
+
+export function labelForAssetClassGroup(group: AssetClassGroup): string {
+  return ASSET_CLASS_GROUP_LABEL[group] ?? group;
+}
+
+export function labelForAssetClassNode(node: AssetClass | AssetClassGroup): string {
+  if (node === 'Equity' || node === 'U.S. Treasuries' || node === 'Alternatives' || node === 'Managed Futures' || node === 'Crypto') {
+    return labelForAssetClassGroup(node);
+  }
+  return labelFor(node);
 }

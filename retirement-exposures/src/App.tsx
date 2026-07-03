@@ -1,6 +1,7 @@
 import { Fragment, useState, useCallback, useRef, useMemo } from 'react';
 import type {
   AssetClass,
+  AssetClassGroup,
   FactorStyle,
   MarketRegion,
   PortfolioData,
@@ -9,9 +10,15 @@ import type {
 import { parsePortfolioCSV } from './utils/parsePortfolio';
 import { ASSET_CLASS_COLORS, ASSET_CLASS_ORDER } from './data/colors';
 import { formatCurrency, formatCurrencyShort, formatPercent } from './utils/format';
-import { labelFor } from './utils/labels';
-import { assetClassSegments } from './utils/assetClassSegments';
-import { StackedBar } from './components/StackedBar';
+import { labelFor, labelForAssetClassGroup, labelForAssetClassNode } from './utils/labels';
+import {
+  aggregateAssetClassSubgroups,
+  aggregateTopLevelAssetClasses,
+  ASSET_CLASS_GROUP_COLORS,
+  ASSET_CLASS_SUBGROUP_ORDER,
+  type AssetClassNode,
+  TOP_LEVEL_ASSET_CLASS_ORDER,
+} from './utils/assetClassHierarchy';
 import { AssetClassAllocation } from './components/AssetClassAllocation';
 import { AssetClassBreakdown } from './components/AssetClassBreakdown';
 import { EquityBreakdown } from './components/EquityBreakdown';
@@ -25,6 +32,75 @@ interface Aggregated {
   totalExposure: number;
   totalValue: number;
   unknownValue: number;
+}
+
+type AssetClassGrouping = 'top-level' | 'subgroups' | 'detailed';
+
+const ASSET_CLASS_GROUPING_OPTIONS: { value: AssetClassGrouping; label: string }[] = [
+  { value: 'top-level', label: 'Top Level' },
+  { value: 'subgroups', label: 'Subgroups' },
+  { value: 'detailed', label: 'Detailed' },
+];
+
+interface AssetClassColumn {
+  key: string;
+  node: AssetClassNode;
+  label: string;
+  color: string;
+}
+
+function isAssetClassGroup(node: AssetClassNode): node is AssetClassGroup {
+  return node === 'Equity' || node === 'U.S. Treasuries' || node === 'Alternatives' || node === 'Managed Futures' || node === 'Crypto';
+}
+
+function colorForAssetClassNode(node: AssetClassNode): string {
+  return isAssetClassGroup(node) ? ASSET_CLASS_GROUP_COLORS[node] : ASSET_CLASS_COLORS[node];
+}
+
+function assetClassValueForGrouping(
+  byAssetClass: Map<AssetClass, number>,
+  grouping: AssetClassGrouping,
+  node: AssetClassNode,
+): number {
+  if (grouping === 'top-level') {
+    return aggregateTopLevelAssetClasses(byAssetClass).get(node as AssetClassGroup) ?? 0;
+  }
+  if (grouping === 'subgroups') {
+    return aggregateAssetClassSubgroups(byAssetClass).get(node) ?? 0;
+  }
+  return byAssetClass.get(node as AssetClass) ?? 0;
+}
+
+function assetClassColumnsForGrouping(
+  byAssetClass: Map<AssetClass, number>,
+  grouping: AssetClassGrouping,
+): AssetClassColumn[] {
+  if (grouping === 'top-level') {
+    const topLevel = aggregateTopLevelAssetClasses(byAssetClass);
+    return TOP_LEVEL_ASSET_CLASS_ORDER.map(node => ({
+      key: `${grouping}:${node}`,
+      node,
+      label: labelForAssetClassGroup(node),
+      color: ASSET_CLASS_GROUP_COLORS[node],
+    })).filter(column => (topLevel.get(column.node as AssetClassGroup) ?? 0) > 0);
+  }
+
+  if (grouping === 'subgroups') {
+    const subgroups = aggregateAssetClassSubgroups(byAssetClass);
+    return ASSET_CLASS_SUBGROUP_ORDER.map(node => ({
+      key: `${grouping}:${node}`,
+      node,
+      label: labelForAssetClassNode(node),
+      color: colorForAssetClassNode(node),
+    })).filter(column => (subgroups.get(column.node) ?? 0) > 0);
+  }
+
+  return ASSET_CLASS_ORDER.map(node => ({
+    key: `${grouping}:${node}`,
+    node,
+    label: labelFor(node),
+    color: ASSET_CLASS_COLORS[node],
+  })).filter(column => (byAssetClass.get(column.node as AssetClass) ?? 0) > 0);
 }
 
 function aggregate(portfolios: PortfolioData[]): Aggregated {
@@ -59,6 +135,7 @@ export default function App() {
   const [errors, setErrors] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [accountAssetClassGrouping, setAccountAssetClassGrouping] = useState<AssetClassGrouping>('top-level');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const toggleExpanded = (index: number) => {
@@ -135,6 +212,11 @@ export default function App() {
     }
     return Array.from(set).sort();
   }, [portfolios]);
+
+  const accountAssetClassColumns = useMemo(
+    () => assetClassColumnsForGrouping(agg.byAssetClass, accountAssetClassGrouping),
+    [agg.byAssetClass, accountAssetClassGrouping]
+  );
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 selection:bg-amber-100">
@@ -266,12 +348,28 @@ export default function App() {
                 <p className="text-[10px] font-medium tracking-[0.2em] text-neutral-400 uppercase">
                   By Account
                 </p>
-                <button
-                  onClick={clearAll}
-                  className="text-xs text-neutral-400 hover:text-neutral-900 transition-colors"
-                >
-                  Clear all
-                </button>
+                <div className="flex items-baseline gap-5">
+                  <div className="flex items-baseline gap-3 text-[10px] font-medium tracking-[0.15em] uppercase">
+                    {ASSET_CLASS_GROUPING_OPTIONS.map((option, index) => (
+                      <span key={option.value} className="inline-flex items-baseline gap-3">
+                        {index > 0 && <span className="text-neutral-300">/</span>}
+                        <button
+                          type="button"
+                          onClick={() => setAccountAssetClassGrouping(option.value)}
+                          className={`transition-colors ${accountAssetClassGrouping === option.value ? 'text-neutral-900' : 'text-neutral-400 hover:text-neutral-900'}`}
+                        >
+                          {option.label}
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    onClick={clearAll}
+                    className="text-xs text-neutral-400 hover:text-neutral-900 transition-colors"
+                  >
+                    Clear all
+                  </button>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -280,7 +378,20 @@ export default function App() {
                     <tr className="border-b border-neutral-200">
                       <th className="text-left pb-3 pr-4 text-[10px] font-medium text-neutral-400 uppercase tracking-[0.15em]">Account</th>
                       <th className="text-right pb-3 px-4 text-[10px] font-medium text-neutral-400 uppercase tracking-[0.15em]">Value</th>
-                      <th className="text-left pb-3 px-4 text-[10px] font-medium text-neutral-400 uppercase tracking-[0.15em] w-1/2 min-w-[180px]">Asset Class Allocation</th>
+                      {accountAssetClassColumns.map(column => (
+                        <th
+                          key={column.key}
+                          className="text-right pb-3 px-2 text-[10px] font-medium text-neutral-400 uppercase tracking-[0.15em] whitespace-nowrap"
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            <span
+                              className="inline-block w-1.5 h-1.5"
+                              style={{ backgroundColor: column.color }}
+                            />
+                            {column.label}
+                          </span>
+                        </th>
+                      ))}
                       <th className="text-right pb-3 pl-4 text-[10px] font-medium text-neutral-400 uppercase tracking-[0.15em]">Lev.</th>
                       <th className="w-8 pb-3"></th>
                     </tr>
@@ -290,7 +401,6 @@ export default function App() {
                       .map((p, i) => ({ p, i }))
                       .sort((a, b) => b.p.totalValue - a.p.totalValue)
                       .map(({ p, i }) => {
-                      const segments = assetClassSegments(p.byAssetClass);
                       const lev = p.totalValue > 0 ? p.totalExposure / p.totalValue : 0;
                       const isExpanded = expanded.has(i);
                       const hasEquity = p.totalEquity > 0;
@@ -332,27 +442,21 @@ export default function App() {
                           <td className="py-4 px-4 text-right text-neutral-700 tabular-nums align-top">
                             {formatCurrency(p.totalValue)}
                           </td>
-                          <td className="py-4 px-4 align-top">
-                            <StackedBar segments={segments} total={p.totalExposure} height={6} />
-                            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
-                              {ASSET_CLASS_ORDER.map(ac => {
-                                const v = p.byAssetClass.get(ac) ?? 0;
-                                if (v <= 0) return null;
-                                return (
-                                  <span key={ac} className="inline-flex items-center gap-1 text-[10px]">
-                                    <span
-                                      className="inline-block w-1.5 h-1.5"
-                                      style={{ backgroundColor: ASSET_CLASS_COLORS[ac] }}
-                                    />
-                                    <span className="text-neutral-500">{labelFor(ac)}</span>
-                                    <span className="tabular-nums text-neutral-700">
-                                      {formatPercent(v, p.totalValue, 0)}
-                                    </span>
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          </td>
+                          {accountAssetClassColumns.map(column => {
+                            const v = assetClassValueForGrouping(p.byAssetClass, accountAssetClassGrouping, column.node);
+                            return (
+                              <td
+                                key={column.key}
+                                className="py-4 px-2 text-right tabular-nums align-top whitespace-nowrap"
+                              >
+                                {v > 0 ? (
+                                  <span className="text-neutral-700">{formatPercent(v, p.totalValue, 0)}</span>
+                                ) : (
+                                  <span className="text-neutral-300">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
                           <td
                             className="py-4 pl-4 text-right tabular-nums align-top"
                             style={{ color: lev > 1.0001 ? '#b45309' : '#a3a3a3' }}
@@ -375,7 +479,7 @@ export default function App() {
                         </tr>
                         {isExpanded && hasEquity && (
                           <tr key={`${i}-expanded`} className="border-b border-neutral-100 bg-neutral-50/60">
-                            <td colSpan={5} className="py-6 px-8">
+                            <td colSpan={4 + accountAssetClassColumns.length} className="py-6 px-8">
                               <div className="mb-8">
                                 <AssetClassBreakdown
                                   byAssetClass={p.byAssetClass}
@@ -404,9 +508,21 @@ export default function App() {
                         <td className="pt-5 px-4 text-right font-medium text-neutral-900 tabular-nums align-top">
                           {formatCurrency(agg.totalValue)}
                         </td>
-                        <td className="pt-5 px-4 align-top">
-                          <StackedBar segments={assetClassSegments(agg.byAssetClass)} total={agg.totalExposure} height={6} />
-                        </td>
+                        {accountAssetClassColumns.map(column => {
+                          const v = assetClassValueForGrouping(agg.byAssetClass, accountAssetClassGrouping, column.node);
+                          return (
+                            <td
+                              key={column.key}
+                              className="pt-5 px-2 text-right font-medium tabular-nums align-top whitespace-nowrap"
+                            >
+                              {v > 0 ? (
+                                <span className="text-neutral-900">{formatPercent(v, agg.totalValue, 0)}</span>
+                              ) : (
+                                <span className="text-neutral-300">—</span>
+                              )}
+                            </td>
+                          );
+                        })}
                         <td
                           className="pt-5 pl-4 text-right font-medium tabular-nums align-top"
                           style={{ color: leverage > 1.0001 ? '#b45309' : '#a3a3a3' }}

@@ -39,12 +39,12 @@ const emLargeBlend: ExposureAmount = {
 
 export const etfCatalog: ETF[] = [
   // Return Stacked
-  mk('RSST', [usLargeBlend, { exposure: { assetClass: 'Managed Futures' }, amount: 1 }], 'Stacked'),
-  mk('RSIT', [intlLargeBlend, { exposure: { assetClass: 'Managed Futures' }, amount: 1 }], 'Stacked'),
+  mk('RSST', [usLargeBlend, { exposure: { assetClass: 'Trend' }, amount: 1 }], 'Stacked'),
+  mk('RSIT', [intlLargeBlend, { exposure: { assetClass: 'Trend' }, amount: 1 }], 'Stacked'),
   mk('RSSX', [usLargeBlend, { exposure: { assetClass: 'Gold' }, amount: 0.8 }, { exposure: { assetClass: 'Bitcoin' }, amount: 0.2 }], 'Stacked'),
-  mk('RSBT', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1 }, { exposure: { assetClass: 'Managed Futures' }, amount: 1 }], 'Stacked'),
-  mk('RSSY', [usLargeBlend, { exposure: { assetClass: 'Futures Yield' }, amount: 1 }], 'Stacked'),
-  mk('RSBY', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1 }, { exposure: { assetClass: 'Futures Yield' }, amount: 1 }], 'Stacked'),
+  mk('RSBT', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1 }, { exposure: { assetClass: 'Trend' }, amount: 1 }], 'Stacked'),
+  mk('RSSY', [usLargeBlend, { exposure: { assetClass: 'Carry' }, amount: 1 }], 'Stacked'),
+  mk('RSBY', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1 }, { exposure: { assetClass: 'Carry' }, amount: 1 }], 'Stacked'),
   mk('RSSB', [
     { exposure: { ...usLargeBlend.exposure }, amount: 0.6 },
     { exposure: { ...intlLargeBlend.exposure }, amount: 0.3 },
@@ -72,6 +72,7 @@ export const etfCatalog: ETF[] = [
   mk('BNDX', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1 }]),
   mk('FXNAX', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1 }]),
   mk('FBND', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1 }]),
+  mk('VTEB', [{ exposure: { assetClass: 'U.S. Treasuries' }, amount: 1 }]),
 
   // Gold
   mk('UGL', [{ exposure: { assetClass: 'Gold' }, amount: 2 }], 'Daily Reset'),
@@ -205,9 +206,9 @@ export const etfCatalog: ETF[] = [
   mk('DGS', [{ exposure: { assetClass: 'Equity', marketRegion: 'Emerging', factorStyle: 'Value', sizeFactor: 'Small Cap' }, amount: 1 }]),
 
   // Managed Futures / Trend
-  mk('KMLM', [{ exposure: { assetClass: 'Managed Futures' }, amount: 1 }]),
-  mk('CTA', [{ exposure: { assetClass: 'Managed Futures' }, amount: 1 }]),
-  mk('DBMF', [{ exposure: { assetClass: 'Managed Futures' }, amount: 1 }]),
+  mk('KMLM', [{ exposure: { assetClass: 'Trend' }, amount: 1 }]),
+  mk('CTA', [{ exposure: { assetClass: 'Trend' }, amount: 1 }]),
+  mk('DBMF', [{ exposure: { assetClass: 'Trend' }, amount: 1 }]),
 
   // Cash / money market
   mk('SPAXX', [{ exposure: { assetClass: 'Cash' }, amount: 1 }]),
@@ -218,6 +219,7 @@ export const etfCatalog: ETF[] = [
   mk('VUSXX', [{ exposure: { assetClass: 'Cash' }, amount: 1 }]),
   mk('SGOV', [{ exposure: { assetClass: 'Cash' }, amount: 1 }]),
   mk('BIL', [{ exposure: { assetClass: 'Cash' }, amount: 1 }]),
+  mk('BOXX', [{ exposure: { assetClass: 'Cash' }, amount: 1 }]),
 ];
 
 const byTicker = new Map(etfCatalog.map(e => [e.ticker, e]));
