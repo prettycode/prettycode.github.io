@@ -9,9 +9,10 @@ export const REGION_LABEL: Record<MarketRegion, string> = {
 
 export const STYLE_ORDER: FactorStyle[] = ['Blend', 'Value', 'Growth'];
 
-export const SIZE_ORDER: SizeFactor[] = ['Large Cap', 'Small Cap'];
+export const SIZE_ORDER: SizeFactor[] = ['Large Cap', 'Mid Cap', 'Small Cap'];
 export const SIZE_LABEL: Record<SizeFactor, string> = {
   'Large Cap': 'Large',
+  'Mid Cap': 'Mid',
   'Small Cap': 'Small',
 };
 

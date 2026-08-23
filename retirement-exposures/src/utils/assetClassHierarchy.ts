@@ -32,7 +32,7 @@ export const ASSET_CLASS_SUBGROUP_ORDER: AssetClassNode[] = [
 ];
 
 export const MANAGED_FUTURES_ORDER: AssetClass[] = ['Trend', 'Carry'];
-export const CRYPTO_ORDER: AssetClass[] = ['Bitcoin', 'Ethereum'];
+export const CRYPTO_ORDER: AssetClass[] = ['Bitcoin', 'Ethereum', 'Altcoins'];
 
 export function topLevelGroupFor(ac: AssetClass): AssetClassGroup {
   if (ac === 'Equity' || ac === 'U.S. Treasuries') return ac;
@@ -42,7 +42,7 @@ export function topLevelGroupFor(ac: AssetClass): AssetClassGroup {
 export function alternativesGroupFor(ac: AssetClass): AssetClassNode | null {
   if (ac === 'Equity' || ac === 'U.S. Treasuries') return null;
   if (ac === 'Trend' || ac === 'Carry') return 'Managed Futures';
-  if (ac === 'Bitcoin' || ac === 'Ethereum') return 'Crypto';
+  if (ac === 'Bitcoin' || ac === 'Ethereum' || ac === 'Altcoins') return 'Crypto';
   return ac;
 }
 

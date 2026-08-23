@@ -20,6 +20,10 @@ const usLargeValue: ExposureAmount = {
   exposure: { assetClass: 'Equity', marketRegion: 'U.S.', factorStyle: 'Value', sizeFactor: 'Large Cap' },
   amount: 1,
 };
+const usMidBlend: ExposureAmount = {
+  exposure: { assetClass: 'Equity', marketRegion: 'U.S.', factorStyle: 'Blend', sizeFactor: 'Mid Cap' },
+  amount: 1,
+};
 const usSmallBlend: ExposureAmount = {
   exposure: { assetClass: 'Equity', marketRegion: 'U.S.', factorStyle: 'Blend', sizeFactor: 'Small Cap' },
   amount: 1,
@@ -103,6 +107,8 @@ export const etfCatalog: ETF[] = [
   mk('BRRR', [{ exposure: { assetClass: 'Bitcoin' }, amount: 1 }]),
   mk('EZBC', [{ exposure: { assetClass: 'Bitcoin' }, amount: 1 }]),
   mk('BTCO', [{ exposure: { assetClass: 'Bitcoin' }, amount: 1 }]),
+  mk('MSTR', [{ exposure: { assetClass: 'Bitcoin' }, amount: 1 }]),
+  mk('WGMI', [{ exposure: { assetClass: 'Bitcoin' }, amount: 1 }]),
 
   // Ethereum
   mk('ETHA', [{ exposure: { assetClass: 'Ethereum' }, amount: 1 }]),
@@ -113,6 +119,15 @@ export const etfCatalog: ETF[] = [
   mk('CETH', [{ exposure: { assetClass: 'Ethereum' }, amount: 1 }]),
   mk('EZET', [{ exposure: { assetClass: 'Ethereum' }, amount: 1 }]),
   mk('QETH', [{ exposure: { assetClass: 'Ethereum' }, amount: 1 }]),
+  mk('ETHB', [{ exposure: { assetClass: 'Ethereum' }, amount: 1 }]),
+  mk('BMNR', [{ exposure: { assetClass: 'Ethereum' }, amount: 1 }]),
+
+  // Multi-asset crypto index
+  mk('BITW', [
+    { exposure: { assetClass: 'Bitcoin' }, amount: 0.75 },
+    { exposure: { assetClass: 'Ethereum' }, amount: 0.15 },
+    { exposure: { assetClass: 'Altcoins' }, amount: 0.1 },
+  ]),
 
   // Leveraged equity
   mk('UPRO', [{ exposure: usLargeBlend.exposure, amount: 3 }], 'Daily Reset'),
@@ -135,6 +150,11 @@ export const etfCatalog: ETF[] = [
     { exposure: usLargeValue.exposure, amount: 0.6 },
     { exposure: { assetClass: 'Equity', marketRegion: 'International Developed', factorStyle: 'Value', sizeFactor: 'Large Cap' }, amount: 0.3 },
     { exposure: { assetClass: 'Equity', marketRegion: 'Emerging', factorStyle: 'Value', sizeFactor: 'Large Cap' }, amount: 0.1 },
+  ]),
+  mk('AVGE', [
+    { exposure: usLargeBlend.exposure, amount: 0.6 },
+    { exposure: intlLargeBlend.exposure, amount: 0.28 },
+    { exposure: emLargeBlend.exposure, amount: 0.12 },
   ]),
   mk('VXUS', [
     { exposure: intlLargeBlend.exposure, amount: 0.66 },
@@ -183,10 +203,14 @@ export const etfCatalog: ETF[] = [
   mk('SCHV', [usLargeValue]),
   mk('AVLV', [usLargeValue]),
 
+  // US mid
+  mk('FSMDX', [usMidBlend]),
+
   // US small
   mk('VB', [usSmallBlend]),
   mk('IJR', [usSmallBlend]),
   mk('IWM', [usSmallBlend]),
+  mk('FSSNX', [usSmallBlend]),
   mk('VBR', [usSmallValue]),
   mk('AVUV', [usSmallValue]),
 

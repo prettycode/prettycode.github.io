@@ -8,6 +8,7 @@ export const ASSET_CLASS_COLORS: Record<AssetClass, string> = {
   'Gold': '#eab308',
   'Bitcoin': '#b45309',
   'Ethereum': '#3f3f46',
+  'Altcoins': '#e11d48',
   'Cash': '#a3a3a3',
   'Unknown': '#d4d4d8',
 };
@@ -21,6 +22,7 @@ export const ASSET_CLASS_ORDER: AssetClass[] = [
   'Gold',
   'Bitcoin',
   'Ethereum',
+  'Altcoins',
   'Cash',
   'Unknown',
 ];

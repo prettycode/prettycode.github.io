@@ -158,11 +158,11 @@ export default function App() {
         continue;
       }
       const text = await file.text();
-      const portfolio = parsePortfolioCSV(text, file.name);
-      if (!portfolio) {
+      const parsed = parsePortfolioCSV(text, file.name);
+      if (parsed.length === 0) {
         newErrors.push(`${file.name}: could not parse — ensure it is a Fidelity positions export`);
       } else {
-        newPortfolios.push(portfolio);
+        newPortfolios.push(...parsed);
       }
     }
 

@@ -6,6 +6,7 @@ export type AssetClass =
   | 'Gold'
   | 'Bitcoin'
   | 'Ethereum'
+  | 'Altcoins'
   | 'Cash'
   | 'Unknown';
 
@@ -20,7 +21,7 @@ export type MarketRegion = 'U.S.' | 'International Developed' | 'Emerging';
 
 export type FactorStyle = 'Blend' | 'Growth' | 'Value';
 
-export type SizeFactor = 'Large Cap' | 'Small Cap';
+export type SizeFactor = 'Large Cap' | 'Mid Cap' | 'Small Cap';
 
 export interface Exposure {
   assetClass: AssetClass;
