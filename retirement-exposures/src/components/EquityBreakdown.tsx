@@ -1,24 +1,33 @@
-import { useState } from 'react';
-import type { FactorStyle, MarketRegion, SizeFactor } from '../types';
-import { formatCurrencyShort } from '../utils/format';
-import { REGION_LABEL, REGION_ORDER, SIZE_LABEL, SIZE_ORDER, STYLE_ORDER } from '../utils/labels';
-import { Breakdown } from './Breakdown';
+import { useState } from "react";
+import type { FactorStyle, MarketRegion, SizeFactor } from "../types";
+import { formatCurrencyShort } from "../utils/format";
+import {
+  REGION_LABEL,
+  REGION_ORDER,
+  SIZE_LABEL,
+  SIZE_ORDER,
+  STYLE_ORDER,
+} from "../utils/labels";
+import { Breakdown } from "./Breakdown";
 
 export function EquityBreakdown({
-  byMarketRegion, byFactorStyle, bySizeFactor, totalEquity, level = 'section', collapsible = false,
+  byMarketRegion,
+  byFactorStyle,
+  bySizeFactor,
+  totalEquity,
+  collapsible = false,
 }: {
   byMarketRegion: Map<MarketRegion, number>;
   byFactorStyle: Map<FactorStyle, number>;
   bySizeFactor: Map<SizeFactor, number>;
   totalEquity: number;
-  level?: 'section' | 'nested';
   collapsible?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   if (totalEquity <= 0) return null;
-  const tracking = level === 'section' ? 'tracking-[0.2em]' : 'tracking-[0.15em]';
+  const heading = "text-xs font-semibold tracking-[0.2em] text-neutral-900";
   const meta = (
-    <span className="text-[10px] text-neutral-400 normal-case tracking-normal ml-2">
+    <span className="text-[10px] font-normal text-neutral-400 normal-case tracking-normal ml-2">
       {formatCurrencyShort(totalEquity)} total · % of equity
     </span>
   );
@@ -27,7 +36,7 @@ export function EquityBreakdown({
       <Breakdown
         title="Region"
         total={totalEquity}
-        items={REGION_ORDER.map(r => ({
+        items={REGION_ORDER.map((r) => ({
           label: REGION_LABEL[r],
           value: byMarketRegion.get(r) ?? 0,
         }))}
@@ -35,7 +44,7 @@ export function EquityBreakdown({
       <Breakdown
         title="Factor Style"
         total={totalEquity}
-        items={STYLE_ORDER.map(s => ({
+        items={STYLE_ORDER.map((s) => ({
           label: s,
           value: byFactorStyle.get(s) ?? 0,
         }))}
@@ -43,7 +52,7 @@ export function EquityBreakdown({
       <Breakdown
         title="Size"
         total={totalEquity}
-        items={SIZE_ORDER.map(s => ({
+        items={SIZE_ORDER.map((s) => ({
           label: SIZE_LABEL[s],
           value: bySizeFactor.get(s) ?? 0,
         }))}
@@ -54,7 +63,7 @@ export function EquityBreakdown({
   if (!collapsible) {
     return (
       <>
-        <p className={`text-[10px] font-medium ${tracking} text-neutral-400 uppercase mb-5`}>
+        <p className={`${heading} uppercase mb-5`}>
           Equity Breakdown
           {meta}
         </p>
@@ -67,15 +76,15 @@ export function EquityBreakdown({
     <>
       <button
         type="button"
-        onClick={() => setExpanded(e => !e)}
-        className={`w-full flex items-baseline text-left text-[10px] font-medium ${tracking} text-neutral-400 uppercase ${expanded ? 'mb-5' : ''} hover:text-neutral-900 transition-colors group`}
+        onClick={() => setExpanded((e) => !e)}
+        className={`w-full flex items-baseline text-left ${heading} uppercase ${expanded ? "mb-5" : ""} hover:text-neutral-900 transition-colors group`}
         aria-expanded={expanded}
       >
         <svg
           width="8"
           height="8"
           viewBox="0 0 8 8"
-          className={`mr-2 flex-shrink-0 text-neutral-400 group-hover:text-neutral-900 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          className={`mr-2 flex-shrink-0 text-neutral-900 transition-transform ${expanded ? "rotate-90" : ""}`}
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"

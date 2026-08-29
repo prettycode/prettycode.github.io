@@ -2,7 +2,11 @@ import { useState } from "react";
 import type { AssetClass, AssetClassGroup } from "../types";
 import { ASSET_CLASS_COLORS, ASSET_CLASS_ORDER } from "../data/colors";
 import { formatCurrencyShort, formatPercent } from "../utils/format";
-import { labelFor, labelForAssetClassGroup, labelForAssetClassNode } from "../utils/labels";
+import {
+  labelFor,
+  labelForAssetClassGroup,
+  labelForAssetClassNode,
+} from "../utils/labels";
 import {
   aggregateAssetClassSubgroups,
   aggregateTopLevelAssetClasses,
@@ -28,11 +32,19 @@ interface Row {
 }
 
 function isAssetClassGroup(node: AssetClassNode): node is AssetClassGroup {
-  return node === "Equity" || node === "U.S. Treasuries" || node === "Alternatives" || node === "Managed Futures" || node === "Crypto";
+  return (
+    node === "Equity" ||
+    node === "U.S. Treasuries" ||
+    node === "Alternatives" ||
+    node === "Managed Futures" ||
+    node === "Crypto"
+  );
 }
 
 function colorForNode(node: AssetClassNode): string {
-  return isAssetClassGroup(node) ? ASSET_CLASS_GROUP_COLORS[node] : ASSET_CLASS_COLORS[node];
+  return isAssetClassGroup(node)
+    ? ASSET_CLASS_GROUP_COLORS[node]
+    : ASSET_CLASS_COLORS[node];
 }
 
 function buildRows(
@@ -115,7 +127,9 @@ export function AssetClassAllocation({
   totalValue: number;
 }) {
   const [grouping, setGrouping] = useState<AllocationGrouping>("top-level");
-  const rows = buildRows(byAssetClass, grouping).sort((a, b) => b.value - a.value);
+  const rows = buildRows(byAssetClass, grouping).sort(
+    (a, b) => b.value - a.value,
+  );
   const segments: BarSegment[] = rows;
   return (
     <>
@@ -125,7 +139,10 @@ export function AssetClassAllocation({
         </p>
         <div className="flex items-baseline gap-3 text-[10px] font-medium tracking-[0.15em] uppercase">
           {GROUPING_OPTIONS.map((option, index) => (
-            <span key={option.value} className="inline-flex items-baseline gap-3">
+            <span
+              key={option.value}
+              className="inline-flex items-baseline gap-3"
+            >
               {index > 0 && <span className="text-neutral-300">/</span>}
               <button
                 type="button"

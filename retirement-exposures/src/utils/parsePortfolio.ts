@@ -5,19 +5,19 @@ import type {
   MarketRegion,
   PortfolioData,
   SizeFactor,
-} from '../types';
-import { getETFByTicker } from '../data/etfCatalog';
+} from "../types";
+import { getETFByTicker } from "../data/etfCatalog";
 
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
-  let current = '';
+  let current = "";
   let inQuotes = false;
   for (const char of line) {
     if (char === '"') {
       inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === "," && !inQuotes) {
       result.push(current.trim());
-      current = '';
+      current = "";
     } else {
       current += char;
     }
@@ -30,16 +30,19 @@ function parseCSVLine(line: string): string[] {
 // single-account download, "Current value" in an all-accounts one), and prefixes
 // the file with a BOM.
 function normalizeHeader(header: string): string {
-  return header.replace(/^\uFEFF/, '').trim().toLowerCase();
+  return header
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .toLowerCase();
 }
 
 function findColumn(headers: string[], name: string): number {
-  return headers.findIndex(h => h === name);
+  return headers.findIndex((h) => h === name);
 }
 
 function parseDollarValue(str: string): number | null {
-  if (!str || str === '--') return null;
-  const cleaned = str.replace(/[$,]/g, '');
+  if (!str || str === "--") return null;
+  const cleaned = str.replace(/[$,]/g, "");
   const val = parseFloat(cleaned);
   return isNaN(val) ? null : val;
 }
@@ -47,7 +50,7 @@ function parseDollarValue(str: string): number | null {
 // Fidelity footnotes money market and cash symbols with trailing asterisks
 // (SPAXX**, FDRXX**, USD***), which would otherwise miss the catalog.
 function stripSymbolFootnote(symbol: string): string {
-  return symbol.replace(/\*+$/, '');
+  return symbol.replace(/\*+$/, "");
 }
 
 function looksLikeCash(symbol: string, description: string): boolean {
@@ -57,15 +60,15 @@ function looksLikeCash(symbol: string, description: string): boolean {
   // symbol and no description; Fidelity reports uninvested settlement dollars as
   // a "Pending activity" row.
   if (/^\*+$/.test(s)) return true;
-  if (s === 'PENDING ACTIVITY') return true;
-  if (s === 'USD' || s === 'CASH') return true;
-  if (s.startsWith('CORE')) return true;
+  if (s === "PENDING ACTIVITY") return true;
+  if (s === "USD" || s === "CASH") return true;
+  if (s.startsWith("CORE")) return true;
   const d = description.toUpperCase();
   return (
-    d.includes('MONEY MARKET') ||
-    d.includes('CASH') ||
-    d.includes('SWEEP') ||
-    d.includes('US DOLLARS')
+    d.includes("MONEY MARKET") ||
+    d.includes("CASH") ||
+    d.includes("SWEEP") ||
+    d.includes("US DOLLARS")
   );
 }
 
@@ -83,7 +86,10 @@ interface AccountAccumulator {
   unknownValue: number;
 }
 
-function newAccount(accountNumber: string, accountName: string): AccountAccumulator {
+function newAccount(
+  accountNumber: string,
+  accountName: string,
+): AccountAccumulator {
   return {
     accountNumber,
     accountName,
@@ -107,17 +113,20 @@ function addTo<K>(map: Map<K, number>, key: K, dollars: number) {
  * Parses a Fidelity positions export. A single-account download yields one
  * portfolio; an all-accounts download yields one per account in the file.
  */
-export function parsePortfolioCSV(text: string, fileName: string): PortfolioData[] {
-  const lines = text.split('\n');
+export function parsePortfolioCSV(
+  text: string,
+  fileName: string,
+): PortfolioData[] {
+  const lines = text.split("\n");
   const headerLine = lines[0];
   if (!headerLine) return [];
 
   const headers = parseCSVLine(headerLine).map(normalizeHeader);
-  const symbolIdx = findColumn(headers, 'symbol');
-  const currentValueIdx = findColumn(headers, 'current value');
-  const accountNumberIdx = findColumn(headers, 'account number');
-  const accountNameIdx = findColumn(headers, 'account name');
-  const descriptionIdx = findColumn(headers, 'description');
+  const symbolIdx = findColumn(headers, "symbol");
+  const currentValueIdx = findColumn(headers, "current value");
+  const accountNumberIdx = findColumn(headers, "account number");
+  const accountNameIdx = findColumn(headers, "account name");
+  const descriptionIdx = findColumn(headers, "description");
 
   if (symbolIdx === -1 || currentValueIdx === -1) return [];
 
@@ -134,8 +143,9 @@ export function parsePortfolioCSV(text: string, fileName: string): PortfolioData
     const value = parseDollarValue(cols[currentValueIdx]);
     if (value === null) continue;
 
-    const accountNumber = accountNumberIdx >= 0 ? (cols[accountNumberIdx] ?? '') : '';
-    const accountName = accountNameIdx >= 0 ? (cols[accountNameIdx] ?? '') : '';
+    const accountNumber =
+      accountNumberIdx >= 0 ? (cols[accountNumberIdx] ?? "") : "";
+    const accountName = accountNameIdx >= 0 ? (cols[accountNameIdx] ?? "") : "";
     const key = accountNumber || accountName || fileName;
 
     let account = accounts.get(key);
@@ -145,9 +155,9 @@ export function parsePortfolioCSV(text: string, fileName: string): PortfolioData
     }
     if (!account.accountName && accountName) account.accountName = accountName;
 
-    const symbolRaw = (cols[symbolIdx] ?? '').trim();
+    const symbolRaw = (cols[symbolIdx] ?? "").trim();
     const symbol = stripSymbolFootnote(symbolRaw).toUpperCase();
-    const description = descriptionIdx >= 0 ? (cols[descriptionIdx] ?? '') : '';
+    const description = descriptionIdx >= 0 ? (cols[descriptionIdx] ?? "") : "";
 
     account.totalValue += value;
 
@@ -160,25 +170,28 @@ export function parsePortfolioCSV(text: string, fileName: string): PortfolioData
         const dollars = value * amount;
         addTo(account.byAssetClass, exposure.assetClass, dollars);
         account.totalExposure += dollars;
-        if (exposure.assetClass === 'Equity') {
+        if (exposure.assetClass === "Equity") {
           account.totalEquity += dollars;
-          if (exposure.marketRegion) addTo(account.byMarketRegion, exposure.marketRegion, dollars);
-          if (exposure.factorStyle) addTo(account.byFactorStyle, exposure.factorStyle, dollars);
-          if (exposure.sizeFactor) addTo(account.bySizeFactor, exposure.sizeFactor, dollars);
+          if (exposure.marketRegion)
+            addTo(account.byMarketRegion, exposure.marketRegion, dollars);
+          if (exposure.factorStyle)
+            addTo(account.byFactorStyle, exposure.factorStyle, dollars);
+          if (exposure.sizeFactor)
+            addTo(account.bySizeFactor, exposure.sizeFactor, dollars);
         }
       }
     } else if (looksLikeCash(symbolRaw, description)) {
       inCatalog = true;
-      addTo(account.byAssetClass, 'Cash', value);
+      addTo(account.byAssetClass, "Cash", value);
       account.totalExposure += value;
     } else {
-      addTo(account.byAssetClass, 'Unknown', value);
+      addTo(account.byAssetClass, "Unknown", value);
       account.totalExposure += value;
       account.unknownValue += value;
     }
 
     account.holdings.push({
-      symbol: symbolRaw || '(cash)',
+      symbol: symbolRaw || "(cash)",
       description,
       value,
       inCatalog,

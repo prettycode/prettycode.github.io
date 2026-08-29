@@ -1,28 +1,32 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 
-const BAR_COLOR = '#2563eb';
+const BAR_COLOR = "#2563eb";
 
 type BreakdownItem = { label: string; value: number };
-type SortMode = 'default' | 'value-asc' | 'value-desc';
+type SortMode = "default" | "value-asc" | "value-desc";
 
-const SORT_MODES: SortMode[] = ['default', 'value-asc', 'value-desc'];
+const SORT_MODES: SortMode[] = ["default", "value-asc", "value-desc"];
 const SORT_LABEL: Record<SortMode, string> = {
-  default: 'Default order',
-  'value-asc': 'Smallest first',
-  'value-desc': 'Largest first',
+  default: "Default order",
+  "value-asc": "Smallest first",
+  "value-desc": "Largest first",
 };
 const NEXT_SORT_LABEL: Record<SortMode, string> = {
-  default: SORT_LABEL['value-asc'],
-  'value-asc': SORT_LABEL['value-desc'],
-  'value-desc': SORT_LABEL.default,
+  default: SORT_LABEL["value-asc"],
+  "value-asc": SORT_LABEL["value-desc"],
+  "value-desc": SORT_LABEL.default,
 };
 
 function sortItems(items: BreakdownItem[], sortMode: SortMode) {
   switch (sortMode) {
-    case 'value-desc':
-      return [...items].sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
-    case 'value-asc':
-      return [...items].sort((a, b) => a.value - b.value || a.label.localeCompare(b.label));
+    case "value-desc":
+      return [...items].sort(
+        (a, b) => b.value - a.value || a.label.localeCompare(b.label),
+      );
+    case "value-asc":
+      return [...items].sort(
+        (a, b) => a.value - b.value || a.label.localeCompare(b.label),
+      );
     default:
       return items;
   }
@@ -35,8 +39,8 @@ function nextSortMode(sortMode: SortMode) {
 function SortIcon({ mode }: { mode: SortMode }) {
   const widths: Record<SortMode, [number, number, number]> = {
     default: [10, 10, 10],
-    'value-asc': [5, 8, 11],
-    'value-desc': [11, 8, 5],
+    "value-asc": [5, 8, 11],
+    "value-desc": [11, 8, 5],
   };
 
   return (
@@ -51,10 +55,7 @@ function SortIcon({ mode }: { mode: SortMode }) {
       aria-hidden="true"
     >
       {widths[mode].map((width, index) => (
-        <path
-          key={index}
-          d={`M2 ${3 + index * 4}h${width}`}
-        />
+        <path key={index} d={`M2 ${3 + index * 4}h${width}`} />
       ))}
     </svg>
   );
@@ -71,10 +72,14 @@ export function Breakdown({
   total: number;
   sortable?: boolean;
 }) {
-  const [sortMode, setSortMode] = useState<SortMode>('default');
+  const [sortMode, setSortMode] = useState<SortMode>("default");
   const visible = useMemo(
-    () => sortItems(items.filter((i) => i.value > 0), sortMode),
-    [items, sortMode]
+    () =>
+      sortItems(
+        items.filter((i) => i.value > 0),
+        sortMode,
+      ),
+    [items, sortMode],
   );
 
   if (visible.length === 0 || total === 0) return null;

@@ -1,27 +1,28 @@
 export type AssetClass =
-  | 'Equity'
-  | 'U.S. Treasuries'
-  | 'Trend'
-  | 'Carry'
-  | 'Gold'
-  | 'Bitcoin'
-  | 'Ethereum'
-  | 'Altcoins'
-  | 'Cash'
-  | 'Unknown';
+  | "Equity"
+  | "U.S. Treasuries"
+  | "Trend"
+  | "Carry"
+  | "Gold"
+  | "Bitcoin"
+  | "Ethereum"
+  | "Altcoins"
+  | "Cash"
+  | "Unknown";
+
+export type CryptoAssetClass = Extract<
+  AssetClass,
+  "Bitcoin" | "Ethereum" | "Altcoins"
+>;
 
 export type AssetClassGroup =
-  | 'Equity'
-  | 'U.S. Treasuries'
-  | 'Alternatives'
-  | 'Managed Futures'
-  | 'Crypto';
+  "Equity" | "U.S. Treasuries" | "Alternatives" | "Managed Futures" | "Crypto";
 
-export type MarketRegion = 'U.S.' | 'International Developed' | 'Emerging';
+export type MarketRegion = "U.S." | "International Developed" | "Emerging";
 
-export type FactorStyle = 'Blend' | 'Growth' | 'Value';
+export type FactorStyle = "Blend" | "Growth" | "Value";
 
-export type SizeFactor = 'Large Cap' | 'Mid Cap' | 'Small Cap';
+export type SizeFactor = "Large Cap" | "Mid Cap" | "Small Cap";
 
 export interface Exposure {
   assetClass: AssetClass;
@@ -35,7 +36,8 @@ export interface ExposureAmount {
   amount: number;
 }
 
-export type LeverageType = 'None' | 'Stacked' | 'Daily Reset' | 'Extended Duration';
+export type LeverageType =
+  "None" | "Stacked" | "Daily Reset" | "Extended Duration";
 
 export interface ETF {
   ticker: string;
