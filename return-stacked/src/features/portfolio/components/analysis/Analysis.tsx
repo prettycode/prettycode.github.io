@@ -4,6 +4,7 @@ import DetailedExposures from './DetailedExposures';
 import TaxRollupCard from './TaxRollupCard';
 import WarningsCard from './WarningsCard';
 import { Card, CardContent } from '@/shared/components/ui/Card';
+import { Button } from '@/shared/components/ui/Button';
 import { ViewToggle } from '@/shared/components/ui/ViewToggle';
 import { AlertCircle, SlidersHorizontal, Percent, ArrowDown10, Filter, LayoutGrid, AlertTriangle } from 'lucide-react';
 import type { Portfolio } from '@/features/portfolio/core/domain/Portfolio';
@@ -65,15 +66,17 @@ const Analysis: React.FC<AnalysisProps> = ({ portfolio }) => {
                 </div>
 
                 {!isPortfolioEmpty && (
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setShowControls(!showControls)}
-                        className="flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
                     >
                         <SlidersHorizontal className="h-3 w-3" />
                         <span className="hidden sm:inline-block">
                             {showControls ? 'Hide View Options' : 'Show View Options'}
                         </span>
-                    </button>
+                    </Button>
                 )}
             </div>
 

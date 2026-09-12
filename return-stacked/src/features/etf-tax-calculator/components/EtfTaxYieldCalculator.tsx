@@ -8,6 +8,13 @@ import { TAX_EXEMPT_MUNI_ETFS, TAXABLE_TREASURY_ETFS, DURATION_LABELS, type Bond
 import { findTaxBracket } from '../constants/TaxBrackets';
 import type { Duration } from '../types/EtfCalculator';
 import { Disclaimer } from './Disclaimer';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/Card';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/Input';
+import { Label } from '@/shared/components/ui/Label';
+import { Badge } from '@/shared/components/ui/Badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/Table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/Select';
 
 interface ETFWithYield extends BondETF {
     currentYield: number;
@@ -121,460 +128,436 @@ const ETFTaxYieldCalculator: React.FC = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6">
-            <div className="max-w-7xl mx-auto">
+        <div className="container mx-auto px-6 py-6">
+            <div className="mx-auto max-w-7xl space-y-6">
                 {/* Header */}
-                <header className="mb-6">
-                    <div className="flex items-center gap-4 mb-3">
-                        <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-                            <Calculator className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                                Municipal vs Treasury Bonds
-                            </h1>
-                            <p className="text-slate-600 mt-1">Which is better for your tax situation?</p>
-                        </div>
+                <header className="flex items-center gap-4">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                        <Calculator className="h-6 w-6" />
+                    </span>
+                    <div>
+                        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                            Municipal vs Treasury Bonds
+                        </h1>
+                        <p className="mt-1 text-muted-foreground">Which is better for your tax situation?</p>
                     </div>
                 </header>
 
                 <main className="space-y-6">
-                    {/* Configuration Panel - Redesigned */}
-                    <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-                        {/* Tax Configuration Section */}
-                        <div className="bg-gradient-to-r from-slate-50 to-blue-50 p-6 border-b border-slate-200">
-                            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <span className="text-blue-600">💸</span>
-                                Your Tax Scenario
-                            </h2>
-
-                            <div className="grid md:grid-cols-2 gap-4">
+                    {/* Configuration Panel */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Your Tax Scenario</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid gap-4 md:grid-cols-2">
                                 {/* Option 1: Calculate from Income (Optional) */}
-                                <div className="border-2 rounded-lg p-4 bg-white border-slate-200">
-                                    <div className="font-semibold text-slate-900 mb-3">
-                                        Calculate from my income (optional)
-                                    </div>
+                                <div className="rounded-lg border p-4">
+                                    <div className="mb-3 font-semibold">Calculate from my income (optional)</div>
 
                                     {/* Filing Status Toggle */}
-                                    <div className="flex gap-2 mb-3">
-                                        <button
+                                    <div className="mb-3 flex gap-2">
+                                        <Button
                                             type="button"
+                                            variant={filingStatus === 'single' ? 'default' : 'secondary'}
+                                            size="sm"
+                                            className="flex-1"
                                             onClick={() => setFilingStatus('single')}
-                                            className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition-all ${
-                                                filingStatus === 'single'
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                                            }`}
                                         >
                                             Single
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             type="button"
+                                            variant={filingStatus === 'married' ? 'default' : 'secondary'}
+                                            size="sm"
+                                            className="flex-1"
                                             onClick={() => setFilingStatus('married')}
-                                            className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition-all ${
-                                                filingStatus === 'married'
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                                            }`}
                                         >
                                             Married
-                                        </button>
+                                        </Button>
                                     </div>
 
                                     <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">
+                                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                                             $
                                         </span>
-                                        <input
+                                        <Input
                                             type="number"
                                             value={income}
                                             onChange={(e) => handleIncomeChange(e.target.value)}
-                                            className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-semibold"
+                                            className="pl-7"
                                             placeholder="200,000"
+                                            aria-label="Annual taxable income"
                                         />
                                     </div>
-                                    <div className="text-xs text-slate-600 mt-1.5">
+                                    <div className="mt-1.5 text-xs text-muted-foreground">
                                         Annual taxable income (
                                         {filingStatus === 'married' ? 'married filing jointly' : 'single filer'})
                                     </div>
                                 </div>
 
                                 {/* Option 2: Your Tax Rate */}
-                                <div className="border-2 rounded-lg p-4 bg-white border-slate-200">
-                                    <div className="font-semibold text-slate-900 mb-3">
+                                <div className="rounded-lg border p-4">
+                                    <div className="mb-3 font-semibold">
                                         Your tax rate
                                         {income && calculatedTaxRate !== null && (
-                                            <span className="ml-2 text-sm font-normal text-green-600">
-                                                (auto-filled)
-                                            </span>
+                                            <Badge variant="secondary" className="ml-2 font-normal">
+                                                auto-filled
+                                            </Badge>
                                         )}
                                     </div>
                                     <div className="relative">
-                                        <input
+                                        <Input
                                             type="number"
                                             value={customTaxRate}
                                             onChange={(e) => handleTaxRateChange(parseFloat(e.target.value) || 0)}
                                             min="0"
                                             max="100"
                                             step="1"
-                                            className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-semibold"
+                                            className="pr-10"
                                             placeholder="24"
+                                            aria-label="Federal marginal tax rate"
                                         />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">
+                                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                                             %
                                         </span>
                                     </div>
-                                    <div className="text-xs text-slate-600 mt-1.5">Federal marginal tax rate</div>
+                                    <div className="mt-1.5 text-xs text-muted-foreground">
+                                        Federal marginal tax rate
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Duration Filter Section */}
-                        <div className="p-6">
-                            <h3 className="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wide">
-                                Filter by Duration
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
-                                {(Object.keys(DURATION_LABELS) as Duration[]).map((duration) => (
-                                    <button
-                                        key={duration}
-                                        onClick={() => handleDurationChange(duration)}
-                                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                                            selectedDuration === duration
-                                                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md'
-                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-                                        }`}
-                                    >
-                                        {DURATION_LABELS[duration]}
-                                    </button>
-                                ))}
+                            {/* Duration Filter */}
+                            <div>
+                                <Label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Filter by Duration
+                                </Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {(Object.keys(DURATION_LABELS) as Duration[]).map((duration) => (
+                                        <Button
+                                            key={duration}
+                                            variant={selectedDuration === duration ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => handleDurationChange(duration)}
+                                        >
+                                            {DURATION_LABELS[duration]}
+                                        </Button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
+
                     {/* All ETFs Table - Expandable */}
-                    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-                        <button
+                    <Card className="overflow-hidden py-0">
+                        <Button
+                            variant="ghost"
                             onClick={() => setShowAllETFs(!showAllETFs)}
-                            className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                            className="h-auto w-full justify-between rounded-none px-6 py-4"
                         >
-                            <div className="flex items-center gap-3">
-                                <BarChart3 className="w-5 h-5 text-slate-600" />
-                                <h3 className="text-lg font-bold text-slate-800">Matching ETFs</h3>
-                                <span className="text-sm text-slate-500">
+                            <span className="flex items-center gap-3">
+                                <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                                <span className="text-base font-semibold">Matching ETFs</span>
+                                <span className="text-sm font-normal text-muted-foreground">
                                     ({processedData.munis.length + processedData.treasuries.length} ETFs)
                                 </span>
-                            </div>
-                            {showAllETFs ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </button>
+                            </span>
+                            {showAllETFs ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                        </Button>
 
                         {showAllETFs && (
-                            <div className="border-t border-slate-200">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-slate-50 border-b border-slate-200">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">
-                                                    Type
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">
-                                                    Ticker
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">
-                                                    Name
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">
-                                                    Duration
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">
-                                                    Current Yield
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">
-                                                    After-Tax Yield
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">
-                                                    Expense
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {[...processedData.munis, ...processedData.treasuries]
-                                                .sort((a, b) => b.afterTaxYield - a.afterTaxYield)
-                                                .map((etf, idx) => {
-                                                    const isMuni = processedData.munis.includes(etf);
-                                                    return (
-                                                        <tr
-                                                            key={etf.ticker}
-                                                            className={
-                                                                idx === 0 ? 'bg-emerald-50' : 'hover:bg-slate-50'
-                                                            }
-                                                        >
-                                                            <td className="px-4 py-3">
-                                                                <div className="flex items-center gap-2">
-                                                                    {isMuni ? (
-                                                                        <Building className="w-4 h-4 text-blue-600" />
-                                                                    ) : (
-                                                                        <Landmark className="w-4 h-4 text-emerald-600" />
-                                                                    )}
-                                                                    <span className="text-sm">
-                                                                        {isMuni ? 'Muni' : 'Treasury'}
-                                                                    </span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 py-3">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-mono font-semibold text-sm">
-                                                                        {etf.ticker}
-                                                                    </span>
-                                                                    {idx === 0 && (
-                                                                        <span className="px-1.5 py-0.5 bg-emerald-500 text-white text-xs font-bold rounded">
-                                                                            BEST
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-slate-700">
-                                                                {etf.name}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-slate-600">
-                                                                {DURATION_LABELS[etf.duration]}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-right font-semibold text-sm">
-                                                                {etf.currentYield.toFixed(2)}%
-                                                            </td>
-                                                            <td className="px-4 py-3 text-right font-bold text-sm">
-                                                                {etf.afterTaxYield.toFixed(2)}%
-                                                            </td>
-                                                            <td className="px-4 py-3 text-right text-sm text-slate-600">
-                                                                {etf.expenseRatio.toFixed(2)}%
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <div className="border-t">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Ticker</TableHead>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Duration</TableHead>
+                                            <TableHead className="text-right">Current Yield</TableHead>
+                                            <TableHead className="text-right">After-Tax Yield</TableHead>
+                                            <TableHead className="text-right">Expense</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {[...processedData.munis, ...processedData.treasuries]
+                                            .sort((a, b) => b.afterTaxYield - a.afterTaxYield)
+                                            .map((etf, idx) => {
+                                                const isMuni = processedData.munis.includes(etf);
+                                                return (
+                                                    <TableRow
+                                                        key={etf.ticker}
+                                                        className={idx === 0 ? 'bg-primary/5' : undefined}
+                                                    >
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-2">
+                                                                {isMuni ? (
+                                                                    <Building className="h-4 w-4 text-muted-foreground" />
+                                                                ) : (
+                                                                    <Landmark className="h-4 w-4 text-muted-foreground" />
+                                                                )}
+                                                                <span>{isMuni ? 'Muni' : 'Treasury'}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-mono font-semibold">
+                                                                    {etf.ticker}
+                                                                </span>
+                                                                {idx === 0 && <Badge>BEST</Badge>}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {etf.name}
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {DURATION_LABELS[etf.duration]}
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-semibold">
+                                                            {etf.currentYield.toFixed(2)}%
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-bold">
+                                                            {etf.afterTaxYield.toFixed(2)}%
+                                                        </TableCell>
+                                                        <TableCell className="text-right text-muted-foreground">
+                                                            {etf.expenseRatio.toFixed(2)}%
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                    </TableBody>
+                                </Table>
                             </div>
                         )}
-                    </div>
+                    </Card>
 
                     {comparison && (
                         <>
                             {/* Recommendation Hero */}
-                            <div
-                                className={`bg-gradient-to-br ${comparison.muniWins ? 'from-blue-500 to-indigo-600' : 'from-emerald-500 to-teal-600'} rounded-2xl shadow-2xl p-8 text-white`}
-                            >
-                                <div className="flex items-start gap-4 mb-6">
-                                    <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                                        <Trophy className="w-8 h-8" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h2 className="text-2xl font-bold mb-2">Recommendation for Your Tax Bracket</h2>
-                                        <p className="text-white/90 text-lg">
-                                            At a {effectiveTaxRate}% tax rate,{' '}
-                                            <strong className="px-3 py-1 border-2 border-white/40 rounded-lg bg-white/10 inline-block text-white font-bold tracking-wide uppercase">
-                                                {comparison.muniWins ? 'municipal' : 'treasury'} bonds
-                                            </strong>{' '}
-                                            are the better choice
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            {comparison.muniWins ? (
-                                                <Trophy className="w-5 h-5 text-yellow-300" />
-                                            ) : (
-                                                <Building className="w-5 h-5" />
-                                            )}
-                                            <span className="text-sm font-medium opacity-90">Municipal Bond ETF</span>
-                                        </div>
-                                        <div className="text-3xl font-bold mb-1">
-                                            {comparison.muni.afterTaxYield.toFixed(2)}%
-                                        </div>
-                                        <div className="text-sm opacity-80">
-                                            {comparison.muni.ticker} - {comparison.muni.name}
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            {!comparison.muniWins ? (
-                                                <Trophy className="w-5 h-5 text-yellow-300" />
-                                            ) : (
-                                                <Landmark className="w-5 h-5" />
-                                            )}
-                                            <span className="text-sm font-medium opacity-90">Treasury Bond ETF</span>
-                                        </div>
-                                        <div className="text-3xl font-bold mb-1">
-                                            {comparison.treasury.afterTaxYield.toFixed(2)}%
-                                        </div>
-                                        <div className="text-sm opacity-80">
-                                            {comparison.treasury.ticker} - {comparison.treasury.name}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mt-6 pt-6 border-t border-white/20">
-                                    <div className="flex items-center justify-between flex-wrap gap-4">
+                            <Card className="border-primary/40 bg-primary/5">
+                                <CardContent className="space-y-6">
+                                    <div className="flex items-start gap-4">
+                                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                                            <Trophy className="h-6 w-6" />
+                                        </span>
                                         <div>
-                                            <div className="text-sm opacity-80 mb-1">Yield Advantage</div>
+                                            <h2 className="text-xl font-semibold tracking-tight">
+                                                Recommendation for Your Tax Bracket
+                                            </h2>
+                                            <p className="mt-1 text-muted-foreground">
+                                                At a {effectiveTaxRate}% tax rate,{' '}
+                                                <Badge className="mx-1 align-middle uppercase">
+                                                    {comparison.muniWins ? 'municipal' : 'treasury'} bonds
+                                                </Badge>{' '}
+                                                are the better choice
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="rounded-xl border bg-card p-5">
+                                            <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                {comparison.muniWins ? (
+                                                    <Trophy className="h-5 w-5 text-primary" />
+                                                ) : (
+                                                    <Building className="h-5 w-5" />
+                                                )}
+                                                <span className="font-medium">Municipal Bond ETF</span>
+                                            </div>
+                                            <div
+                                                className={`text-3xl font-bold ${comparison.muniWins ? 'text-primary' : ''}`}
+                                            >
+                                                {comparison.muni.afterTaxYield.toFixed(2)}%
+                                            </div>
+                                            <div className="mt-1 text-sm text-muted-foreground">
+                                                {comparison.muni.ticker} - {comparison.muni.name}
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-xl border bg-card p-5">
+                                            <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                {!comparison.muniWins ? (
+                                                    <Trophy className="h-5 w-5 text-primary" />
+                                                ) : (
+                                                    <Landmark className="h-5 w-5" />
+                                                )}
+                                                <span className="font-medium">Treasury Bond ETF</span>
+                                            </div>
+                                            <div
+                                                className={`text-3xl font-bold ${!comparison.muniWins ? 'text-primary' : ''}`}
+                                            >
+                                                {comparison.treasury.afterTaxYield.toFixed(2)}%
+                                            </div>
+                                            <div className="mt-1 text-sm text-muted-foreground">
+                                                {comparison.treasury.ticker} - {comparison.treasury.name}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-6">
+                                        <div>
+                                            <div className="mb-1 text-sm text-muted-foreground">Yield Advantage</div>
                                             <div className="text-2xl font-bold">
                                                 {Math.abs(comparison.yieldDifference).toFixed(2)}%{' '}
                                                 {comparison.muniWins ? 'higher' : 'lower'}
                                             </div>
                                         </div>
                                         <div>
-                                            <div className="text-sm opacity-80 mb-1">Breakeven Tax Rate</div>
+                                            <div className="mb-1 text-sm text-muted-foreground">Breakeven Tax Rate</div>
                                             <div className="text-2xl font-bold">
                                                 {comparison.breakevenRate.toFixed(1)}%
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
 
                             {/* Detailed Comparison Cards */}
-                            <div className="grid lg:grid-cols-2 gap-6">
+                            <div className="grid gap-6 lg:grid-cols-2">
                                 {/* Municipal Bond Card */}
-                                <div className="bg-white rounded-2xl shadow-lg border-2 border-blue-200 overflow-hidden">
-                                    <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
-                                        <div className="flex items-center gap-3 text-white">
-                                            <Building className="w-6 h-6" />
-                                            <h3 className="text-xl font-bold">Municipal Bond</h3>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-3">
+                                            <Building className="h-6 w-6 text-muted-foreground" />
+                                            Municipal Bond
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
                                         {/* ETF Selector */}
-                                        <div className="mb-3">
-                                            <select
-                                                value={selectedMuniTicker || processedData.munis[0]?.ticker || ''}
-                                                onChange={(e) => setSelectedMuniTicker(e.target.value)}
-                                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            >
+                                        <Select
+                                            value={selectedMuniTicker || processedData.munis[0]?.ticker || ''}
+                                            onValueChange={setSelectedMuniTicker}
+                                        >
+                                            <SelectTrigger aria-label="Select municipal bond ETF">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
                                                 {processedData.munis.map((etf) => (
-                                                    <option key={etf.ticker} value={etf.ticker}>
+                                                    <SelectItem key={etf.ticker} value={etf.ticker}>
                                                         {etf.ticker} - {etf.name}
-                                                    </option>
+                                                    </SelectItem>
                                                 ))}
-                                            </select>
-                                        </div>
+                                            </SelectContent>
+                                        </Select>
 
                                         {/* ETF Details Badges */}
-                                        <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b border-slate-200">
-                                            <span className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                        <div className="flex flex-wrap gap-2 border-b pb-4">
+                                            <Badge variant="secondary">
                                                 {DURATION_LABELS[comparison.muni.duration]}
-                                            </span>
-                                            <span className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-full text-sm font-medium capitalize">
+                                            </Badge>
+                                            <Badge variant="secondary" className="capitalize">
                                                 {comparison.muni.managementStyle}
-                                            </span>
-                                            <span className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-full text-sm font-medium">
+                                            </Badge>
+                                            <Badge variant="secondary">
                                                 {comparison.muni.expenseRatio.toFixed(2)}% Fee
-                                            </span>
+                                            </Badge>
                                         </div>
 
                                         {/* Metrics */}
                                         <div className="space-y-4">
-                                            <div className="bg-slate-50 rounded-lg p-4">
-                                                <div className="text-sm text-slate-600 mb-1">
+                                            <div className="rounded-lg bg-muted/50 p-4">
+                                                <div className="mb-1 text-sm text-muted-foreground">
                                                     Current Yield (Tax-Free)
                                                 </div>
-                                                <div className="text-2xl font-bold text-slate-800">
+                                                <div className="text-2xl font-bold">
                                                     {comparison.muni.currentYield.toFixed(2)}%
                                                 </div>
                                             </div>
 
-                                            <div className="bg-blue-50 rounded-lg p-4">
-                                                <div className="text-sm text-slate-600 mb-1">After-Tax Yield</div>
-                                                <div className="text-3xl font-bold text-blue-600">
+                                            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                                                <div className="mb-1 text-sm text-muted-foreground">
+                                                    After-Tax Yield
+                                                </div>
+                                                <div className="text-3xl font-bold text-primary">
                                                     {comparison.muni.afterTaxYield.toFixed(2)}%
                                                 </div>
-                                                <div className="text-xs text-slate-500 mt-1">
+                                                <div className="mt-1 text-xs text-muted-foreground">
                                                     Same as current (tax-exempt)
                                                 </div>
                                             </div>
 
-                                            <div className="bg-slate-50 rounded-lg p-4">
-                                                <div className="text-sm text-slate-600 mb-1 flex items-center gap-1">
+                                            <div className="rounded-lg bg-muted/50 p-4">
+                                                <div className="mb-1 flex items-center gap-1 text-sm text-muted-foreground">
                                                     Tax Equivalent Yield
-                                                    <Info className="w-3 h-3 text-slate-400" />
+                                                    <Info className="h-3 w-3" />
                                                 </div>
-                                                <div className="text-2xl font-bold text-slate-800">
+                                                <div className="text-2xl font-bold">
                                                     {comparison.muni.taxEquivalentYield.toFixed(2)}%
                                                 </div>
-                                                <div className="text-xs text-slate-500 mt-1">
+                                                <div className="mt-1 text-xs text-muted-foreground">
                                                     What a taxable bond would need to yield
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    </CardContent>
+                                </Card>
 
                                 {/* Treasury Bond Card */}
-                                <div className="bg-white rounded-2xl shadow-lg border-2 border-emerald-200 overflow-hidden">
-                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-4">
-                                        <div className="flex items-center gap-3 text-white">
-                                            <Landmark className="w-6 h-6" />
-                                            <h3 className="text-xl font-bold">Treasury Bond</h3>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-3">
+                                            <Landmark className="h-6 w-6 text-muted-foreground" />
+                                            Treasury Bond
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
                                         {/* ETF Selector */}
-                                        <div className="mb-3">
-                                            <select
-                                                value={
-                                                    selectedTreasuryTicker || processedData.treasuries[0]?.ticker || ''
-                                                }
-                                                onChange={(e) => setSelectedTreasuryTicker(e.target.value)}
-                                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                            >
+                                        <Select
+                                            value={selectedTreasuryTicker || processedData.treasuries[0]?.ticker || ''}
+                                            onValueChange={setSelectedTreasuryTicker}
+                                        >
+                                            <SelectTrigger aria-label="Select treasury bond ETF">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
                                                 {processedData.treasuries.map((etf) => (
-                                                    <option key={etf.ticker} value={etf.ticker}>
+                                                    <SelectItem key={etf.ticker} value={etf.ticker}>
                                                         {etf.ticker} - {etf.name}
-                                                    </option>
+                                                    </SelectItem>
                                                 ))}
-                                            </select>
-                                        </div>
+                                            </SelectContent>
+                                        </Select>
 
                                         {/* ETF Details Badges */}
-                                        <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b border-slate-200">
-                                            <span className="px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">
+                                        <div className="flex flex-wrap gap-2 border-b pb-4">
+                                            <Badge variant="secondary">
                                                 {DURATION_LABELS[comparison.treasury.duration]}
-                                            </span>
-                                            <span className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-full text-sm font-medium capitalize">
+                                            </Badge>
+                                            <Badge variant="secondary" className="capitalize">
                                                 {comparison.treasury.managementStyle}
-                                            </span>
-                                            <span className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-full text-sm font-medium">
+                                            </Badge>
+                                            <Badge variant="secondary">
                                                 {comparison.treasury.expenseRatio.toFixed(2)}% Fee
-                                            </span>
+                                            </Badge>
                                         </div>
 
                                         {/* Metrics */}
                                         <div className="space-y-4">
-                                            <div className="bg-slate-50 rounded-lg p-4">
-                                                <div className="text-sm text-slate-600 mb-1">
+                                            <div className="rounded-lg bg-muted/50 p-4">
+                                                <div className="mb-1 text-sm text-muted-foreground">
                                                     Current Yield (Taxable)
                                                 </div>
-                                                <div className="text-2xl font-bold text-slate-800">
+                                                <div className="text-2xl font-bold">
                                                     {comparison.treasury.currentYield.toFixed(2)}%
                                                 </div>
                                             </div>
 
-                                            <div className="bg-emerald-50 rounded-lg p-4">
-                                                <div className="text-sm text-slate-600 mb-1">After-Tax Yield</div>
-                                                <div className="text-3xl font-bold text-emerald-600">
+                                            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                                                <div className="mb-1 text-sm text-muted-foreground">
+                                                    After-Tax Yield
+                                                </div>
+                                                <div className="text-3xl font-bold text-primary">
                                                     {comparison.treasury.afterTaxYield.toFixed(2)}%
                                                 </div>
-                                                <div className="text-xs text-slate-500 mt-1">
+                                                <div className="mt-1 text-xs text-muted-foreground">
                                                     At {effectiveTaxRate}% federal tax rate
                                                 </div>
                                             </div>
 
-                                            <div className="bg-slate-50 rounded-lg p-4">
-                                                <div className="text-sm text-slate-600 mb-1">Tax Impact</div>
-                                                <div className="text-2xl font-bold text-red-600">
+                                            <div className="rounded-lg bg-muted/50 p-4">
+                                                <div className="mb-1 text-sm text-muted-foreground">Tax Impact</div>
+                                                <div className="text-2xl font-bold text-destructive">
                                                     -
                                                     {(
                                                         comparison.treasury.currentYield -
@@ -582,63 +565,58 @@ const ETFTaxYieldCalculator: React.FC = () => {
                                                     ).toFixed(2)}
                                                     %
                                                 </div>
-                                                <div className="text-xs text-slate-500 mt-1">
+                                                <div className="mt-1 text-xs text-muted-foreground">
                                                     Federal taxes reduce yield
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    </CardContent>
+                                </Card>
                             </div>
 
                             {/* Breakeven Analysis */}
-                            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="p-2 bg-purple-100 rounded-lg">
-                                        <Target className="w-5 h-5 text-purple-600" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-slate-800">Tax Bracket Analysis</h3>
-                                </div>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-3">
+                                        <Target className="h-5 w-5 text-muted-foreground" />
+                                        Tax Bracket Analysis
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="rounded-xl bg-muted/50 p-6">
+                                        <p className="mb-4 text-foreground">
+                                            The <strong>breakeven tax rate</strong> is{' '}
+                                            <strong>{comparison.breakevenRate.toFixed(1)}%</strong>. This is the federal
+                                            tax rate where both bonds provide equal after-tax yields.
+                                        </p>
 
-                                <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6">
-                                    <p className="text-slate-700 mb-4">
-                                        The <strong>breakeven tax rate</strong> is{' '}
-                                        <strong>{comparison.breakevenRate.toFixed(1)}%</strong>. This is the federal tax
-                                        rate where both bonds provide equal after-tax yields.
-                                    </p>
-
-                                    <div className="grid sm:grid-cols-2 gap-4">
-                                        <div className="bg-white rounded-lg p-4">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Building className="w-4 h-4 text-blue-600" />
-                                                <span className="text-sm font-medium text-slate-700">
-                                                    Municipal Bonds Win
-                                                </span>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <div className="rounded-lg border bg-card p-4">
+                                                <div className="mb-2 flex items-center gap-2">
+                                                    <Building className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="text-sm font-medium">Municipal Bonds Win</span>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground">
+                                                    When your tax rate is{' '}
+                                                    <strong>above {comparison.breakevenRate.toFixed(1)}%</strong>
+                                                </p>
                                             </div>
-                                            <p className="text-sm text-slate-600">
-                                                When your tax rate is{' '}
-                                                <strong>above {comparison.breakevenRate.toFixed(1)}%</strong>
-                                            </p>
+
+                                            <div className="rounded-lg border bg-card p-4">
+                                                <div className="mb-2 flex items-center gap-2">
+                                                    <Landmark className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="text-sm font-medium">Treasury Bonds Win</span>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground">
+                                                    When your tax rate is{' '}
+                                                    <strong>below {comparison.breakevenRate.toFixed(1)}%</strong>
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        <div className="bg-white rounded-lg p-4">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Landmark className="w-4 h-4 text-emerald-600" />
-                                                <span className="text-sm font-medium text-slate-700">
-                                                    Treasury Bonds Win
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-slate-600">
-                                                When your tax rate is{' '}
-                                                <strong>below {comparison.breakevenRate.toFixed(1)}%</strong>
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4 p-4 bg-white/60 rounded-lg border border-slate-200">
-                                        <div className="flex items-start gap-2">
-                                            <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                                            <p className="text-sm text-slate-700">
+                                        <div className="mt-4 flex items-start gap-2 rounded-lg border bg-card p-4">
+                                            <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                                            <p className="text-sm text-foreground">
                                                 <strong>Your current rate: {effectiveTaxRate}%</strong> - You are{' '}
                                                 {effectiveTaxRate > comparison.breakevenRate
                                                     ? `${(effectiveTaxRate - comparison.breakevenRate).toFixed(1)}% above`
@@ -649,8 +627,8 @@ const ETFTaxYieldCalculator: React.FC = () => {
                                             </p>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
                         </>
                     )}
 

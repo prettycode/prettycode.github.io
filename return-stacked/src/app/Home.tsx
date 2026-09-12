@@ -1,6 +1,7 @@
 import PortfolioManager from '@/features/portfolio/components/PortfolioManager';
 import { Link } from 'react-router-dom';
 import { Calculator, Info, Layers } from 'lucide-react';
+import { Button } from '@/shared/components/ui/Button';
 
 export default function Home(): React.ReactElement {
     return (
@@ -21,20 +22,18 @@ export default function Home(): React.ReactElement {
                         </div>
                     </div>
                     <nav className="flex items-center gap-2">
-                        <Link
-                            to="/etf-info"
-                            className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3.5 py-2 text-sm font-medium text-foreground shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
-                        >
-                            <Info className="h-4 w-4" />
-                            <span className="hidden sm:inline">ETF Information</span>
-                        </Link>
-                        <Link
-                            to="/etf-calculator"
-                            className="inline-flex items-center gap-2 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                        >
-                            <Calculator className="h-4 w-4" />
-                            <span className="hidden sm:inline">Tax Calculator</span>
-                        </Link>
+                        <Button asChild variant="outline">
+                            <Link to="/etf-info">
+                                <Info className="h-4 w-4" />
+                                <span className="hidden sm:inline">ETF Information</span>
+                            </Link>
+                        </Button>
+                        <Button asChild>
+                            <Link to="/etf-calculator">
+                                <Calculator className="h-4 w-4" />
+                                <span className="hidden sm:inline">Tax Calculator</span>
+                            </Link>
+                        </Button>
                     </nav>
                 </div>
             </header>

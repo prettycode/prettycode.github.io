@@ -2,7 +2,7 @@
  * Disclaimer Component
  * Displays important notes and disclaimers
  */
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Info } from 'lucide-react';
 
 const DISCLAIMER_ITEMS = [
@@ -16,21 +16,19 @@ const DISCLAIMER_ITEMS = [
 export const Disclaimer = memo(() => {
     return (
         <aside
-            className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200"
+            className="mt-6 flex items-start gap-2 rounded-lg border bg-muted/50 p-4 text-muted-foreground"
             aria-labelledby="disclaimer-heading"
         >
-            <div className="flex items-start">
-                <Info className="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                <div className="text-sm text-gray-700">
-                    <p id="disclaimer-heading" className="font-semibold mb-1">
-                        Important Notes:
-                    </p>
-                    <ul className="list-disc list-inside space-y-1">
-                        {DISCLAIMER_ITEMS.map((item, index) => (
-                            <li key={index}>{item}</li>
-                        ))}
-                    </ul>
-                </div>
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <div className="text-sm">
+                <p id="disclaimer-heading" className="mb-1 font-semibold text-foreground">
+                    Important Notes:
+                </p>
+                <ul className="list-inside list-disc space-y-1">
+                    {DISCLAIMER_ITEMS.map((item, index) => (
+                        <li key={index}>{item}</li>
+                    ))}
+                </ul>
             </div>
         </aside>
     );

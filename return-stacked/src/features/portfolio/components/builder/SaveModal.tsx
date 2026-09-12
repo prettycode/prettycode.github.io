@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/Dialog';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/Input';
+import { Label } from '@/shared/components/ui/Label';
 
 interface SaveModalProps {
     isOpen: boolean;
@@ -36,29 +40,22 @@ const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose, onSave, initialN
     const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
         if (e.key === 'Enter') {
             handleSave();
-        } else if (e.key === 'Escape') {
-            onClose();
         }
     };
 
-    if (!isOpen) {
-        return null;
-    }
-
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-full mx-4">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Save Portfolio</h2>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Save Portfolio</DialogTitle>
+                </DialogHeader>
 
-                <div className="mb-4">
-                    <label htmlFor="portfolio-name" className="block text-sm font-medium text-gray-700 mb-1">
-                        Portfolio Name
-                    </label>
-                    <input
+                <div className="grid gap-2">
+                    <Label htmlFor="portfolio-name">Portfolio Name</Label>
+                    <Input
                         ref={inputRef}
                         id="portfolio-name"
                         type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={portfolioName}
                         onChange={(e) => setPortfolioName(e.target.value)}
                         onKeyDown={handleKeyPress}
@@ -66,27 +63,16 @@ const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose, onSave, initialN
                     />
                 </div>
 
-                <div className="flex justify-end gap-2">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-                    >
+                <DialogFooter>
+                    <Button variant="outline" onClick={onClose}>
                         Cancel
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={!portfolioName.trim()}
-                        className={`px-4 py-2 rounded-md ${
-                            portfolioName.trim()
-                                ? 'bg-gray-800 text-white hover:bg-gray-700'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                    >
+                    </Button>
+                    <Button onClick={handleSave} disabled={!portfolioName.trim()}>
                         Save
-                    </button>
-                </div>
-            </div>
-        </div>
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };
 
