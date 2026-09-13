@@ -9,7 +9,6 @@
             "Bash(git reset:*)",
             "Bash(git restore:*)",
             "Bash(git checkout:*)",
-            "Bash(git rm:*)",
             "Bash(git clean:*)",
             "Bash(git rebase:*)",
             "Bash(git merge:*)",
@@ -19,7 +18,7 @@
             "Bash(git fetch:*)",
             "Bash(git pull:*)"
         ],
-        "ask": ["Bash(move:*)"],
+        "ask": ["Bash(move:*)", "Bash(rm:*)", "Bash(git rm:*)"],
         "additionalDirectories": ["C:\\Users\\chris\\AppData\\Roaming\\Code\\User"]
     }
 }
