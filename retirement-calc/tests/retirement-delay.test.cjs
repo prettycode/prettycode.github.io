@@ -16,8 +16,8 @@ const simulate = (overrides = {}) => context.runSimulation({
 test('delay adds growth-only years before the full retirement duration', () => {
   const result = simulate({ retirementDelay: 2, inflation: 0.1 });
   assert.equal(result.retirementDelay, 2);
-  assert.deepEqual(Array.from(result.percentiles, p => p.p50), [1000, 1100, 1210, 1221, 1222]);
-  assert.deepEqual(Array.from(result.percentiles, p => p.withdrawal), [0, 0, 0, 100, 110]);
+  assert.deepEqual(Array.from(result.percentiles, p => p.p50), [1000, 1100, 1210, 1197, 1171]);
+  assert.deepEqual(Array.from(result.percentiles, p => p.withdrawal), [0, 0, 0, 121, 133]);
   assert.equal(result.successRate, 1);
 });
 
@@ -40,4 +40,63 @@ test('zero delay preserves immediate retirement and depletion behavior', () => {
   const result = simulate({ retirementDelay: 2, withdrawal: 2000 });
   assert.deepEqual(Array.from(result.percentiles, p => p.p50), [1000, 1100, 1210, 0, 0]);
   assert.equal(result.successRate, 0);
+});
+
+test('five-year delay preserves the purchasing power of a $150K withdrawal', () => {
+  for (const monthly of [false, true]) {
+    const result = simulate({
+      balance: 1_000_000, withdrawal: 150_000, retirementDelay: 5,
+      inflation: 0.03, returnRate: 0, monthly,
+    });
+    assert.deepEqual(Array.from(result.percentiles.slice(0, 6), p => p.withdrawal), [0, 0, 0, 0, 0, 0]);
+    for (let year = 6; year <= 7; year++) {
+      const expected = 150_000 * 1.03 ** (year - 1);
+      // Micro-scale inflation factors and whole-dollar output truncate slightly.
+      assert.ok(Math.abs(result.percentiles[year].withdrawal - expected) < 2);
+    }
+    assert.ok(Math.abs(result.percentiles[6].p50 - (1_000_000 - 150_000 * 1.03 ** 5)) < 2);
+    assert.equal(result.successRate, 1);
+  }
+});
+
+test('delayed buckets include pre-retirement inflation with every bucket option', () => {
+  for (const monthly of [false, true]) {
+    for (const inflationAdjustBucket of [false, true]) {
+      for (const bucketEarnsTBills of [false, true]) {
+        const result = simulate({
+          balance: 10_000, returnRate: 0, retirementDelay: 2, years: 4,
+          upfrontYears: 3, inflation: 0.1, tBillRealPremium: 0,
+          monthly, inflationAdjustBucket, bucketEarnsTBills,
+        });
+        // $121 at retirement. Later bucket years either stay at $121 or
+        // grow to $133.10/$146.41; only the third year earns a year of T-Bills.
+        const bucket = inflationAdjustBucket
+          ? (bucketEarnsTBills ? 387 : 400)
+          : (bucketEarnsTBills ? 352 : 363);
+        // T-Bill discount factors can truncate just below a whole dollar.
+        assert.ok(Math.abs(result.lumpSum - bucket) <= 1);
+        assert.deepEqual(Array.from(result.percentiles, p => p.withdrawal), [0, 0, 0, result.lumpSum, 0, 0, 161]);
+        assert.equal(result.successRate, 1);
+      }
+    }
+  }
+});
+
+test('immediate retirement still inflates only subsequent years', () => {
+  for (const monthly of [false, true]) {
+    const result = simulate({ retirementDelay: 0, returnRate: 0, inflation: 0.1, monthly });
+    assert.deepEqual(Array.from(result.percentiles, p => p.withdrawal), [0, 100, 110]);
+    assert.deepEqual(Array.from(result.percentiles, p => p.p50), [1000, 900, 790]);
+  }
+});
+
+test('inflation during the delay affects depletion and success-rate probes', () => {
+  for (const monthly of [false, true]) {
+    const result = simulate({
+      balance: 220, retirementDelay: 2, returnRate: 0, inflation: 0.1, monthly,
+    });
+    assert.equal(result.percentiles[3].p50, 99);
+    assert.equal(result.medianEnding, 0);
+    assert.equal(result.successRate, 0);
+  }
 });

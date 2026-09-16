@@ -30,6 +30,7 @@ function RetirementSimulator() {
   const useAges = planningMode === 'ages';
   const years = useAges ? planThroughAge - retirementAge : settingsYears;
   const retirementDelay = useAges ? retirementAge - currentAge : settingsDelay;
+  const retirementWithdrawal = withdrawal * Math.pow(1 + inflation, retirementDelay);
   const [advancedOpen, setAdvancedOpen] = usePersistedState('advancedOpen');
   const [showCalendarYears, setShowCalendarYears] = usePersistedState('showCalendarYears');
 
@@ -299,7 +300,9 @@ function RetirementSimulator() {
 
             <Slider
               label="Annual Withdrawal"
-              sublabel="First retirement year amount; increased by rate of inflation thereafter"
+              sublabel={retirementDelay > 0
+                ? `Today's dollars; starts at ${fmtMoney(retirementWithdrawal)} at retirement, then increases with inflation`
+                : "Today's dollars; increased by rate of inflation each year"}
               value={withdrawal}
               min={10_000}
               max={300_000}
@@ -310,7 +313,7 @@ function RetirementSimulator() {
 
             <Slider
               label="Starting Cash Bucket"
-              sublabel="Lump-sum first withdrawal"
+              sublabel="Lump-sum first withdrawal, in retirement-year dollars"
               value={upfrontYears}
               min={1}
               max={10}
@@ -319,7 +322,7 @@ function RetirementSimulator() {
               format={(v) => {
                 const wGrow = inflationAdjustBucket ? inflation : 0;
                 const disc = bucketEarnsTBills && v > 1 ? inflation + T_BILL_REAL_PREMIUM : 0;
-                const bucket = bucketSize(withdrawal, v, wGrow, disc);
+                const bucket = bucketSize(retirementWithdrawal, v, wGrow, disc);
                 return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)})`;
               }}
             />
@@ -609,7 +612,7 @@ function RetirementSimulator() {
               </button>
             </div>
 
-            <p className="chart-subtitle">Find the annual withdrawal targeting a {targetSuccessRate}% chance of money lasting {useAges ? `from retirement at age ${retirementAge} through age ${planThroughAge}` : `for ${years} years in retirement`}.</p>
+            <p className="chart-subtitle">Find the annual withdrawal in today's dollars targeting a {targetSuccessRate}% chance of money lasting {useAges ? `from retirement at age ${retirementAge} through age ${planThroughAge}` : `for ${years} years in retirement`}.</p>
 
             {/* CHART */}
             <PortfolioChart

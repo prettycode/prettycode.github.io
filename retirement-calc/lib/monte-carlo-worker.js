@@ -131,6 +131,9 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   for (let y = 1; y <= years; y++) {
     inflPow[y] = Math.floor(inflPow[y-1] * (MICRO + inflMicro) / MICRO);
   }
+  // The input is in today's dollars; the bucket starts at retirement's
+  // purchasing-power equivalent, even when later bucket inflation is off.
+  const retirementWdCents = Math.floor(wdCents * inflPow[retirementDelay] / MICRO);
 
   // Upfront cash bucket: if upfrontYears > 1, year 1 withdraws a lump sum that
   // funds years 1..upfrontYears, and no further withdrawals happen until year
@@ -156,7 +159,7 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
         sumMicro += pow;
         pow = Math.floor(pow * num / MICRO);
       }
-      lumpSumCents = Math.floor(wdCents * sumMicro / MICRO);
+      lumpSumCents = Math.floor(retirementWdCents * sumMicro / MICRO);
     } else {
       // ratio = (MICRO + wGrowMicro) / (MICRO + discMicro), tracked in MICRO
       // scale via iterative multiply to avoid pow() drift.
@@ -168,11 +171,11 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
         sumMicro += ratioPow;
         ratioPow = Math.floor(ratioPow * num / den);
       }
-      // tBillsCents = wdCents · (1+wGrow) · sumMicro / MICRO. Split into two
+      // tBillsCents = retirementWdCents · (1+wGrow) · sumMicro / MICRO. Split into two
       // divides so intermediates stay inside Number-safe int range.
-      const grownWdCents = Math.floor(wdCents * num / MICRO);
+      const grownWdCents = Math.floor(retirementWdCents * num / MICRO);
       const tBillsCents = Math.floor(grownWdCents * sumMicro / MICRO);
-      lumpSumCents = wdCents + tBillsCents;
+      lumpSumCents = retirementWdCents + tBillsCents;
     }
   }
 
@@ -204,10 +207,10 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
           actualW = 0;
           isBucketFunded = true;
         } else {
-          actualW = Math.floor(wdCents * inflPow[retirementYear-1] / MICRO);
+          actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
         }
       } else {
-        actualW = Math.floor(wdCents * inflPow[retirementYear-1] / MICRO);
+        actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
       }
       withdrawalSumCents[y] += actualW;
 
