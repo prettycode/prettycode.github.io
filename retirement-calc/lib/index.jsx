@@ -23,6 +23,8 @@ function RetirementSimulator() {
   const [inflation, setInflation] = usePersistedState('inflation');
   const [years, setYears] = usePersistedState('years');
   const [advancedOpen, setAdvancedOpen] = usePersistedState('advancedOpen');
+  const [showCalendarYears, setShowCalendarYears] = usePersistedState('showCalendarYears');
+  const [retirementDelay, setRetirementDelay] = usePersistedState('retirementDelay');
 
   // Reverse-lookup (cagr, volatility, inflation) → preset cell. Used both
   // for the active-toggle highlight and for seeding lastRegion/lastScenario
@@ -103,14 +105,14 @@ function RetirementSimulator() {
       };
       worker.postMessage({
         type: 'run',
-        params: { balance, withdrawal, returnRate: cagrToArithmetic(cagr, volatility), volatility, inflation, years, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket, bucketEarnsTBills: effectiveBucketEarnsTBills, tBillRealPremium: T_BILL_REAL_PREMIUM, monthly: withdrawalFrequency === 'monthly' },
+        params: { balance, withdrawal, returnRate: cagrToArithmetic(cagr, volatility), volatility, inflation, years, retirementDelay, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket, bucketEarnsTBills: effectiveBucketEarnsTBills, tBillRealPremium: T_BILL_REAL_PREMIUM, monthly: withdrawalFrequency === 'monthly' },
       });
     }, 150);
     return () => {
       clearTimeout(t);
       if (worker) worker.terminate();
     };
-  }, [balance, withdrawal, cagr, volatility, inflation, years, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills, withdrawalFrequency]);
+  }, [balance, withdrawal, cagr, volatility, inflation, years, retirementDelay, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills, withdrawalFrequency]);
 
   // Binary-search the worker for the withdrawal that yields the chosen
   // target success rate. Success is monotonic in withdrawal (more spent →
@@ -132,6 +134,7 @@ function RetirementSimulator() {
     setSolveProgress(0);
 
     const baseParams = {
+      retirementDelay,
       balance, returnRate: cagrToArithmetic(cagr, volatility), volatility, inflation, years,
       runs: SOLVE_RUNS, upfrontYears,
       inflationAdjustBucket: effectiveInflationAdjustBucket,
@@ -193,6 +196,7 @@ function RetirementSimulator() {
   // percentiles — using `years` as the loop bound during that gap reads past
   // the end of `sim.percentiles` and crashes with `undefined.p50`.
   const simYears = sim ? sim.percentiles.length - 1 : years;
+  const simRetirementDelay = sim ? sim.retirementDelay : retirementDelay;
 
   // Derived stats
   const successColor = sim && sim.successRate >= 0.9 ? "#3a7d44" : sim && sim.successRate >= 0.7 ? "#c89a3a" : "#a83232";
@@ -257,10 +261,10 @@ function RetirementSimulator() {
 
             <Slider
               label="Starting Balance"
-              sublabel="Portfolio at retirement"
+              sublabel={retirementDelay > 0 ? "Portfolio today" : "Portfolio at retirement"}
               value={balance}
               min={100_000}
-              max={5_000_000}
+              max={10_000_000}
               step={50_000}
               onChange={setBalance}
               format={fmtMoney}
@@ -268,7 +272,7 @@ function RetirementSimulator() {
 
             <Slider
               label="Annual Withdrawal"
-              sublabel="Amount before inflation adjustment"
+              sublabel="First retirement year amount; inflated each year after"
               value={withdrawal}
               min={10_000}
               max={300_000}
@@ -295,7 +299,7 @@ function RetirementSimulator() {
 
             <Slider
               label="Retirement Duration"
-              sublabel="Years to model"
+              sublabel="Years in retirement, excluding any delay"
               value={years}
               min={5}
               max={50}
@@ -346,6 +350,32 @@ function RetirementSimulator() {
             >
               <summary>Advanced</summary>
               <div className="advanced-body">
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                  <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Slider
+                      label="Retirement starts in"
+                      sublabel="No contributions or withdrawals; portfolio grows until retirement start."
+                      value={retirementDelay}
+                      min={0}
+                      max={10}
+                      step={1}
+                      onChange={setRetirementDelay}
+                      format={(v) => v === 0 ? 'This year' : `${v} ${v === 1 ? 'year' : 'years'}`}
+                    />
+                  </div>
+                </div>
+                <label className="toggle-row" style={{ marginBottom: 14 }}>
+                  <input
+                    type="checkbox"
+                    checked={showCalendarYears}
+                    onChange={(e) => setShowCalendarYears(e.target.checked)}
+                  />
+                  <div>
+                    <div className="toggle-label">Show calendar years</div>
+                    <div className="toggle-sub">Label the Portfolio Trajectory X axis with calendar years, starting this year.</div>
+                  </div>
+                </label>
                 <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 14 }}>
                   <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
                   <div style={{ flex: 1 }}>
@@ -495,17 +525,27 @@ function RetirementSimulator() {
                 <div className="stat-value">
                   {fmtMoney((medianDepletion ?? yearData[simYears]).actual)}
                 </div>
+                <div className="stat-sub">
+                  ≈ {fmtMoney((medianDepletion ?? yearData[simYears]).actual / Math.pow(1 + inflation, (medianDepletion ?? yearData[simYears]).year - 1))} today
+                </div>
               </div>
               <div className="stat-cell">
                 <div className="stat-label">Depletion at start of (Median)</div>
                 <div className="stat-value">
-                  {medianDepletion ? `Year ${medianDepletion.year}` : "None"}
+                  {medianDepletion
+                    ? medianDepletion.year <= simRetirementDelay
+                      ? `Before retirement (year ${medianDepletion.year})`
+                      : `Year ${medianDepletion.year - simRetirementDelay}`
+                    : "None"}
                 </div>
               </div>
               <div className="stat-cell">
                 <div className="stat-label">Total Drawn</div>
                 <div className="stat-value">
                   {fmtMoney(yearData.slice(1).reduce((sum, d) => sum + d.actual, 0))}
+                </div>
+                <div className="stat-sub">
+                  ≈ {fmtMoney(yearData.slice(1).reduce((sum, d) => sum + d.actual / Math.pow(1 + inflation, d.year - 1), 0))} today
                 </div>
               </div>
             </div>
@@ -553,6 +593,8 @@ function RetirementSimulator() {
               withdrawalFrequency={withdrawalFrequency}
               medianDepletion={medianDepletion}
               simYears={simYears}
+              showCalendarYears={showCalendarYears}
+              retirementDelay={simRetirementDelay}
             />
 
             <div className="footer-note">

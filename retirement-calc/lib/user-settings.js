@@ -24,6 +24,8 @@ const SETTINGS_DEFAULTS = (() => {
     volatility: initialMarket.volatility,
     inflation: initialMarket.inflation,
     advancedOpen: false,
+    showCalendarYears: false,
+    retirementDelay: 0,
   };
 })();
 

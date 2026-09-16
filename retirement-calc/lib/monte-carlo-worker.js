@@ -96,7 +96,8 @@ function quickselect(a, k, l, r) {
   }
 }
 
-function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket, bucketEarnsTBills, tBillRealPremium, monthly }) {
+function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket, bucketEarnsTBills, tBillRealPremium, monthly, retirementDelay = 0 }) {
+  years += retirementDelay;
   // Boundary: convert UI inputs to integer scales once on entry.
   const balCents = Math.round(balance * 100);
   const wdCents = Math.round(withdrawal * 100);
@@ -188,21 +189,25 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
     let depleted = false;
 
     for (let y = 1; y <= years; y++) {
+      const retirementYear = y - retirementDelay;
       let actualW;
       let isLumpYear = false;       // year 1 lump-sum draw — taken once at year start
       let isBucketFunded = false;   // years 2..upfrontYears — bucket pays, no portfolio draw
-      if (isLumpSum) {
-        if (y === 1) {
+      if (retirementYear <= 0) {
+        actualW = 0;
+        isBucketFunded = true; // Growth-only years use annual return sampling.
+      } else if (isLumpSum) {
+        if (retirementYear === 1) {
           actualW = lumpSumCents;
           isLumpYear = true;
-        } else if (y <= upfrontYears) {
+        } else if (retirementYear <= upfrontYears) {
           actualW = 0;
           isBucketFunded = true;
         } else {
-          actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
+          actualW = Math.floor(wdCents * inflPow[retirementYear-1] / MICRO);
         }
       } else {
-        actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
+        actualW = Math.floor(wdCents * inflPow[retirementYear-1] / MICRO);
       }
       withdrawalSumCents[y] += actualW;
 
@@ -299,7 +304,7 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // yearBalances[years] is no longer fully sorted, but k50 holds the median.
   const medianEnding = percentiles[years].p50;
 
-  return { percentiles, successRate, medianEnding, runs, lumpSum: c2d(lumpSumCents) };
+  return { percentiles, successRate, medianEnding, runs, lumpSum: c2d(lumpSumCents), retirementDelay };
 }
 
 self.onmessage = function(e) {

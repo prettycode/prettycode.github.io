@@ -369,18 +369,29 @@ input[type="range"]::-moz-range-thumb {
   flex-shrink: 0;
 }
 
-.toggle-label {
+.toggle-label,
+.advanced-body .slider-label {
   font-family: 'Fraunces', serif;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.25;
 }
 
-.toggle-sub {
+.toggle-sub,
+.advanced-body .slider-sub {
   font-size: 10px;
   color: var(--ink-2);
   margin-top: 2px;
   line-height: 1.4;
+}
+
+.advanced-body .slider-sub {
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.advanced-body .slider-value {
+  font-size: 13px;
 }
 
 /* ─── Settings management (not a model parameter) ─── */

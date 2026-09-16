@@ -26,8 +26,11 @@ function PortfolioChart({
   withdrawalFrequency,
   medianDepletion,
   simYears,
+  showCalendarYears = false,
+  retirementDelay = 0,
 }) {
   const [hover, setHover] = React.useState(null);
+  const calendarStartYear = new Date().getFullYear();
 
   // Chart geometry
   const W = 760;
@@ -79,11 +82,16 @@ function PortfolioChart({
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map(t => t * maxVal);
   const xTicks = (() => {
     const pxPerYear = innerW / Math.max(simYears, 1);
-    const minPx = 24;
+    const minPx = showCalendarYears || retirementDelay > 0 ? 40 : 24;
     const step = [1, 2, 5, 10, 20].find(s => pxPerYear * s >= minPx) ?? 25;
     const ticks = [];
     for (let i = 0; i <= simYears; i += step) ticks.push(i);
-    if (ticks[ticks.length - 1] !== simYears) ticks.push(simYears);
+    if (ticks[ticks.length - 1] !== simYears) {
+      if ((showCalendarYears || retirementDelay > 0) && (simYears - ticks[ticks.length - 1]) * pxPerYear < minPx) {
+        ticks.pop();
+      }
+      ticks.push(simYears);
+    }
     return ticks;
   })();
 
@@ -165,9 +173,7 @@ function PortfolioChart({
             </g>
           ))}
 
-          {/* X ticks — numeric (years since retirement). Year-naming lives in
-              the tooltip so the X-axis stays unambiguous: "5" means "5 years
-              after retirement", not "year 5". */}
+          {/* Tick 0 is today; retirement begins at tick retirementDelay. */}
           {xTicks.map((t) => (
             <g key={t}>
               <line
@@ -182,7 +188,7 @@ function PortfolioChart({
                 fontSize="10"
                 fill="var(--ink-2)"
               >
-                {t}
+                {showCalendarYears ? calendarStartYear + t : t - retirementDelay}
               </text>
             </g>
           ))}
@@ -194,7 +200,7 @@ function PortfolioChart({
             letterSpacing="0.15em"
             fill="var(--ink-2)"
           >
-            YEARS SINCE RETIREMENT
+            {showCalendarYears ? 'CALENDAR YEAR' : 'YEARS SINCE RETIREMENT'}
           </text>
 
           {/* Left axis (withdrawal) — own ticks + frame */}
@@ -232,6 +238,17 @@ function PortfolioChart({
           {/* Percentile bands */}
           <path d={buildArea("p90", "p10")} fill="var(--accent-2)" opacity="0.12"/>
           <path d={buildArea("p75", "p25")} fill="var(--accent-2)" opacity="0.22"/>
+
+          {retirementDelay > 0 && (
+            <g>
+              <line x1={x(retirementDelay)} x2={x(retirementDelay)} y1={padT} y2={padT + innerH}
+                stroke="var(--ink-2)" strokeWidth="1" strokeDasharray="4 4" />
+              <text x={x(retirementDelay) + 6} y={padT + 12}
+                fontFamily="JetBrains Mono" fontSize="10" fill="var(--ink-2)">
+                Retirement starts
+              </text>
+            </g>
+          )}
 
           {/* Median portfolio line — truncated at the depletion year so the
               path clearly terminates at $0 instead of vanishing along the
@@ -350,13 +367,15 @@ function PortfolioChart({
             }}
           >
             <div className="tooltip-year">
-              {hover === simYears
-                  ? `RETIREMENT YEAR ${simYears} END`
-                  : `RETIREMENT YEAR ${upcomingYear.year} START`}
+              {hover < retirementDelay
+                ? `${calendarStartYear + hover} · ${retirementDelay - hover} YEARS UNTIL RETIREMENT`
+                : hover === simYears
+                  ? `RETIREMENT YEAR ${simYears - retirementDelay} END`
+                  : `RETIREMENT YEAR ${upcomingYear.year - retirementDelay} START`}
             </div>
             {(() => {
               const post = (v) => Math.max(0, v - hoverWithdrawal);
-              if (hover === 0) {
+              if (hover === 0 && retirementDelay === 0) {
                 // Tick 0: only the median balance is meaningful (all paths
                 // start with the same retirement balance), and year 1's
                 // first draw comes next.
@@ -377,7 +396,7 @@ function PortfolioChart({
                   </>
                 );
               }
-              if (hover === simYears) {
+              if (hover === simYears || hover < retirementDelay) {
                 // Final tick: the simulation has ended. Show year-end balance
                 // percentiles only — no upcoming withdrawal exists, so we don't
                 // project (the stat-cells don't either, and projecting here is
@@ -461,11 +480,12 @@ function PortfolioChart({
       </div>
 
       <p className="chart-footnote">
+        {retirementDelay > 0 &&           `The portfolio grows for ${retirementDelay} years before retirement, with no withdrawals or contributions. Negative axis values indicate years before retirement. `}
         {withdrawalFrequency === 'monthly'
-          ? "Withdrawals are taken in twelve equal monthly draws; each mark on the chart aggregates them into the year's total and sits at the start of the year it funds — the mark at tick 0 covers year 1's draws, tick 1 covers year 2's, and so on. "
-          : "Withdrawals are taken at the start of the year they fund: the mark at tick 0 is year 1's draw, tick 1 is year 2's, and so on through year " + simYears + " at tick " + (simYears - 1) + ". "}
-        With a multi-year cash bucket, the mark at tick 0 is the lump-sum drawn from the portfolio at retirement; the bucket-funded
-        years that follow show no mark.
+          ? "Withdrawals are taken in twelve monthly draws; each chart mark shows the year's total at the start of the year it funds. "
+          : "Withdrawals are taken at the start of each retirement year. "}
+        With a multi-year cash bucket, the first withdrawal is the lump sum drawn at retirement;
+        the bucket-funded years that follow show no mark.
       </p>
     </div>
   );
