@@ -350,32 +350,6 @@ function RetirementSimulator() {
             >
               <summary>Advanced</summary>
               <div className="advanced-body">
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                  <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Slider
-                      label={retirementDelay === 0 ? 'Retirement start' : 'Retirement starts in'}
-                      sublabel="No contributions or withdrawals; portfolio grows until retirement start."
-                      value={retirementDelay}
-                      min={0}
-                      max={10}
-                      step={1}
-                      onChange={setRetirementDelay}
-                      format={(v) => v === 0 ? 'This year' : `${v} ${v === 1 ? 'year' : 'years'}`}
-                    />
-                  </div>
-                </div>
-                <label className="toggle-row" style={{ marginBottom: 14 }}>
-                  <input
-                    type="checkbox"
-                    checked={showCalendarYears}
-                    onChange={(e) => setShowCalendarYears(e.target.checked)}
-                  />
-                  <div>
-                    <div className="toggle-label">Show calendar years</div>
-                    <div className="toggle-sub">Label the Portfolio Trajectory X axis with calendar years, starting this year.</div>
-                  </div>
-                </label>
                 <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 14 }}>
                   <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
                   <div style={{ flex: 1 }}>
@@ -421,6 +395,32 @@ function RetirementSimulator() {
                     <div className="toggle-sub">
                       Hold cash beyond 1 year in T-Bills earning {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation + 0.5% historical real return).
                     </div>
+                  </div>
+                </label>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
+                  <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Slider
+                      label={retirementDelay === 0 ? 'Retirement start' : 'Retirement starts in'}
+                      sublabel="No contributions or withdrawals; portfolio grows until retirement start."
+                      value={retirementDelay}
+                      min={0}
+                      max={10}
+                      step={1}
+                      onChange={setRetirementDelay}
+                      format={(v) => v === 0 ? 'This year' : `${v} ${v === 1 ? 'year' : 'years'}`}
+                    />
+                  </div>
+                </div>
+                <label className="toggle-row" style={{ marginBottom: 14 }}>
+                  <input
+                    type="checkbox"
+                    checked={showCalendarYears}
+                    onChange={(e) => setShowCalendarYears(e.target.checked)}
+                  />
+                  <div>
+                    <div className="toggle-label">Show calendar years</div>
+                    <div className="toggle-sub">Label the Portfolio Trajectory X axis with calendar years, starting this year.</div>
                   </div>
                 </label>
                 <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
