@@ -626,6 +626,15 @@ function RetirementSimulator() {
               currentAge={useAges ? simCurrentAge : undefined}
             />
 
+            <PlanSchedule
+              progress={progress}
+              yearData={yearData}
+              medianDepletion={medianDepletion}
+              retirementDelay={simRetirementDelay}
+              currentAge={useAges ? simCurrentAge : undefined}
+              running={running}
+            />
+
             <div className="footer-note">
               <p>
                 {withdrawalFrequency === 'monthly'

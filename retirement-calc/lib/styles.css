@@ -438,9 +438,63 @@ input[type="range"]::-moz-range-thumb {
 
 /* ─── Main Area ─── */
 .main-area {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+.plan-schedule-wrap { position: relative; }
+.plan-schedule-wrap.running { cursor: progress; }
+.plan-schedule-wrap.running .plan-schedule { opacity: 0.28; pointer-events: none; user-select: none; }
+.plan-schedule { border-block: 1px solid var(--rule); transition: opacity 0.25s ease; }
+.plan-schedule > summary {
+  padding: 16px 0;
+  cursor: pointer;
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+}
+.plan-schedule-body { padding-bottom: 16px; }
+.plan-schedule-toolbar { display: flex; align-items: flex-start; gap: 16px; }
+.plan-schedule-toolbar p {
+  margin: 0 0 16px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.plan-schedule-scroll { overflow-x: auto; }
+.plan-schedule table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.plan-schedule caption { text-align: left; font-weight: 600; padding-bottom: 12px; }
+.plan-schedule th, .plan-schedule td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--rule);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.plan-schedule thead { background: var(--cream-2); }
+.plan-schedule tbody tr:nth-child(even) { background: var(--cream-2); }
+.plan-schedule .plan-schedule-phase { text-align: left; }
+.plan-schedule-depletion { display: block; font-size: 10px; font-style: italic; }
+@media (max-width: 720px) {
+  .plan-schedule-toolbar { flex-direction: column; margin-bottom: 16px; gap: 0; }
+}
+@media print {
+  @page { size: landscape; margin: 12mm; }
+  html, body, .sim-root { background: white; }
+  .sim-root { padding: 0; color: black; }
+  .sim-root::before, .masthead, .sidebar,
+  .main-area > :not(.plan-schedule-wrap),
+  .plan-schedule-wrap > .chart-progress-overlay,
+  .plan-schedule > summary, .plan-schedule-toolbar button { display: none !important; }
+  .sim-inner { max-width: none; }
+  .layout, .main-area { display: block; }
+  .plan-schedule { border: 0; }
+  .plan-schedule-scroll { overflow: visible; }
+  .plan-schedule table { font-size: 9px; }
+  .plan-schedule th, .plan-schedule td { padding: 6px 4px; }
+  .plan-schedule thead { display: table-header-group; }
+  .plan-schedule tr { break-inside: avoid; }
 }
 
 .stats-row {
