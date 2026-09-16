@@ -8,24 +8,24 @@
 // Loaded after monte-carlo.js so the cagr/volatility/inflation defaults can
 // be sourced from the same MARKET_PRESETS table the simulator boots with.
 
-const USER_SETTINGS_STORAGE_KEY = 'retirement-calc-settings-v1';
+const USER_SETTINGS_STORAGE_KEY = "retirement-calc-settings-v1";
 
 const SETTINGS_DEFAULTS = (() => {
   const initialMarket = MARKET_PRESETS.world.historical;
   return {
-    balance: 4_000_000,
+    balance: 3_500_000,
     withdrawal: 150_000,
-    withdrawalFrequency: 'annual',
-    upfrontYears: 3,
-    years: 40,
+    withdrawalFrequency: "monthly",
+    upfrontYears: 2,
+    years: 45,
     inflationAdjustBucket: false,
     bucketEarnsTBills: false,
     cagr: initialMarket.cagr,
     volatility: initialMarket.volatility,
     inflation: initialMarket.inflation,
     advancedOpen: false,
-    showCalendarYears: false,
-    retirementDelay: 0,
+    showCalendarYears: true,
+    retirementDelay: 6,
   };
 })();
 
@@ -39,7 +39,7 @@ const UserSettings = (() => {
     try {
       const raw = localStorage.getItem(USER_SETTINGS_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
-      cache = parsed && typeof parsed === 'object' ? parsed : {};
+      cache = parsed && typeof parsed === "object" ? parsed : {};
     } catch {
       cache = {};
     }

@@ -401,14 +401,14 @@ function RetirementSimulator() {
                   <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <Slider
-                      label={retirementDelay === 0 ? 'Retirement start' : 'Retirement starts in'}
-                      sublabel="No contributions or withdrawals; portfolio grows until retirement start."
+                      label="Retirement start"
+                      sublabel="Start now or let the portfolio grow for longer first."
                       value={retirementDelay}
                       min={0}
                       max={10}
                       step={1}
                       onChange={setRetirementDelay}
-                      format={(v) => v === 0 ? 'This year' : `${v} ${v === 1 ? 'year' : 'years'}`}
+                      format={(v) => v === 0 ? 'Immediately' : `Wait ${v} ${v === 1 ? 'year' : 'years'}`}
                     />
                   </div>
                 </div>
