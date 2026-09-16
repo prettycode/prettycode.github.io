@@ -354,7 +354,7 @@ function RetirementSimulator() {
                   <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <Slider
-                      label="Retirement starts in"
+                      label={retirementDelay === 0 ? 'Retirement start' : 'Retirement starts in'}
                       sublabel="No contributions or withdrawals; portfolio grows until retirement start."
                       value={retirementDelay}
                       min={0}
