@@ -12,6 +12,7 @@ function usePersistedState(key) {
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 function RetirementSimulator() {
+  const [historicalDataOpen, setHistoricalDataOpen] = useState(false);
   const [balance, setBalance] = usePersistedState('balance');
   const [withdrawal, setWithdrawal] = usePersistedState('withdrawal');
   const [withdrawalFrequency, setWithdrawalFrequency] = usePersistedState('withdrawalFrequency');
@@ -251,6 +252,7 @@ function RetirementSimulator() {
 
   return (
     <div className="sim-root">
+      {historicalDataOpen && <HistoricalDataModal onClose={() => setHistoricalDataOpen(false)} />}
       <div className="sim-inner">
         {/* MASTHEAD */}
         <header className="masthead">
@@ -455,14 +457,15 @@ function RetirementSimulator() {
                     <div className="toggle-label">Market Assumptions</div>
                     <div className="toggle-sub" style={{ marginBottom: 8 }}>
                       Apply CAGR, volatility, and inflation from historical data.{' '}
-                      <a
+                      <button
+                        type="button"
                         className="presets-source-inline"
-                        href="Historical-Stock-Market-And-Inflation-Data.html"
-                        target="_blank"
-                        rel="noopener"
+                        aria-haspopup="dialog"
+                        aria-label="View historical data"
+                        onClick={() => setHistoricalDataOpen(true)}
                       >
                         ↗
-                      </a>
+                      </button>
                     </div>
                     <div className="freq-toggle" style={{ marginBottom: 6 }}>
                       <button
@@ -579,7 +582,9 @@ function RetirementSimulator() {
             </div>
 
             {/* SOLVER */}
-            <div className="solver-row fade">
+            <div className="fade">
+            <p id="solver-description" className="chart-subtitle">Find the annual withdrawal in today's dollars targeting a {targetSuccessRate}% chance of money lasting {useAges ? `from retirement at age ${retirementAge} through age ${planThroughAge}` : `for ${years} years in retirement`}.</p>
+            <div className="solver-row">
               <div className="solver-label">{useAges ? `Target Success through Age ${planThroughAge}` : "Target Success Rate"}</div>
               <div className="solver-slider">
                 <input
@@ -598,6 +603,7 @@ function RetirementSimulator() {
               <button
                 type="button"
                 className="solve-btn"
+                aria-describedby="solver-description"
                 onClick={solveForTarget}
                 disabled={solving || running}
               >
@@ -611,8 +617,7 @@ function RetirementSimulator() {
                 </span>
               </button>
             </div>
-
-            <p className="chart-subtitle">Find the annual withdrawal in today's dollars targeting a {targetSuccessRate}% chance of money lasting {useAges ? `from retirement at age ${retirementAge} through age ${planThroughAge}` : `for ${years} years in retirement`}.</p>
+            </div>
 
             {/* CHART */}
             <PortfolioChart
@@ -653,6 +658,100 @@ function RetirementSimulator() {
         </div>
       </div>
     </div>
+  );
+}
+
+function HistoricalDataModal({ onClose }) {
+  const dialogRef = React.useRef(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const previousOverflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="historical-modal"
+      aria-labelledby="historical-data-title"
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < bounds.left || event.clientX > bounds.right ||
+            event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
+      }}
+    >
+      <button type="button" className="historical-modal-close" onClick={onClose} autoFocus aria-label="Close historical data">Close ?</button>
+      <h2 id="historical-data-title">Historical Stock Market &amp; Inflation Data</h2>
+    <p className="subtitle">Nominal total returns (including dividends). All figures annualized.</p>
+
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Metric</th>
+            <th scope="col">Time Frame</th>
+            <th scope="col">Full-Period Value</th>
+            <th scope="col">Worst 30-Yr Period</th>
+            <th scope="col">Worst 30-Yr Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="section-header"><td colSpan="5">Returns</td></tr>
+          <tr>
+            <td>CAGR — U.S. Stocks</td>
+            <td className="period-col">1871–2024</td>
+            <td>9.3%</td>
+            <td className="period-col">1903–1932</td>
+            <td>4.7%</td>
+          </tr>
+          <tr>
+            <td>CAGR — World Stocks</td>
+            <td className="period-col">1900–2024</td>
+            <td>8.3%</td>
+            <td className="period-col">~1914–1944</td>
+            <td>~4.0%</td>
+          </tr>
+          <tr className="section-header"><td colSpan="5">Volatility</td></tr>
+          <tr>
+            <td>Std Dev — U.S. Stocks</td>
+            <td className="period-col">1926–2024</td>
+            <td>19.8%</td>
+            <td className="period-col">~1925–1955</td>
+            <td>~28%</td>
+          </tr>
+          <tr>
+            <td>Std Dev — World Stocks</td>
+            <td className="period-col">1900–2024</td>
+            <td>17.4%</td>
+            <td className="period-col">~1914–1944</td>
+            <td>~23%</td>
+          </tr>
+          <tr className="section-header"><td colSpan="5">Inflation</td></tr>
+          <tr>
+            <td>U.S. CPI Inflation</td>
+            <td className="period-col">1900–2024</td>
+            <td>2.9%</td>
+            <td className="period-col">~1950–1980</td>
+            <td>~4.6%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div className="footnotes">
+      <strong>Sources:</strong> UBS Global Investment Returns Yearbook 2025 (Dimson, Marsh &amp; Staunton); Ibbotson/Morningstar SBBI data; Shiller CAPE dataset; NYU Stern historical returns; BLS CPI data.<br /><br />
+      <strong>Notes:</strong> U.S. Stocks = S&amp;P 500 and predecessor indices. World Stocks = DMS global equity index (23–35 countries, cap-weighted). "~" prefix indicates an approximate figure where precise rolling 30-year data for the global index is less granular than for U.S. data. Volatility is the annualized standard deviation of nominal returns. The world volatility figure of 17.4% reflects the diversified index, which benefits from cross-country correlation &lt; 1.
+    </div>
+    <div className="source-tag">Nominal · Total Return · Annualized</div>
+    </dialog>
   );
 }
 
