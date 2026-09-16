@@ -21,10 +21,17 @@ function RetirementSimulator() {
   const [cagr, setCagr] = usePersistedState('cagr');
   const [volatility, setVolatility] = usePersistedState('volatility');
   const [inflation, setInflation] = usePersistedState('inflation');
-  const [years, setYears] = usePersistedState('years');
+  const [currentAge, setCurrentAge] = usePersistedState('currentAge');
+  const [retirementAge, setRetirementAge] = usePersistedState('retirementAge');
+  const [planThroughAge, setPlanThroughAge] = usePersistedState('planThroughAge');
+  const [planningMode, setPlanningMode] = usePersistedState('planningMode');
+  const [settingsYears, setSettingsYears] = usePersistedState('settingsYears');
+  const [settingsDelay, setSettingsDelay] = usePersistedState('settingsDelay');
+  const useAges = planningMode === 'ages';
+  const years = useAges ? planThroughAge - retirementAge : settingsYears;
+  const retirementDelay = useAges ? retirementAge - currentAge : settingsDelay;
   const [advancedOpen, setAdvancedOpen] = usePersistedState('advancedOpen');
   const [showCalendarYears, setShowCalendarYears] = usePersistedState('showCalendarYears');
-  const [retirementDelay, setRetirementDelay] = usePersistedState('retirementDelay');
 
   // Reverse-lookup (cagr, volatility, inflation) → preset cell. Used both
   // for the active-toggle highlight and for seeding lastRegion/lastScenario
@@ -79,7 +86,7 @@ function RetirementSimulator() {
   const [running, setRunning] = useState(true);
   const [solving, setSolving] = useState(false);
   const [solveProgress, setSolveProgress] = useState(0);
-  const [targetSuccessRate, setTargetSuccessRate] = useState(95);
+  const [targetSuccessRate, setTargetSuccessRate] = usePersistedState('targetSuccessRate');
 
   // The bucket-* flags are no-ops when upfrontYears === 1 (no lump sum is
   // taken). Depending on the *effective* values here keeps a checkbox toggle
@@ -98,7 +105,7 @@ function RetirementSimulator() {
         if (e.data.type === 'progress') {
           setProgress(e.data.pct);
         } else if (e.data.type === 'done') {
-          setSim(e.data.result);
+          setSim({ ...e.data.result, currentAge });
           setRunning(false);
           setProgress(1);
         }
@@ -112,7 +119,7 @@ function RetirementSimulator() {
       clearTimeout(t);
       if (worker) worker.terminate();
     };
-  }, [balance, withdrawal, cagr, volatility, inflation, years, retirementDelay, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills, withdrawalFrequency]);
+  }, [balance, withdrawal, cagr, volatility, inflation, years, retirementDelay, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills, withdrawalFrequency, currentAge]);
 
   // Binary-search the worker for the withdrawal that yields the chosen
   // target success rate. Success is monotonic in withdrawal (more spent →
@@ -197,6 +204,7 @@ function RetirementSimulator() {
   // the end of `sim.percentiles` and crashes with `undefined.p50`.
   const simYears = sim ? sim.percentiles.length - 1 : years;
   const simRetirementDelay = sim ? sim.retirementDelay : retirementDelay;
+  const simCurrentAge = sim ? sim.currentAge : currentAge;
 
   // Derived stats
   const successColor = sim && sim.successRate >= 0.9 ? "#3a7d44" : sim && sim.successRate >= 0.7 ? "#c89a3a" : "#a83232";
@@ -250,13 +258,32 @@ function RetirementSimulator() {
           </h1>
           <div className="masthead-meta">
             <div className="vol">VOL. I · MONTE CARLO EDITION</div>
-            <div>{SIM_RUNS.toLocaleString()} SIMULATIONS · {years}-YEAR HORIZON</div>
+            <div>{SIM_RUNS.toLocaleString()} SIMULATIONS {useAges ? `| AGES ${currentAge}-${planThroughAge}` : `| ${years}-YEAR RETIREMENT`}</div>
           </div>
         </header>
 
         <div className="layout">
           {/* SIDEBAR */}
           <aside className="sidebar">
+            <div className="panel-heading" style={{ marginBottom: 10 }}>Planning Mode</div>
+            <div className="freq-toggle" role="group" aria-label="Planning mode" style={{ marginBottom: 28 }}>
+              <button type="button" className={`freq-btn${useAges ? ' active' : ''}`}
+                aria-pressed={useAges} disabled={solving} onClick={() => setPlanningMode('ages')}>Using age</button>
+              <button type="button" className={`freq-btn${!useAges ? ' active' : ''}`}
+                aria-pressed={!useAges} disabled={solving} onClick={() => setPlanningMode('settings')}>Using duration</button>
+            </div>
+            {useAges && <>
+            <div className="panel-heading">Your Retirement Plan</div>
+            <Slider label="Current Age" sublabel="Your age today" value={currentAge}
+              min={18} max={retirementAge} step={1} onChange={setCurrentAge}
+              format={(v) => `${v}`} editable disabled={solving} />
+            <Slider label="Retirement Age" sublabel="Withdrawals begin at this age" value={retirementAge}
+              min={currentAge} max={planThroughAge - 1} step={1} onChange={setRetirementAge}
+              format={(v) => `${v}`} editable disabled={solving} />
+            <Slider label="Plan Through Age" sublabel={`${retirementDelay} years until retirement; ${years} years in retirement`}
+              value={planThroughAge} min={retirementAge + 1} max={120} step={1}
+              onChange={setPlanThroughAge} format={(v) => `${v}`} editable disabled={solving} />
+            </>}
             <div className="panel-heading">Portfolio Settings</div>
 
             <Slider
@@ -272,7 +299,7 @@ function RetirementSimulator() {
 
             <Slider
               label="Annual Withdrawal"
-              sublabel="First retirement year amount; inflated each year after"
+              sublabel="First retirement year amount; increased by rate of inflation thereafter"
               value={withdrawal}
               min={10_000}
               max={300_000}
@@ -297,16 +324,11 @@ function RetirementSimulator() {
               }}
             />
 
-            <Slider
-              label="Retirement Duration"
-              sublabel="Years in retirement, excluding any delay"
-              value={years}
-              min={5}
-              max={50}
-              step={1}
-              onChange={setYears}
-              format={(v) => `${v} yrs`}
-            />
+            {!useAges && <Slider
+              label="Retirement Duration" sublabel="Years in retirement, excluding any delay"
+              value={settingsYears} min={1} max={Math.max(50, settingsYears)} step={1}
+              onChange={setSettingsYears} format={(v) => `${v} yrs`} disabled={solving}
+            />}
 
             <div className="panel-heading">Market Assumptions</div>
 
@@ -402,12 +424,13 @@ function RetirementSimulator() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <Slider
                       label="Retirement start"
-                      sublabel="Start now or let the portfolio grow for longer first."
+                      sublabel={useAges ? "Linked to Retirement Age above; your plan-through age stays fixed." : "Start now or let the portfolio grow for longer first."}
                       value={retirementDelay}
                       min={0}
-                      max={10}
+                      max={useAges ? planThroughAge - currentAge - 1 : Math.max(10, settingsDelay)}
                       step={1}
-                      onChange={setRetirementDelay}
+                      onChange={(delay) => useAges ? setRetirementAge(currentAge + delay) : setSettingsDelay(delay)}
+                      disabled={solving}
                       format={(v) => v === 0 ? 'Immediately' : `Wait ${v} ${v === 1 ? 'year' : 'years'}`}
                     />
                   </div>
@@ -420,7 +443,7 @@ function RetirementSimulator() {
                   />
                   <div>
                     <div className="toggle-label">Show calendar years</div>
-                    <div className="toggle-sub">Label the Portfolio Trajectory X axis with calendar years, starting this year.</div>
+                    <div className="toggle-sub">{useAges ? "Use calendar years instead of ages on the chart." : "Use calendar years instead of years since retirement on the chart."}</div>
                   </div>
                 </label>
                 <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
@@ -508,13 +531,13 @@ function RetirementSimulator() {
             {/* STATS */}
             <div className="stats-row fade">
               <div className="stat-cell">
-                <div className="stat-label">Strategy Success Rate</div>
+                <div className="stat-label">{useAges ? `Success through age ${simCurrentAge + simYears}` : "Strategy Success Rate"}</div>
                 <div className="stat-value success" style={{ color: successColor }}>
                   {`${(sim.successRate * 100).toFixed(2)}%`}
                 </div>
               </div>
               <div className="stat-cell">
-                <div className="stat-label">Ending Portfolio Balance (Median)</div>
+                <div className="stat-label">{useAges ? `Balance at age ${simCurrentAge + simYears} (Median)` : "Ending Portfolio Balance (Median)"}</div>
                 <div className="stat-value">{fmtMoney(sim.medianEnding)}</div>
                 <div className="stat-sub">
                   ≈ {fmtMoney(sim.medianEnding / Math.pow(1 + inflation, simYears))} today
@@ -530,12 +553,14 @@ function RetirementSimulator() {
                 </div>
               </div>
               <div className="stat-cell">
-                <div className="stat-label">Depletion at start of (Median)</div>
+                <div className="stat-label">{useAges ? "Depletion Age (Median)" : "Depletion Year (Median)"}</div>
                 <div className="stat-value">
                   {medianDepletion
-                    ? medianDepletion.year <= simRetirementDelay
-                      ? `Before retirement (year ${medianDepletion.year})`
-                      : `Year ${medianDepletion.year - simRetirementDelay}`
+                    ? useAges
+                      ? `Age ${simCurrentAge + medianDepletion.year - (medianDepletion.startDepleted ? 1 : 0)}`
+                      : medianDepletion.year <= simRetirementDelay
+                        ? `Before retirement (year ${medianDepletion.year})`
+                        : `Year ${medianDepletion.year - simRetirementDelay}`
                     : "None"}
                 </div>
               </div>
@@ -552,10 +577,11 @@ function RetirementSimulator() {
 
             {/* SOLVER */}
             <div className="solver-row fade">
-              <div className="solver-label">Target Success Rate</div>
+              <div className="solver-label">{useAges ? `Target Success through Age ${planThroughAge}` : "Target Success Rate"}</div>
               <div className="solver-slider">
                 <input
                   type="range"
+                  aria-label="Target success rate"
                   min={50}
                   max={99}
                   step={1}
@@ -583,6 +609,8 @@ function RetirementSimulator() {
               </button>
             </div>
 
+            <p className="chart-subtitle">Find the annual withdrawal targeting a {targetSuccessRate}% chance of money lasting {useAges ? `from retirement at age ${retirementAge} through age ${planThroughAge}` : `for ${years} years in retirement`}.</p>
+
             {/* CHART */}
             <PortfolioChart
               yearData={yearData}
@@ -595,6 +623,7 @@ function RetirementSimulator() {
               simYears={simYears}
               showCalendarYears={showCalendarYears}
               retirementDelay={simRetirementDelay}
+              currentAge={useAges ? simCurrentAge : undefined}
             />
 
             <div className="footer-note">

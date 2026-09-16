@@ -28,8 +28,10 @@ function PortfolioChart({
   simYears,
   showCalendarYears = false,
   retirementDelay = 0,
+  currentAge,
 }) {
   const [hover, setHover] = React.useState(null);
+  const useAges = currentAge !== undefined;
   const calendarStartYear = new Date().getFullYear();
 
   // Chart geometry
@@ -188,7 +190,7 @@ function PortfolioChart({
                 fontSize="10"
                 fill="var(--ink-2)"
               >
-                {showCalendarYears ? calendarStartYear + t : t - retirementDelay}
+                {showCalendarYears ? calendarStartYear + t : useAges ? currentAge + t : t - retirementDelay}
               </text>
             </g>
           ))}
@@ -200,7 +202,7 @@ function PortfolioChart({
             letterSpacing="0.15em"
             fill="var(--ink-2)"
           >
-            {showCalendarYears ? 'CALENDAR YEAR' : 'YEARS SINCE RETIREMENT'}
+            {showCalendarYears ? 'CALENDAR YEAR' : useAges ? 'AGE' : 'YEARS SINCE RETIREMENT'}
           </text>
 
           {/* Left axis (withdrawal) — own ticks + frame */}
@@ -245,7 +247,7 @@ function PortfolioChart({
                 stroke="var(--ink-2)" strokeWidth="1" strokeDasharray="4 4" />
               <text x={x(retirementDelay) + 6} y={padT + 12}
                 fontFamily="JetBrains Mono" fontSize="10" fill="var(--ink-2)">
-                Retirement starts
+                {useAges ? `Retire at age ${currentAge + retirementDelay}` : "Retirement starts"}
               </text>
             </g>
           )}
@@ -367,6 +369,7 @@ function PortfolioChart({
             }}
           >
             <div className="tooltip-year">
+              {useAges && `AGE ${currentAge + hover} | `}
               {hover < retirementDelay
                 ? `${calendarStartYear + hover} · ${retirementDelay - hover} YEARS UNTIL RETIREMENT`
                 : hover === simYears
@@ -480,7 +483,7 @@ function PortfolioChart({
       </div>
 
       <p className="chart-footnote">
-        {retirementDelay > 0 &&           `The portfolio grows for ${retirementDelay} years before retirement, with no withdrawals or contributions. Negative axis values indicate years before retirement. `}
+        {retirementDelay > 0 &&           `The portfolio grows for ${retirementDelay} years before retirement, with no withdrawals or contributions. `}
         {withdrawalFrequency === 'monthly'
           ? "Withdrawals are taken in twelve monthly draws; each chart mark shows the year's total at the start of the year it funds. "
           : "Withdrawals are taken at the start of each retirement year. "}

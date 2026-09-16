@@ -17,15 +17,20 @@ const SETTINGS_DEFAULTS = (() => {
     withdrawal: 150_000,
     withdrawalFrequency: "monthly",
     upfrontYears: 2,
-    years: 45,
+    planningMode: "ages",
+    settingsYears: 30,
+    settingsDelay: 5,
+    currentAge: 43,
+    retirementAge: 50,
+    planThroughAge: 90,
+    targetSuccessRate: 95,
     inflationAdjustBucket: false,
     bucketEarnsTBills: false,
     cagr: initialMarket.cagr,
     volatility: initialMarket.volatility,
     inflation: initialMarket.inflation,
     advancedOpen: false,
-    showCalendarYears: true,
-    retirementDelay: 6,
+    showCalendarYears: false,
   };
 })();
 
@@ -43,6 +48,33 @@ const UserSettings = (() => {
     } catch {
       cache = {};
     }
+    // Convert older duration-based plans once, preserving their timeline.
+    if (
+      cache.currentAge === undefined &&
+      (cache.years !== undefined || cache.retirementDelay !== undefined)
+    ) {
+      const delay = Number.isInteger(cache.retirementDelay)
+        ? Math.max(0, Math.min(10, cache.retirementDelay))
+        : 6;
+      const duration = Number.isInteger(cache.years)
+        ? Math.max(5, Math.min(50, cache.years))
+        : 45;
+      cache.currentAge = 43;
+      cache.retirementAge = 43 + delay;
+      cache.planThroughAge = 43 + delay + duration;
+    }
+    if (cache.settingsYears === undefined) {
+      cache.settingsYears =
+        cache.years ??
+        (cache.planThroughAge ?? 94) - (cache.retirementAge ?? 49);
+    }
+    if (cache.settingsDelay === undefined) {
+      cache.settingsDelay =
+        cache.retirementDelay ??
+        (cache.retirementAge ?? 49) - (cache.currentAge ?? 43);
+    }
+    delete cache.years;
+    delete cache.retirementDelay;
     return cache;
   };
 
