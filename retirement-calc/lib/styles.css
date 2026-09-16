@@ -737,6 +737,104 @@ svg.chart {
   font-weight: 700;
 }
 
+/* ─── Outcome odds ─── */
+.odds-section {
+  margin-top: 34px;
+  padding-top: 22px;
+  border-top: 1px solid var(--ink);
+}
+
+.odds-lead {
+  font-family: 'Fraunces', serif;
+  font-size: 17px;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  margin: 0 0 20px;
+  max-width: 640px;
+}
+
+.odds-ladder {
+  margin: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.odds-rung {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  align-items: baseline;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.odds-rung dt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.odds-rung dd {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.odds-rung-value {
+  font-family: 'Fraunces', serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.odds-rung-real {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.odds-rung.median dt { color: var(--accent); font-weight: 700; }
+.odds-rung.median .odds-rung-value { font-weight: 700; }
+
+.odds-rung-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 1px 5px;
+}
+
+.odds-ladder-note {
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.55;
+  margin: 12px 0 0;
+  max-width: 640px;
+}
+
+.odds-caveat {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-style: italic;
+  line-height: 1.6;
+  margin: 18px 0 0;
+  max-width: 640px;
+}
+
+@media (max-width: 720px) {
+  .odds-rung { grid-template-columns: 1fr; gap: 2px; }
+}
+
 /* ─── Footer note ─── */
 .footer-note {
   font-size: 11px;

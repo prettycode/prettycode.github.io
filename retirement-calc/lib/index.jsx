@@ -624,6 +624,16 @@ function RetirementSimulator() {
               currentAge={useAges ? simCurrentAge : undefined}
             />
 
+            <OutcomeOdds
+              yearData={yearData}
+              simYears={simYears}
+              successRate={sim.successRate}
+              totalRuns={sim.runs}
+              retirementDelay={simRetirementDelay}
+              currentAge={useAges ? simCurrentAge : undefined}
+              inflation={inflation}
+            />
+
             <PlanSchedule
               progress={progress}
               yearData={yearData}
