@@ -407,6 +407,8 @@ input[type="range"]::-moz-range-thumb {
 
 .advanced-body { padding: 12px 0 4px; }
 
+.retirement-start .slider-row { margin-bottom: 0; }
+
 .toggle-row {
   display: flex;
   align-items: flex-start;

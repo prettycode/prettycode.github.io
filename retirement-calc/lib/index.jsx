@@ -424,7 +424,7 @@ function RetirementSimulator() {
                     </div>
                   </div>
                 </label>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
+                <div className="retirement-start" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
                   <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <Slider
@@ -440,17 +440,6 @@ function RetirementSimulator() {
                     />
                   </div>
                 </div>
-                <label className="toggle-row" style={{ marginBottom: 14 }}>
-                  <input
-                    type="checkbox"
-                    checked={showCalendarYears}
-                    onChange={(e) => setShowCalendarYears(e.target.checked)}
-                  />
-                  <div>
-                    <div className="toggle-label">Show calendar years</div>
-                    <div className="toggle-sub">{useAges ? "Use calendar years instead of ages on the chart." : "Use calendar years instead of years since retirement on the chart."}</div>
-                  </div>
-                </label>
                 <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
                   <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
                   <div style={{ flex: 1 }}>
@@ -630,6 +619,7 @@ function RetirementSimulator() {
               medianDepletion={medianDepletion}
               simYears={simYears}
               showCalendarYears={showCalendarYears}
+              onShowCalendarYearsChange={setShowCalendarYears}
               retirementDelay={simRetirementDelay}
               currentAge={useAges ? simCurrentAge : undefined}
             />

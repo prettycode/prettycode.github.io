@@ -27,6 +27,7 @@ function PortfolioChart({
   medianDepletion,
   simYears,
   showCalendarYears = false,
+  onShowCalendarYearsChange,
   retirementDelay = 0,
   currentAge,
 }) {
@@ -126,6 +127,18 @@ function PortfolioChart({
         Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo paths. Outer band, 10th–90th percentile;
         inner band, 25th–75th. Vertical marks show each year's median withdrawal, scaled to the left axis.
       </p>
+
+      <label className="toggle-row" style={{ marginBottom: 14 }}>
+        <input
+          type="checkbox"
+          checked={showCalendarYears}
+          onChange={(e) => onShowCalendarYearsChange(e.target.checked)}
+        />
+        <div>
+          <div className="toggle-label">Show calendar years</div>
+          <div className="toggle-sub">{useAges ? "Use calendar years instead of ages on the chart." : "Use calendar years instead of years since retirement on the chart."}</div>
+        </div>
+      </label>
 
       <div className={`chart-wrap${running ? " running" : ""}`}>
         {running && (
