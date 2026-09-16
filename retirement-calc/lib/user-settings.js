@@ -29,6 +29,7 @@ const SETTINGS_DEFAULTS = (() => {
     cagr: initialMarket.cagr,
     volatility: initialMarket.volatility,
     inflation: initialMarket.inflation,
+    marketAssumptionsOpen: false,
     advancedOpen: false,
     showCalendarYears: false,
   };

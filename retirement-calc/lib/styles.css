@@ -115,6 +115,29 @@
   border-bottom: 1px solid var(--rule);
 }
 
+/* A sidebar group whose heading doubles as a disclosure control. */
+.panel-section > summary.panel-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  transition: color 0.15s ease;
+}
+
+.panel-section > summary.panel-heading:hover { color: var(--ink); }
+
+.panel-section > summary::-webkit-details-marker { display: none; }
+
+.panel-section > summary.panel-heading::before {
+  content: '+';
+  width: 9px;
+  font-weight: 700;
+}
+
+.panel-section[open] > summary.panel-heading::before { content: '−'; }
+
 .slider-row {
   margin-bottom: 22px;
 }
@@ -373,39 +396,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ─── Advanced (collapsible) ─── */
-.advanced {
-  margin-top: 4px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--rule);
-}
-
-.advanced > summary {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-2);
-  cursor: pointer;
-  user-select: none;
-  list-style: none;
-  padding: 2px 0;
-  transition: color 0.15s ease;
-}
-
-.advanced > summary:hover { color: var(--ink); }
-
-.advanced > summary::-webkit-details-marker { display: none; }
-
-.advanced > summary::before {
-  content: '+ ';
-  display: inline-block;
-  width: 14px;
-  font-weight: 700;
-}
-
-.advanced[open] > summary::before { content: '− '; }
-
-.advanced-body { padding: 12px 0 4px; }
+.advanced-body { padding-bottom: 4px; }
 
 .retirement-start .slider-row { margin-bottom: 0; }
 

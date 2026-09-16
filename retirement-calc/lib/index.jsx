@@ -32,6 +32,7 @@ function RetirementSimulator() {
   const years = useAges ? planThroughAge - retirementAge : settingsYears;
   const retirementDelay = useAges ? retirementAge - currentAge : settingsDelay;
   const retirementWithdrawal = withdrawal * Math.pow(1 + inflation, retirementDelay);
+  const [marketAssumptionsOpen, setMarketAssumptionsOpen] = usePersistedState('marketAssumptionsOpen');
   const [advancedOpen, setAdvancedOpen] = usePersistedState('advancedOpen');
   const [showCalendarYears, setShowCalendarYears] = usePersistedState('showCalendarYears');
 
@@ -335,47 +336,53 @@ function RetirementSimulator() {
               onChange={setSettingsYears} format={(v) => `${v} yrs`} disabled={solving}
             />}
 
-            <div className="panel-heading">Market Assumptions</div>
+            <details
+              className="panel-section"
+              open={marketAssumptionsOpen}
+              onToggle={(e) => setMarketAssumptionsOpen(e.currentTarget.open)}
+            >
+              <summary className="panel-heading">Market Assumptions</summary>
 
-            <Slider
-              label="CAGR"
-              sublabel="Portfolio's Compound annual growth rate"
-              value={cagr}
-              min={0.01}
-              max={0.12}
-              step={0.001}
-              onChange={setCagr}
-              format={fmtPct}
-            />
+              <Slider
+                label="CAGR"
+                sublabel="Portfolio's Compound annual growth rate"
+                value={cagr}
+                min={0.01}
+                max={0.12}
+                step={0.001}
+                onChange={setCagr}
+                format={fmtPct}
+              />
 
-            <Slider
-              label="Annual Volatility"
-              sublabel="Portfolio's Standard deviation"
-              value={volatility}
-              min={0.02}
-              max={0.30}
-              step={0.001}
-              onChange={setVolatility}
-              format={fmtPct}
-            />
+              <Slider
+                label="Annual Volatility"
+                sublabel="Portfolio's Standard deviation"
+                value={volatility}
+                min={0.02}
+                max={0.30}
+                step={0.001}
+                onChange={setVolatility}
+                format={fmtPct}
+              />
 
-            <Slider
-              label="Inflation Rate"
-              sublabel="Cost-of-living growth"
-              value={inflation}
-              min={0}
-              max={0.08}
-              step={0.001}
-              onChange={setInflation}
-              format={fmtPct}
-            />
+              <Slider
+                label="Inflation Rate"
+                sublabel="Cost-of-living growth"
+                value={inflation}
+                min={0}
+                max={0.08}
+                step={0.001}
+                onChange={setInflation}
+                format={fmtPct}
+              />
+            </details>
 
             <details
-              className="advanced"
+              className="panel-section"
               open={advancedOpen}
               onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
             >
-              <summary>Advanced</summary>
+              <summary className="panel-heading">Advanced</summary>
               <div className="advanced-body">
                 <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 14 }}>
                   <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
