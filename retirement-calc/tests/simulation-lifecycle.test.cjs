@@ -1,4 +1,4 @@
-﻿const assert = require("node:assert/strict");
+const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 const { test } = require("node:test");
@@ -9,7 +9,7 @@ const flush = async () => {
   }
 };
 
-function harness() {
+function harness(saved = {}) {
   const workers = [],
     slots = [],
     pending = [];
@@ -45,7 +45,7 @@ function harness() {
     },
     localStorage: {
       getItem() {
-        return null;
+        return JSON.stringify(saved);
       },
       setItem() {},
       removeItem() {},
@@ -82,6 +82,9 @@ function harness() {
       `
     return {sim, simInputs, simUseAges, running, solving, simulationError, solverError,
       solveForTarget, setInflation, setPlanningMode, setWithdrawalFrequency, setBalance,
+      handleRetirementStartChange, setCurrentAge, setPlanThroughAge,
+      setRetirementAge, currentAge,
+      retirementAge, planThroughAge, settingsDelay,
       retry: () => setRetryCount(c => c + 1)};
   }`,
     context,
@@ -102,6 +105,111 @@ const result = {
   retirementDelay: 0,
   successRate: 0.9,
 };
+
+for (const planningMode of ["settings", "ages"]) {
+  test(`${planningMode} startup reconciles retirement timing across mode switches`, () => {
+    const h = harness({
+      planningMode,
+      currentAge: 43,
+      retirementAge: 65,
+      settingsDelay: 5,
+    });
+    let state = h.render();
+    const expectedDelay = planningMode === "ages" ? 22 : 5;
+    for (const mode of ["ages", "settings", "ages"]) {
+      assert.equal(state.settingsDelay, expectedDelay);
+      assert.equal(state.retirementAge, state.currentAge + expectedDelay);
+      assert.equal(
+        vm.runInContext('UserSettings.get("settingsDelay")', h.context),
+        expectedDelay,
+      );
+      assert.equal(
+        vm.runInContext('UserSettings.get("retirementAge")', h.context),
+        state.retirementAge,
+      );
+      state.setPlanningMode(mode);
+      state = h.render();
+      assert.equal(
+        h.workers.at(-1).message.params.retirementDelay,
+        expectedDelay,
+      );
+    }
+  });
+}
+
+test("duration retirement start updates and persists the age plan", () => {
+  const h = harness();
+  let state = h.render();
+  state.handleRetirementStartChange(10);
+  state = h.render();
+  assert.equal(state.settingsDelay, 10);
+  assert.equal(state.retirementAge, 53);
+  assert.equal(state.planThroughAge, 90);
+  assert.equal(
+    vm.runInContext('UserSettings.get("retirementAge")', h.context),
+    53,
+  );
+  state.setPlanningMode("ages");
+  h.render();
+  assert.equal(h.workers.at(-1).message.params.retirementDelay, 10);
+  assert.equal(h.workers.at(-1).message.params.years, 37);
+
+  state = h.render();
+  state.setPlanningMode("settings");
+  state.handleRetirementStartChange(0);
+  state = h.render();
+  assert.equal(state.retirementAge, 43);
+  assert.equal(state.settingsDelay, 0);
+});
+
+test("age changes update and persist the duration retirement start", () => {
+  const h = harness();
+  let state = h.render();
+  state.setPlanningMode("ages");
+  state = h.render();
+  state.setRetirementAge(65);
+  state = h.render();
+  assert.equal(state.settingsDelay, 22);
+  state.setCurrentAge(45);
+  state = h.render();
+  assert.equal(state.settingsDelay, 20);
+  assert.equal(
+    vm.runInContext('UserSettings.get("settingsDelay")', h.context),
+    20,
+  );
+  state.setPlanningMode("settings");
+  state = h.render();
+  assert.equal(h.workers.at(-1).message.params.retirementDelay, 20);
+  assert.equal(h.workers.at(-1).message.params.years, 30);
+
+  state.setPlanningMode("ages");
+  state = h.render();
+  state.setCurrentAge(65);
+  state = h.render();
+  assert.equal(state.settingsDelay, 0);
+  state.setCurrentAge(60);
+  state = h.render();
+  assert.equal(state.settingsDelay, 5);
+  state.setRetirementAge(60);
+  state = h.render();
+  assert.equal(state.settingsDelay, 0);
+});
+
+test("duration retirement start keeps the age plan end after retirement", () => {
+  const h = harness();
+  let state = h.render();
+  state.setCurrentAge(115);
+  state.setPlanThroughAge(120);
+  state = h.render();
+  state.handleRetirementStartChange(10);
+  state = h.render();
+  assert.equal(state.retirementAge, 125);
+  assert.equal(state.planThroughAge, 126);
+  state.setPlanningMode("ages");
+  h.render();
+  assert.equal(h.workers.at(-1).message.params.retirementDelay, 10);
+  assert.equal(h.workers.at(-1).message.params.years, 1);
+});
 
 test("worker failure clears running, retry succeeds, and stale messages are ignored", async () => {
   const h = harness();

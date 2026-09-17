@@ -4,8 +4,8 @@ const { useState, useEffect } = React;
 // from storage (or the default), and every change writes back. Storage is
 // pruned to non-default values inside UserSettings.set, so no extra logic
 // here.
-function usePersistedState(key) {
-  const [value, setValue] = useState(() => UserSettings.get(key));
+function usePersistedState(key, initialize = () => UserSettings.get(key)) {
+  const [value, setValue] = useState(initialize);
   useEffect(() => {
     UserSettings.set(key, value);
   }, [key, value]);
@@ -30,15 +30,32 @@ function RetirementSimulator() {
   const [volatility, setVolatility] = usePersistedState("volatility");
   const [inflation, setInflation] = usePersistedState("inflation");
   const [currentAge, setCurrentAge] = usePersistedState("currentAge");
-  const [retirementAge, setRetirementAge] = usePersistedState("retirementAge");
-  const [planThroughAge, setPlanThroughAge] =
-    usePersistedState("planThroughAge");
+  // Reconcile older independent timelines using the saved active mode.
+  const [retirementAge, setRetirementAge] = usePersistedState(
+    "retirementAge",
+    () =>
+      UserSettings.get("planningMode") === "ages"
+        ? UserSettings.get("retirementAge")
+        : currentAge + UserSettings.get("settingsDelay"),
+  );
+  const [planThroughAge, setPlanThroughAge] = usePersistedState(
+    "planThroughAge",
+    () => Math.max(UserSettings.get("planThroughAge"), retirementAge + 1),
+  );
   const [planningMode, setPlanningMode] = usePersistedState("planningMode");
   const [settingsYears, setSettingsYears] = usePersistedState("settingsYears");
-  const [settingsDelay, setSettingsDelay] = usePersistedState("settingsDelay");
+  const settingsDelay = retirementAge - currentAge;
+  useEffect(() => {
+    UserSettings.set("settingsDelay", settingsDelay);
+  }, [settingsDelay]);
+  const handleRetirementStartChange = (delay) => {
+    const nextRetirementAge = currentAge + delay;
+    setRetirementAge(nextRetirementAge);
+    setPlanThroughAge((age) => Math.max(age, nextRetirementAge + 1));
+  };
   const useAges = planningMode === "ages";
   const years = useAges ? planThroughAge - retirementAge : settingsYears;
-  const retirementDelay = useAges ? retirementAge - currentAge : settingsDelay;
+  const retirementDelay = settingsDelay;
   const retirementWithdrawal =
     withdrawal * Math.pow(1 + inflation, retirementDelay);
   const [marketAssumptionsOpen, setMarketAssumptionsOpen] = usePersistedState(
@@ -458,7 +475,7 @@ function RetirementSimulator() {
                   sublabel={`${retirementDelay} years until retirement; ${years} years in retirement`}
                   value={planThroughAge}
                   min={retirementAge + 1}
-                  max={120}
+                  max={Math.max(120, planThroughAge)}
                   step={1}
                   onChange={setPlanThroughAge}
                   format={(v) => `${v}`}
@@ -541,7 +558,7 @@ function RetirementSimulator() {
                   min={0}
                   max={Math.max(10, settingsDelay)}
                   step={1}
-                  onChange={setSettingsDelay}
+                  onChange={handleRetirementStartChange}
                   disabled={solving}
                   format={(v) =>
                     v === 0
