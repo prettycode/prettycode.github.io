@@ -1,3 +1,5 @@
+/* exported Slider */
+
 // ─── Slider Component ───────────────────────────────────────────────────────
 
 function Slider({

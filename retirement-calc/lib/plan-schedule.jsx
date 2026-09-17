@@ -1,3 +1,5 @@
+/* exported PlanSchedule */
+
 // Presentation only: rows are the same canonical records passed to PortfolioChart.
 function PlanSchedule({
   yearData,

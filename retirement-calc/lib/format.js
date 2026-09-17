@@ -1,3 +1,5 @@
+/* exported fmtMoney, fmtMoneyFull, fmtPct */
+
 // ─── Formatting helpers ─────────────────────────────────────────────────────
 
 const fmtMoney = (n) => {

@@ -1,3 +1,5 @@
+/* exported OutcomeOdds */
+
 // ─── Outcome Odds — plain-language reading of the distribution ──────────────
 // The chart shows percentile bands; this section says what they mean in odds.
 // It exists to answer the two questions the bands invite and never answer:

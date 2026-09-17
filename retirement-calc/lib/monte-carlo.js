@@ -1,3 +1,5 @@
+/* exported SIM_RUNS, startSimulation, T_BILL_REAL_PREMIUM, MARKET_PRESETS, cagrToArithmetic, bucketSize */
+
 // ─── Monte Carlo Engine — main-thread side ─────────────────────────────────
 // The hot loop lives in monte-carlo-worker.js so the UI stays responsive
 // during 1M-run simulations. This file holds the constants and helpers the

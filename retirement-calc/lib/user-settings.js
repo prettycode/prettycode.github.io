@@ -1,3 +1,5 @@
+/* exported UserSettings */
+
 // ─── UserSettings — sidebar persistence ────────────────────────────────────
 // Persists the user-tunable sidebar values to localStorage so a reload
 // restores the last-used configuration. Only keys whose value differs from

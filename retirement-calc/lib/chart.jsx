@@ -1,3 +1,5 @@
+/* exported PortfolioChart */
+
 // ─── Portfolio Trajectory Chart ─────────────────────────────────────────────
 // Renders the percentile-band SVG, hover tooltip, legend, and footnote.
 // Hover state is local; everything else is driven by props.
