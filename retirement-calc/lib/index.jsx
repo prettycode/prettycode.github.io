@@ -271,10 +271,10 @@ function RetirementSimulator() {
           <aside className="sidebar">
             <div className="panel-heading" style={{ marginBottom: 10 }}>Planning Mode</div>
             <div className="freq-toggle" role="group" aria-label="Planning mode" style={{ marginBottom: 28 }}>
-              <button type="button" className={`freq-btn${useAges ? ' active' : ''}`}
-                aria-pressed={useAges} disabled={solving} onClick={() => setPlanningMode('ages')}>Using age</button>
               <button type="button" className={`freq-btn${!useAges ? ' active' : ''}`}
-                aria-pressed={!useAges} disabled={solving} onClick={() => setPlanningMode('settings')}>Using duration</button>
+                aria-pressed={!useAges} disabled={solving} onClick={() => setPlanningMode('settings')}>Duration</button>
+              <button type="button" className={`freq-btn${useAges ? ' active' : ''}`}
+                aria-pressed={useAges} disabled={solving} onClick={() => setPlanningMode('ages')}>Age</button>
             </div>
             {useAges && <>
             <div className="panel-heading">Your Retirement Plan</div>
@@ -292,7 +292,7 @@ function RetirementSimulator() {
 
             <Slider
               label="Starting Balance"
-              sublabel={retirementDelay > 0 ? "Portfolio today" : "Portfolio at retirement"}
+              sublabel={retirementDelay > 0 ? "Portfolio value today" : "Portfolio value at retirement"}
               value={balance}
               min={100_000}
               max={10_000_000}
@@ -330,11 +330,25 @@ function RetirementSimulator() {
               }}
             />
 
-            {!useAges && <Slider
+            {!useAges && <>
+            <Slider
               label="Retirement Duration" sublabel="Years in retirement, excluding any delay"
               value={settingsYears} min={1} max={Math.max(50, settingsYears)} step={1}
               onChange={setSettingsYears} format={(v) => `${v} yrs`} disabled={solving}
-            />}
+            />
+
+            <Slider
+              label="Retirement start"
+              sublabel="Start now or let the portfolio grow for longer first."
+              value={retirementDelay}
+              min={0}
+              max={Math.max(10, settingsDelay)}
+              step={1}
+              onChange={setSettingsDelay}
+              disabled={solving}
+              format={(v) => v === 0 ? 'Immediately' : `Wait ${v} ${v === 1 ? 'year' : 'years'}`}
+            />
+            </>}
 
             <details
               className="panel-section"
@@ -431,22 +445,6 @@ function RetirementSimulator() {
                     </div>
                   </div>
                 </label>
-                <div className="retirement-start" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
-                  <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Slider
-                      label="Retirement start"
-                      sublabel={useAges ? "Linked to Retirement Age above; your plan-through age stays fixed." : "Start now or let the portfolio grow for longer first."}
-                      value={retirementDelay}
-                      min={0}
-                      max={useAges ? planThroughAge - currentAge - 1 : Math.max(10, settingsDelay)}
-                      step={1}
-                      onChange={(delay) => useAges ? setRetirementAge(currentAge + delay) : setSettingsDelay(delay)}
-                      disabled={solving}
-                      format={(v) => v === 0 ? 'Immediately' : `Wait ${v} ${v === 1 ? 'year' : 'years'}`}
-                    />
-                  </div>
-                </div>
                 <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
                   <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
                   <div style={{ flex: 1 }}>

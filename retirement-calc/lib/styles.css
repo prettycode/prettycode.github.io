@@ -398,8 +398,6 @@ input[type="range"]::-moz-range-thumb {
 /* ─── Advanced (collapsible) ─── */
 .advanced-body { padding-bottom: 4px; }
 
-.retirement-start .slider-row { margin-bottom: 0; }
-
 .toggle-row {
   display: flex;
   align-items: flex-start;

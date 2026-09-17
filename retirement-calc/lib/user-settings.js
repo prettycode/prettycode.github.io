@@ -17,13 +17,13 @@ const SETTINGS_DEFAULTS = (() => {
     withdrawal: 150_000,
     withdrawalFrequency: "monthly",
     upfrontYears: 2,
-    planningMode: "ages",
+    planningMode: "settings",
     settingsYears: 30,
     settingsDelay: 5,
     currentAge: 43,
     retirementAge: 50,
     planThroughAge: 90,
-    targetSuccessRate: 95,
+    targetSuccessRate: 90,
     inflationAdjustBucket: false,
     bucketEarnsTBills: false,
     cagr: initialMarket.cagr,
@@ -40,53 +40,53 @@ const UserSettings = (() => {
   // re-hit JSON.parse and don't force layout via the storage API.
   let cache = null;
 
+  const hasOwn = (object, key) =>
+    Object.prototype.hasOwnProperty.call(object, key);
+
+  const isKnownSetting = (key) => hasOwn(SETTINGS_DEFAULTS, key);
+
+  const isCompatible = (data) =>
+    data !== null &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    Object.entries(data).every(([key, value]) =>
+      isKnownSetting(key) && typeof value === typeof SETTINGS_DEFAULTS[key]
+    );
+
+  const removeSavedSettings = () => {
+    try {
+      localStorage.removeItem(USER_SETTINGS_STORAGE_KEY);
+    } catch {
+      // Storage may be unavailable; the in-memory cache remains authoritative.
+    }
+  };
+
   const readAll = () => {
     if (cache !== null) return cache;
     try {
       const raw = localStorage.getItem(USER_SETTINGS_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
-      cache = parsed && typeof parsed === "object" ? parsed : {};
+      if (isCompatible(parsed)) {
+        cache = parsed;
+      } else {
+        cache = {};
+        removeSavedSettings();
+      }
     } catch {
       cache = {};
+      removeSavedSettings();
     }
-    // Convert older duration-based plans once, preserving their timeline.
-    if (
-      cache.currentAge === undefined &&
-      (cache.years !== undefined || cache.retirementDelay !== undefined)
-    ) {
-      const delay = Number.isInteger(cache.retirementDelay)
-        ? Math.max(0, Math.min(10, cache.retirementDelay))
-        : 6;
-      const duration = Number.isInteger(cache.years)
-        ? Math.max(5, Math.min(50, cache.years))
-        : 45;
-      cache.currentAge = 43;
-      cache.retirementAge = 43 + delay;
-      cache.planThroughAge = 43 + delay + duration;
-    }
-    if (cache.settingsYears === undefined) {
-      cache.settingsYears =
-        cache.years ??
-        (cache.planThroughAge ?? 94) - (cache.retirementAge ?? 49);
-    }
-    if (cache.settingsDelay === undefined) {
-      cache.settingsDelay =
-        cache.retirementDelay ??
-        (cache.retirementAge ?? 49) - (cache.currentAge ?? 43);
-    }
-    delete cache.years;
-    delete cache.retirementDelay;
     return cache;
   };
 
   const writeAll = (data) => {
     cache = data;
+    if (Object.keys(data).length === 0) {
+      removeSavedSettings();
+      return;
+    }
     try {
-      if (Object.keys(data).length === 0) {
-        localStorage.removeItem(USER_SETTINGS_STORAGE_KEY);
-      } else {
-        localStorage.setItem(USER_SETTINGS_STORAGE_KEY, JSON.stringify(data));
-      }
+      localStorage.setItem(USER_SETTINGS_STORAGE_KEY, JSON.stringify(data));
     } catch {
       // Storage may be disabled (private mode, quota); the in-memory cache
       // still holds the value so the rest of the session stays consistent.
@@ -95,20 +95,18 @@ const UserSettings = (() => {
 
   return {
     defaults: SETTINGS_DEFAULTS,
-    has(key) {
-      return Object.prototype.hasOwnProperty.call(SETTINGS_DEFAULTS, key);
-    },
+    has: isKnownSetting,
     get(key) {
       const stored = readAll();
-      return Object.prototype.hasOwnProperty.call(stored, key)
+      return hasOwn(stored, key)
         ? stored[key]
         : SETTINGS_DEFAULTS[key];
     },
     set(key, value) {
-      if (!Object.prototype.hasOwnProperty.call(SETTINGS_DEFAULTS, key)) return;
+      if (!isKnownSetting(key)) return;
       const stored = readAll();
       const isDefault = value === SETTINGS_DEFAULTS[key];
-      const present = Object.prototype.hasOwnProperty.call(stored, key);
+      const present = hasOwn(stored, key);
       if (isDefault) {
         if (!present) return;
         const next = { ...stored };

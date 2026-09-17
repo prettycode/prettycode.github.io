@@ -10,18 +10,35 @@ function settings(saved = {}) {
   return { api: context.settings, storage };
 }
 
-test('legacy durations migrate without changing the saved timeline', () => {
-  const { api } = settings({ years: 40, retirementDelay: 7 });
-  assert.equal(api.get('currentAge'), 43);
-  assert.equal(api.get('retirementAge'), 50);
-  assert.equal(api.get('planThroughAge'), 90);
-  api.set('targetSuccessRate', 90);
-  assert.equal(api.get('targetSuccessRate'), 90);
+test('incompatible saved settings are erased and ignored', () => {
+  for (const saved of [{ years: 40, retirementDelay: 7, balance: 123 }, { retirementDelay: 0 }, { balance: '123' }, [], null]) {
+    const { api, storage } = settings(saved);
+    assert.equal(api.get('balance'), api.defaults.balance);
+    assert.equal(api.get('settingsYears'), api.defaults.settingsYears);
+    assert.equal(api.get('settingsDelay'), api.defaults.settingsDelay);
+    assert.equal(storage.value, null);
+  }
 });
 
-test('partial legacy settings retain the previous implicit defaults', () => {
-  assert.equal(settings({ years: 30 }).api.get('retirementAge'), 49);
-  assert.equal(settings({ retirementDelay: 0 }).api.get('planThroughAge'), 88);
+test('malformed saved JSON is erased and ignored', () => {
+  const { api, storage } = settings();
+  storage.value = '{broken';
+  assert.equal(api.get('planningMode'), 'settings');
+  assert.equal(storage.value, null);
+});
+
+test('age settings do not supply missing duration settings', () => {
+  const { api } = settings({ retirementAge: 55 });
+  assert.equal(api.get('retirementAge'), 55);
+  assert.equal(api.get('settingsYears'), api.defaults.settingsYears);
+  assert.equal(api.get('settingsDelay'), api.defaults.settingsDelay);
+});
+
+test('fresh settings use duration defaults without inheriting an age timeline', () => {
+  const { api } = settings();
+  assert.equal(api.get('planningMode'), 'settings');
+  assert.equal(api.get('settingsYears'), api.defaults.settingsYears);
+  assert.equal(api.get('settingsDelay'), api.defaults.settingsDelay);
 });
 
 test('age plan and target survive persistence and reset', () => {
@@ -61,8 +78,8 @@ test(`${planningMode} mode uses its own simulation timeline`, () => {
 
 test('settings mode and its timeline persist independently of ages', () => {
   const { api, storage } = settings({ currentAge: 43, retirementAge: 50, planThroughAge: 90 });
-  assert.equal(api.get('settingsYears'), 40);
-  assert.equal(api.get('settingsDelay'), 7);
+  assert.equal(api.get('settingsYears'), api.defaults.settingsYears);
+  assert.equal(api.get('settingsDelay'), api.defaults.settingsDelay);
   api.set('planningMode', 'settings');
   api.set('settingsYears', 30);
   api.set('settingsDelay', 2);
