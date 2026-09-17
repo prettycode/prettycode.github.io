@@ -552,7 +552,7 @@ function RetirementSimulator() {
                 />
 
                 <Slider
-                  label="Retirement start"
+                  label="Retirement Start"
                   sublabel="Start now or let the portfolio grow for longer first."
                   value={retirementDelay}
                   min={0}
@@ -608,6 +608,54 @@ function RetirementSimulator() {
                 onChange={setInflation}
                 format={fmtPct}
               />
+
+              <div style={{ marginBottom: 22 }}>
+                <div className="toggle-label">Historical Presets</div>
+                <div className="toggle-sub" style={{ marginBottom: 8 }}>
+                  Apply CAGR, volatility, and inflation from historical data.{" "}
+                  <button
+                    type="button"
+                    className="presets-source-inline"
+                    aria-haspopup="dialog"
+                    aria-label="View historical data"
+                    onClick={() => setHistoricalDataOpen(true)}
+                  >
+                    ↗
+                  </button>
+                </div>
+                <div className="freq-toggle" style={{ marginBottom: 6 }}>
+                  <button
+                    type="button"
+                    className={`freq-btn${activePreset?.region === "us" ? " active" : ""}`}
+                    onClick={() => selectRegion("us")}
+                  >
+                    U.S.
+                  </button>
+                  <button
+                    type="button"
+                    className={`freq-btn${activePreset?.region === "world" ? " active" : ""}`}
+                    onClick={() => selectRegion("world")}
+                  >
+                    World
+                  </button>
+                </div>
+                <div className="freq-toggle">
+                  <button
+                    type="button"
+                    className={`freq-btn${activePreset?.scenario === "historical" ? " active" : ""}`}
+                    onClick={() => selectScenario("historical")}
+                  >
+                    Historical
+                  </button>
+                  <button
+                    type="button"
+                    className={`freq-btn${activePreset?.scenario === "worst" ? " active" : ""}`}
+                    onClick={() => selectScenario("worst")}
+                  >
+                    Worst 30-Yr
+                  </button>
+                </div>
+              </div>
             </details>
 
             <details
@@ -694,77 +742,6 @@ function RetirementSimulator() {
                     </div>
                   </div>
                 </label>
-                <div
-                  className="adv-freq"
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 9,
-                    marginTop: 14,
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 12,
-                      flexShrink: 0,
-                      textAlign: "center",
-                      lineHeight: "14px",
-                      color: "var(--accent)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    •
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div className="toggle-label">Market Assumptions</div>
-                    <div className="toggle-sub" style={{ marginBottom: 8 }}>
-                      Apply CAGR, volatility, and inflation from historical
-                      data.{" "}
-                      <button
-                        type="button"
-                        className="presets-source-inline"
-                        aria-haspopup="dialog"
-                        aria-label="View historical data"
-                        onClick={() => setHistoricalDataOpen(true)}
-                      >
-                        ↗
-                      </button>
-                    </div>
-                    <div className="freq-toggle" style={{ marginBottom: 6 }}>
-                      <button
-                        type="button"
-                        className={`freq-btn${activePreset?.region === "us" ? " active" : ""}`}
-                        onClick={() => selectRegion("us")}
-                      >
-                        U.S.
-                      </button>
-                      <button
-                        type="button"
-                        className={`freq-btn${activePreset?.region === "world" ? " active" : ""}`}
-                        onClick={() => selectRegion("world")}
-                      >
-                        World
-                      </button>
-                    </div>
-                    <div className="freq-toggle">
-                      <button
-                        type="button"
-                        className={`freq-btn${activePreset?.scenario === "historical" ? " active" : ""}`}
-                        onClick={() => selectScenario("historical")}
-                      >
-                        Historical
-                      </button>
-                      <button
-                        type="button"
-                        className={`freq-btn${activePreset?.scenario === "worst" ? " active" : ""}`}
-                        onClick={() => selectScenario("worst")}
-                      >
-                        Worst 30-Yr
-                      </button>
-                    </div>
-                  </div>
-                </div>
                 <div className="settings-mgmt">
                   <div className="settings-mgmt-heading">Saved Settings</div>
                   <div className="settings-mgmt-sub">
@@ -1064,7 +1041,7 @@ function HistoricalDataModal({ onClose }) {
         autoFocus
         aria-label="Close historical data"
       >
-        Close ?
+        Close
       </button>
       <h2 id="historical-data-title">
         Historical Stock Market &amp; Inflation Data
