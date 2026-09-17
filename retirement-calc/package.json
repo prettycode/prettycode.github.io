@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "description": "Retirement simulator",
   "scripts": {
-    "start": "npx serve ."
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "npm run lint:fix && prettier --write .",
+    "prestart": "npm run format",
+    "start": "npx serve .",
+    "test": "node --test tests/*.test.cjs"
   },
   "keywords": [
     "retirement",
@@ -15,5 +20,9 @@
     "monte-carlo"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "10.10.0",
+    "prettier": "3.9.7"
+  }
 }

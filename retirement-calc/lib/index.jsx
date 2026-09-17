@@ -6,35 +6,47 @@ const { useState, useEffect } = React;
 // here.
 function usePersistedState(key) {
   const [value, setValue] = useState(() => UserSettings.get(key));
-  useEffect(() => { UserSettings.set(key, value); }, [key, value]);
+  useEffect(() => {
+    UserSettings.set(key, value);
+  }, [key, value]);
   return [value, setValue];
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 function RetirementSimulator() {
   const [historicalDataOpen, setHistoricalDataOpen] = useState(false);
-  const [balance, setBalance] = usePersistedState('balance');
-  const [withdrawal, setWithdrawal] = usePersistedState('withdrawal');
-  const [withdrawalFrequency, setWithdrawalFrequency] = usePersistedState('withdrawalFrequency');
-  const [upfrontYears, setUpfrontYears] = usePersistedState('upfrontYears');
-  const [inflationAdjustBucket, setInflationAdjustBucket] = usePersistedState('inflationAdjustBucket');
-  const [bucketEarnsTBills, setBucketEarnsTBills] = usePersistedState('bucketEarnsTBills');
-  const [cagr, setCagr] = usePersistedState('cagr');
-  const [volatility, setVolatility] = usePersistedState('volatility');
-  const [inflation, setInflation] = usePersistedState('inflation');
-  const [currentAge, setCurrentAge] = usePersistedState('currentAge');
-  const [retirementAge, setRetirementAge] = usePersistedState('retirementAge');
-  const [planThroughAge, setPlanThroughAge] = usePersistedState('planThroughAge');
-  const [planningMode, setPlanningMode] = usePersistedState('planningMode');
-  const [settingsYears, setSettingsYears] = usePersistedState('settingsYears');
-  const [settingsDelay, setSettingsDelay] = usePersistedState('settingsDelay');
-  const useAges = planningMode === 'ages';
+  const [balance, setBalance] = usePersistedState("balance");
+  const [withdrawal, setWithdrawal] = usePersistedState("withdrawal");
+  const [withdrawalFrequency, setWithdrawalFrequency] = usePersistedState(
+    "withdrawalFrequency",
+  );
+  const [upfrontYears, setUpfrontYears] = usePersistedState("upfrontYears");
+  const [inflationAdjustBucket, setInflationAdjustBucket] = usePersistedState(
+    "inflationAdjustBucket",
+  );
+  const [bucketEarnsTBills, setBucketEarnsTBills] =
+    usePersistedState("bucketEarnsTBills");
+  const [cagr, setCagr] = usePersistedState("cagr");
+  const [volatility, setVolatility] = usePersistedState("volatility");
+  const [inflation, setInflation] = usePersistedState("inflation");
+  const [currentAge, setCurrentAge] = usePersistedState("currentAge");
+  const [retirementAge, setRetirementAge] = usePersistedState("retirementAge");
+  const [planThroughAge, setPlanThroughAge] =
+    usePersistedState("planThroughAge");
+  const [planningMode, setPlanningMode] = usePersistedState("planningMode");
+  const [settingsYears, setSettingsYears] = usePersistedState("settingsYears");
+  const [settingsDelay, setSettingsDelay] = usePersistedState("settingsDelay");
+  const useAges = planningMode === "ages";
   const years = useAges ? planThroughAge - retirementAge : settingsYears;
   const retirementDelay = useAges ? retirementAge - currentAge : settingsDelay;
-  const retirementWithdrawal = withdrawal * Math.pow(1 + inflation, retirementDelay);
-  const [marketAssumptionsOpen, setMarketAssumptionsOpen] = usePersistedState('marketAssumptionsOpen');
-  const [advancedOpen, setAdvancedOpen] = usePersistedState('advancedOpen');
-  const [showCalendarYears, setShowCalendarYears] = usePersistedState('showCalendarYears');
+  const retirementWithdrawal =
+    withdrawal * Math.pow(1 + inflation, retirementDelay);
+  const [marketAssumptionsOpen, setMarketAssumptionsOpen] = usePersistedState(
+    "marketAssumptionsOpen",
+  );
+  const [advancedOpen, setAdvancedOpen] = usePersistedState("advancedOpen");
+  const [showCalendarYears, setShowCalendarYears] =
+    usePersistedState("showCalendarYears");
 
   // Reverse-lookup (cagr, volatility, inflation) → preset cell. Used both
   // for the active-toggle highlight and for seeding lastRegion/lastScenario
@@ -56,13 +68,23 @@ function RetirementSimulator() {
   // the current slider values, so manual slider drags clear both highlights.
   // Seeded from whatever preset the persisted market values match (if any) so
   // the orthogonal axis composes naturally on the next click after a reload.
-  const INITIAL_REGION = 'world';
-  const INITIAL_SCENARIO = 'historical';
-  const [lastRegion, setLastRegion] = useState(() =>
-    matchPreset(UserSettings.get('cagr'), UserSettings.get('volatility'), UserSettings.get('inflation'))?.region ?? INITIAL_REGION
+  const INITIAL_REGION = "world";
+  const INITIAL_SCENARIO = "historical";
+  const [lastRegion, setLastRegion] = useState(
+    () =>
+      matchPreset(
+        UserSettings.get("cagr"),
+        UserSettings.get("volatility"),
+        UserSettings.get("inflation"),
+      )?.region ?? INITIAL_REGION,
   );
-  const [lastScenario, setLastScenario] = useState(() =>
-    matchPreset(UserSettings.get('cagr'), UserSettings.get('volatility'), UserSettings.get('inflation'))?.scenario ?? INITIAL_SCENARIO
+  const [lastScenario, setLastScenario] = useState(
+    () =>
+      matchPreset(
+        UserSettings.get("cagr"),
+        UserSettings.get("volatility"),
+        UserSettings.get("inflation"),
+      )?.scenario ?? INITIAL_SCENARIO,
   );
 
   const activePreset = matchPreset(cagr, volatility, inflation);
@@ -84,45 +106,114 @@ function RetirementSimulator() {
     applyMarketPreset(lastRegion, s);
   };
 
+  const solverRequest = React.useRef(null);
+  const [simulationError, setSimulationError] = useState(null);
+  const [solverError, setSolverError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [sim, setSim] = useState(null);
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(true);
   const [solving, setSolving] = useState(false);
   const [solveProgress, setSolveProgress] = useState(0);
-  const [targetSuccessRate, setTargetSuccessRate] = usePersistedState('targetSuccessRate');
+  const [targetSuccessRate, setTargetSuccessRate] =
+    usePersistedState("targetSuccessRate");
 
   // The bucket-* flags are no-ops when upfrontYears === 1 (no lump sum is
   // taken). Depending on the *effective* values here keeps a checkbox toggle
   // from triggering a fresh Monte Carlo run with new random samples, which
   // would otherwise jiggle the success rate as pure simulation noise.
-  const effectiveInflationAdjustBucket = inflationAdjustBucket && upfrontYears > 1;
+  const effectiveInflationAdjustBucket =
+    inflationAdjustBucket && upfrontYears > 1;
   const effectiveBucketEarnsTBills = bucketEarnsTBills && upfrontYears > 1;
 
   useEffect(() => {
     setRunning(true);
     setProgress(0);
-    let worker = null;
+    setSimulationError(null);
+    setSolverError(null);
+    let active = true;
+    let request;
+    const inputs = {
+      balance,
+      withdrawal,
+      cagr,
+      volatility,
+      inflation,
+      years,
+      retirementDelay,
+      upfrontYears,
+      inflationAdjustBucket,
+      bucketEarnsTBills,
+      withdrawalFrequency,
+      currentAge,
+      retirementAge,
+      planThroughAge,
+      planningMode,
+    };
     const t = setTimeout(() => {
-      worker = new Worker(MONTE_CARLO_WORKER_URL);
-      worker.onmessage = (e) => {
-        if (e.data.type === 'progress') {
-          setProgress(e.data.pct);
-        } else if (e.data.type === 'done') {
-          setSim({ ...e.data.result, currentAge });
+      request = startSimulation(
+        {
+          balance,
+          withdrawal,
+          returnRate: cagrToArithmetic(cagr, volatility),
+          volatility,
+          inflation,
+          years,
+          retirementDelay,
+          runs: SIM_RUNS,
+          upfrontYears,
+          inflationAdjustBucket: effectiveInflationAdjustBucket,
+          bucketEarnsTBills: effectiveBucketEarnsTBills,
+          tBillRealPremium: T_BILL_REAL_PREMIUM,
+          monthly: withdrawalFrequency === "monthly",
+        },
+        (pct) => {
+          if (active) {
+            setProgress(pct);
+          }
+        },
+      );
+      request.promise
+        .then((result) => {
+          if (!active) {
+            return;
+          }
+          setSim({ ...result, currentAge, inputs });
           setRunning(false);
           setProgress(1);
-        }
-      };
-      worker.postMessage({
-        type: 'run',
-        params: { balance, withdrawal, returnRate: cagrToArithmetic(cagr, volatility), volatility, inflation, years, retirementDelay, runs: SIM_RUNS, upfrontYears, inflationAdjustBucket: effectiveInflationAdjustBucket, bucketEarnsTBills: effectiveBucketEarnsTBills, tBillRealPremium: T_BILL_REAL_PREMIUM, monthly: withdrawalFrequency === 'monthly' },
-      });
+        })
+        .catch((error) => {
+          if (!active || error.name === "AbortError") {
+            return;
+          }
+          setSimulationError(
+            "The simulation could not finish. Please try again.",
+          );
+          setRunning(false);
+        });
     }, 150);
     return () => {
       clearTimeout(t);
-      if (worker) worker.terminate();
+      active = false;
+      request?.cancel();
+      solverRequest.current?.cancel();
     };
-  }, [balance, withdrawal, cagr, volatility, inflation, years, retirementDelay, upfrontYears, effectiveInflationAdjustBucket, effectiveBucketEarnsTBills, withdrawalFrequency, currentAge]);
+  }, [
+    balance,
+    withdrawal,
+    cagr,
+    volatility,
+    inflation,
+    years,
+    retirementDelay,
+    upfrontYears,
+    effectiveInflationAdjustBucket,
+    effectiveBucketEarnsTBills,
+    withdrawalFrequency,
+    currentAge,
+    planningMode,
+    retryCount,
+  ]);
 
   // Binary-search the worker for the withdrawal that yields the chosen
   // target success rate. Success is monotonic in withdrawal (more spent →
@@ -132,7 +223,9 @@ function RetirementSimulator() {
   // speed; the final value is applied to the slider, which triggers the
   // normal full-resolution rerun.
   const solveForTarget = async () => {
-    if (solving || running) return;
+    if (solving || running) {
+      return;
+    }
     const TARGET = targetSuccessRate / 100;
     const SOLVE_RUNS = 100_000;
     const STEP = 1_000;
@@ -140,65 +233,79 @@ function RetirementSimulator() {
     const MAX_WD = 300_000;
     const MAX_ITER = 10;
 
+    setSolverError(null);
     setSolving(true);
     setSolveProgress(0);
 
     const baseParams = {
       retirementDelay,
-      balance, returnRate: cagrToArithmetic(cagr, volatility), volatility, inflation, years,
-      runs: SOLVE_RUNS, upfrontYears,
+      balance,
+      returnRate: cagrToArithmetic(cagr, volatility),
+      volatility,
+      inflation,
+      years,
+      runs: SOLVE_RUNS,
+      upfrontYears,
       inflationAdjustBucket: effectiveInflationAdjustBucket,
       bucketEarnsTBills: effectiveBucketEarnsTBills,
       tBillRealPremium: T_BILL_REAL_PREMIUM,
-      monthly: withdrawalFrequency === 'monthly',
+      monthly: withdrawalFrequency === "monthly",
     };
 
-    const probe = (wd) => new Promise((resolve) => {
-      const w = new Worker(MONTE_CARLO_WORKER_URL);
-      w.onmessage = (e) => {
-        if (e.data.type === 'done') {
-          w.terminate();
-          resolve(e.data.result.successRate);
-        }
-      };
-      w.postMessage({ type: 'run', params: { ...baseParams, withdrawal: wd } });
-    });
+    const probe = async (wd) => {
+      const request = startSimulation({ ...baseParams, withdrawal: wd });
+      solverRequest.current = request;
+      const result = await request.promise;
+      return result.successRate;
+    };
 
     const totalSteps = MAX_ITER + 2;
     let step = 0;
-    const tick = () => { step++; setSolveProgress(step / totalSteps); };
+    const tick = () => {
+      step++;
+      setSolveProgress(step / totalSteps);
+    };
 
-    const loRate = await probe(MIN_WD);
-    tick();
-    if (loRate < TARGET) {
-      setWithdrawal(MIN_WD);
-      setSolving(false);
-      setSolveProgress(0);
-      return;
-    }
-    const hiRate = await probe(MAX_WD);
-    tick();
-    if (hiRate >= TARGET) {
-      setWithdrawal(MAX_WD);
-      setSolving(false);
-      setSolveProgress(0);
-      return;
-    }
-
-    let lo = MIN_WD;
-    let hi = MAX_WD;
-    for (let i = 0; i < MAX_ITER; i++) {
-      const mid = Math.round((lo + hi) / 2 / STEP) * STEP;
-      if (mid <= lo || mid >= hi) break;
-      const rate = await probe(mid);
-      if (rate >= TARGET) lo = mid;
-      else hi = mid;
+    try {
+      const loRate = await probe(MIN_WD);
       tick();
-    }
+      if (loRate < TARGET) {
+        setWithdrawal(MIN_WD);
+        return;
+      }
+      const hiRate = await probe(MAX_WD);
+      tick();
+      if (hiRate >= TARGET) {
+        setWithdrawal(MAX_WD);
+        return;
+      }
 
-    setWithdrawal(lo);
-    setSolving(false);
-    setSolveProgress(0);
+      let lo = MIN_WD;
+      let hi = MAX_WD;
+      for (let i = 0; i < MAX_ITER; i++) {
+        const mid = Math.round((lo + hi) / 2 / STEP) * STEP;
+        if (mid <= lo || mid >= hi) {
+          break;
+        }
+        const rate = await probe(mid);
+        if (rate >= TARGET) {
+          lo = mid;
+        } else {
+          hi = mid;
+        }
+        tick();
+      }
+
+      setWithdrawal(lo);
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        setSolverError("The solver could not finish. Please try again.");
+      }
+    } finally {
+      solverRequest.current = null;
+      setSolving(false);
+      setSolveProgress(0);
+    }
   };
 
   // Render against the sim we have, not the input slider. A slider change
@@ -209,8 +316,18 @@ function RetirementSimulator() {
   const simRetirementDelay = sim ? sim.retirementDelay : retirementDelay;
   const simCurrentAge = sim ? sim.currentAge : currentAge;
 
+  const simInputs = sim
+    ? sim.inputs
+    : { inflation, balance, withdrawalFrequency, planningMode };
+  const simUseAges = simInputs.planningMode === "ages";
+
   // Derived stats
-  const successColor = sim && sim.successRate >= 0.9 ? "#3a7d44" : sim && sim.successRate >= 0.7 ? "#c89a3a" : "#a83232";
+  const successColor =
+    sim && sim.successRate >= 0.9
+      ? "#3a7d44"
+      : sim && sim.successRate >= 0.7
+        ? "#c89a3a"
+        : "#a83232";
 
   // ─── Canonical per-year dataset ─────────────────────────────────────────
   // Single source of truth for every UI element — stat-cells, chart lines,
@@ -222,23 +339,28 @@ function RetirementSimulator() {
   // "Year y" in its tooltip, so any "Year y" we display in a stat-cell
   // points at the same chart column the user is looking at.
   const yearData = (() => {
-    if (!sim) return null;
+    if (!sim) {
+      return null;
+    }
     const data = [null];
     for (let y = 1; y <= simYears; y++) {
       const startBalance = sim.percentiles[y - 1]; // entering year y's draw
-      const endBalance   = sim.percentiles[y];     // after year y's growth
-      const intended     = sim.percentiles[y].withdrawal;
+      const endBalance = sim.percentiles[y]; // after year y's growth
+      const intended = sim.percentiles[y].withdrawal;
       // Two ways the synthetic median path hits $0 in year y:
       //   (a) intended draw exceeds the prior median balance — capped;
       //   (b) post-withdrawal balance positive but growth shock takes the
       //       per-year median to $0 by year-end.
       const startDepleted = startBalance.p50 <= intended;
-      const endDepleted   = endBalance.p50 <= 0;
+      const endDepleted = endBalance.p50 <= 0;
       data.push({
         year: y,
-        startBalance, endBalance, intended,
+        startBalance,
+        endBalance,
+        intended,
         actual: startDepleted ? Math.max(0, startBalance.p50) : intended,
-        startDepleted, endDepleted,
+        startDepleted,
+        endDepleted,
         depleted: startDepleted || endDepleted,
       });
     }
@@ -248,12 +370,14 @@ function RetirementSimulator() {
   // First year the synthetic median path hits $0 — returns the matching
   // yearData record (or null) so callers stay coupled to the same row.
   const medianDepletion = yearData
-    ? yearData.slice(1).find(d => d.depleted) ?? null
+    ? (yearData.slice(1).find((d) => d.depleted) ?? null)
     : null;
 
   return (
     <div className="sim-root">
-      {historicalDataOpen && <HistoricalDataModal onClose={() => setHistoricalDataOpen(false)} />}
+      {historicalDataOpen && (
+        <HistoricalDataModal onClose={() => setHistoricalDataOpen(false)} />
+      )}
       <div className="sim-inner">
         {/* MASTHEAD */}
         <header className="masthead">
@@ -262,37 +386,96 @@ function RetirementSimulator() {
           </h1>
           <div className="masthead-meta">
             <div className="vol">VOL. I · MONTE CARLO EDITION</div>
-            <div>{SIM_RUNS.toLocaleString()} SIMULATIONS {useAges ? `| AGES ${currentAge}-${planThroughAge}` : `| ${years}-YEAR RETIREMENT`}</div>
+            <div>
+              {SIM_RUNS.toLocaleString()} SIMULATIONS{" "}
+              {useAges
+                ? `| AGES ${currentAge}-${planThroughAge}`
+                : `| ${years}-YEAR RETIREMENT`}
+            </div>
           </div>
         </header>
 
         <div className="layout">
           {/* SIDEBAR */}
           <aside className="sidebar">
-            <div className="panel-heading" style={{ marginBottom: 10 }}>Planning Mode</div>
-            <div className="freq-toggle" role="group" aria-label="Planning mode" style={{ marginBottom: 28 }}>
-              <button type="button" className={`freq-btn${!useAges ? ' active' : ''}`}
-                aria-pressed={!useAges} disabled={solving} onClick={() => setPlanningMode('settings')}>Duration</button>
-              <button type="button" className={`freq-btn${useAges ? ' active' : ''}`}
-                aria-pressed={useAges} disabled={solving} onClick={() => setPlanningMode('ages')}>Age</button>
+            <div className="panel-heading" style={{ marginBottom: 10 }}>
+              Planning Mode
             </div>
-            {useAges && <>
-            <div className="panel-heading">Your Retirement Plan</div>
-            <Slider label="Current Age" sublabel="Your age today" value={currentAge}
-              min={18} max={retirementAge} step={1} onChange={setCurrentAge}
-              format={(v) => `${v}`} editable disabled={solving} />
-            <Slider label="Retirement Age" sublabel="Withdrawals begin at this age" value={retirementAge}
-              min={currentAge} max={planThroughAge - 1} step={1} onChange={setRetirementAge}
-              format={(v) => `${v}`} editable disabled={solving} />
-            <Slider label="Plan Through Age" sublabel={`${retirementDelay} years until retirement; ${years} years in retirement`}
-              value={planThroughAge} min={retirementAge + 1} max={120} step={1}
-              onChange={setPlanThroughAge} format={(v) => `${v}`} editable disabled={solving} />
-            </>}
+            <div
+              className="freq-toggle"
+              role="group"
+              aria-label="Planning mode"
+              style={{ marginBottom: 28 }}
+            >
+              <button
+                type="button"
+                className={`freq-btn${!useAges ? " active" : ""}`}
+                aria-pressed={!useAges}
+                disabled={solving}
+                onClick={() => setPlanningMode("settings")}
+              >
+                Duration
+              </button>
+              <button
+                type="button"
+                className={`freq-btn${useAges ? " active" : ""}`}
+                aria-pressed={useAges}
+                disabled={solving}
+                onClick={() => setPlanningMode("ages")}
+              >
+                Age
+              </button>
+            </div>
+            {useAges && (
+              <>
+                <div className="panel-heading">Your Retirement Plan</div>
+                <Slider
+                  label="Current Age"
+                  sublabel="Your age today"
+                  value={currentAge}
+                  min={18}
+                  max={retirementAge}
+                  step={1}
+                  onChange={setCurrentAge}
+                  format={(v) => `${v}`}
+                  editable
+                  disabled={solving}
+                />
+                <Slider
+                  label="Retirement Age"
+                  sublabel="Withdrawals begin at this age"
+                  value={retirementAge}
+                  min={currentAge}
+                  max={planThroughAge - 1}
+                  step={1}
+                  onChange={setRetirementAge}
+                  format={(v) => `${v}`}
+                  editable
+                  disabled={solving}
+                />
+                <Slider
+                  label="Plan Through Age"
+                  sublabel={`${retirementDelay} years until retirement; ${years} years in retirement`}
+                  value={planThroughAge}
+                  min={retirementAge + 1}
+                  max={120}
+                  step={1}
+                  onChange={setPlanThroughAge}
+                  format={(v) => `${v}`}
+                  editable
+                  disabled={solving}
+                />
+              </>
+            )}
             <div className="panel-heading">Portfolio Settings</div>
 
             <Slider
               label="Starting Balance"
-              sublabel={retirementDelay > 0 ? "Portfolio value today" : "Portfolio value at retirement"}
+              sublabel={
+                retirementDelay > 0
+                  ? "Portfolio value today"
+                  : "Portfolio value at retirement"
+              }
               value={balance}
               min={100_000}
               max={10_000_000}
@@ -303,15 +486,19 @@ function RetirementSimulator() {
 
             <Slider
               label="Annual Withdrawal"
-              sublabel={retirementDelay > 0
-                ? `Today's dollars; starts at ${fmtMoney(retirementWithdrawal)} at retirement, then increases with inflation`
-                : "Today's dollars; increased by rate of inflation each year"}
+              sublabel={
+                retirementDelay > 0
+                  ? `Today's dollars; starts at ${fmtMoney(retirementWithdrawal)} at retirement, then increases with inflation`
+                  : "Today's dollars; increased by rate of inflation each year"
+              }
               value={withdrawal}
               min={10_000}
               max={300_000}
               step={1_000}
               onChange={setWithdrawal}
-              format={(v) => `${fmtMoney(v)} (${(v / balance * 100).toFixed(1)}%)`}
+              format={(v) =>
+                `${fmtMoney(v)} (${((v / balance) * 100).toFixed(1)}%)`
+              }
             />
 
             <Slider
@@ -324,31 +511,46 @@ function RetirementSimulator() {
               onChange={setUpfrontYears}
               format={(v) => {
                 const wGrow = inflationAdjustBucket ? inflation : 0;
-                const disc = bucketEarnsTBills && v > 1 ? inflation + T_BILL_REAL_PREMIUM : 0;
+                const disc =
+                  bucketEarnsTBills && v > 1
+                    ? inflation + T_BILL_REAL_PREMIUM
+                    : 0;
                 const bucket = bucketSize(retirementWithdrawal, v, wGrow, disc);
                 return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)})`;
               }}
             />
 
-            {!useAges && <>
-            <Slider
-              label="Retirement Duration" sublabel="Years in retirement, excluding any delay"
-              value={settingsYears} min={1} max={Math.max(50, settingsYears)} step={1}
-              onChange={setSettingsYears} format={(v) => `${v} yrs`} disabled={solving}
-            />
+            {!useAges && (
+              <>
+                <Slider
+                  label="Retirement Duration"
+                  sublabel="Years in retirement, excluding any delay"
+                  value={settingsYears}
+                  min={1}
+                  max={Math.max(50, settingsYears)}
+                  step={1}
+                  onChange={setSettingsYears}
+                  format={(v) => `${v} yrs`}
+                  disabled={solving}
+                />
 
-            <Slider
-              label="Retirement start"
-              sublabel="Start now or let the portfolio grow for longer first."
-              value={retirementDelay}
-              min={0}
-              max={Math.max(10, settingsDelay)}
-              step={1}
-              onChange={setSettingsDelay}
-              disabled={solving}
-              format={(v) => v === 0 ? 'Immediately' : `Wait ${v} ${v === 1 ? 'year' : 'years'}`}
-            />
-            </>}
+                <Slider
+                  label="Retirement start"
+                  sublabel="Start now or let the portfolio grow for longer first."
+                  value={retirementDelay}
+                  min={0}
+                  max={Math.max(10, settingsDelay)}
+                  step={1}
+                  onChange={setSettingsDelay}
+                  disabled={solving}
+                  format={(v) =>
+                    v === 0
+                      ? "Immediately"
+                      : `Wait ${v} ${v === 1 ? "year" : "years"}`
+                  }
+                />
+              </>
+            )}
 
             <details
               className="panel-section"
@@ -373,7 +575,7 @@ function RetirementSimulator() {
                 sublabel="Portfolio's Standard deviation"
                 value={volatility}
                 min={0.02}
-                max={0.30}
+                max={0.3}
                 step={0.001}
                 onChange={setVolatility}
                 format={fmtPct}
@@ -398,23 +600,45 @@ function RetirementSimulator() {
             >
               <summary className="panel-heading">Advanced</summary>
               <div className="advanced-body">
-                <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 14 }}>
-                  <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
+                <div
+                  className="adv-freq"
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 9,
+                    marginBottom: 14,
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 12,
+                      flexShrink: 0,
+                      textAlign: "center",
+                      lineHeight: "14px",
+                      color: "var(--accent)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    •
+                  </span>
                   <div style={{ flex: 1 }}>
                     <div className="toggle-label">Withdrawal Frequency</div>
-                    <div className="toggle-sub" style={{ marginBottom: 8 }}>When draws are taken from the portfolio.</div>
+                    <div className="toggle-sub" style={{ marginBottom: 8 }}>
+                      When draws are taken from the portfolio.
+                    </div>
                     <div className="freq-toggle">
                       <button
                         type="button"
-                        className={`freq-btn${withdrawalFrequency === 'annual' ? ' active' : ''}`}
-                        onClick={() => setWithdrawalFrequency('annual')}
+                        className={`freq-btn${withdrawalFrequency === "annual" ? " active" : ""}`}
+                        onClick={() => setWithdrawalFrequency("annual")}
                       >
                         Annual
                       </button>
                       <button
                         type="button"
-                        className={`freq-btn${withdrawalFrequency === 'monthly' ? ' active' : ''}`}
-                        onClick={() => setWithdrawalFrequency('monthly')}
+                        className={`freq-btn${withdrawalFrequency === "monthly" ? " active" : ""}`}
+                        onClick={() => setWithdrawalFrequency("monthly")}
                       >
                         Monthly
                       </button>
@@ -428,8 +652,12 @@ function RetirementSimulator() {
                     onChange={(e) => setInflationAdjustBucket(e.target.checked)}
                   />
                   <div>
-                    <div className="toggle-label">Starting Cash Bucket is inflation-adjusted</div>
-                    <div className="toggle-sub">Increase cash bucket by inflation for years > 1.</div>
+                    <div className="toggle-label">
+                      Starting Cash Bucket is inflation-adjusted
+                    </div>
+                    <div className="toggle-sub">
+                      Increase cash bucket by inflation for years &gt; 1.
+                    </div>
                   </div>
                 </label>
                 <label className="toggle-row" style={{ marginTop: 12 }}>
@@ -439,18 +667,43 @@ function RetirementSimulator() {
                     onChange={(e) => setBucketEarnsTBills(e.target.checked)}
                   />
                   <div>
-                    <div className="toggle-label">Starting Cash Bucket earns T-Bills</div>
+                    <div className="toggle-label">
+                      Starting Cash Bucket earns T-Bills
+                    </div>
                     <div className="toggle-sub">
-                      Hold cash beyond 1 year in T-Bills earning {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation + 0.5% historical real return).
+                      Hold cash beyond 1 year in T-Bills earning{" "}
+                      {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation +
+                      0.5% historical real return).
                     </div>
                   </div>
                 </label>
-                <div className="adv-freq" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14 }}>
-                  <span aria-hidden="true" style={{ width: 12, flexShrink: 0, textAlign: 'center', lineHeight: '14px', color: 'var(--accent)', fontWeight: 700 }}>•</span>
+                <div
+                  className="adv-freq"
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 9,
+                    marginTop: 14,
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 12,
+                      flexShrink: 0,
+                      textAlign: "center",
+                      lineHeight: "14px",
+                      color: "var(--accent)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    •
+                  </span>
                   <div style={{ flex: 1 }}>
                     <div className="toggle-label">Market Assumptions</div>
                     <div className="toggle-sub" style={{ marginBottom: 8 }}>
-                      Apply CAGR, volatility, and inflation from historical data.{' '}
+                      Apply CAGR, volatility, and inflation from historical
+                      data.{" "}
                       <button
                         type="button"
                         className="presets-source-inline"
@@ -464,15 +717,15 @@ function RetirementSimulator() {
                     <div className="freq-toggle" style={{ marginBottom: 6 }}>
                       <button
                         type="button"
-                        className={`freq-btn${activePreset?.region === 'us' ? ' active' : ''}`}
-                        onClick={() => selectRegion('us')}
+                        className={`freq-btn${activePreset?.region === "us" ? " active" : ""}`}
+                        onClick={() => selectRegion("us")}
                       >
                         U.S.
                       </button>
                       <button
                         type="button"
-                        className={`freq-btn${activePreset?.region === 'world' ? ' active' : ''}`}
-                        onClick={() => selectRegion('world')}
+                        className={`freq-btn${activePreset?.region === "world" ? " active" : ""}`}
+                        onClick={() => selectRegion("world")}
                       >
                         World
                       </button>
@@ -480,15 +733,15 @@ function RetirementSimulator() {
                     <div className="freq-toggle">
                       <button
                         type="button"
-                        className={`freq-btn${activePreset?.scenario === 'historical' ? ' active' : ''}`}
-                        onClick={() => selectScenario('historical')}
+                        className={`freq-btn${activePreset?.scenario === "historical" ? " active" : ""}`}
+                        onClick={() => selectScenario("historical")}
                       >
                         Historical
                       </button>
                       <button
                         type="button"
-                        className={`freq-btn${activePreset?.scenario === 'worst' ? ' active' : ''}`}
-                        onClick={() => selectScenario('worst')}
+                        className={`freq-btn${activePreset?.scenario === "worst" ? " active" : ""}`}
+                        onClick={() => selectScenario("worst")}
                       >
                         Worst 30-Yr
                       </button>
@@ -498,13 +751,18 @@ function RetirementSimulator() {
                 <div className="settings-mgmt">
                   <div className="settings-mgmt-heading">Saved Settings</div>
                   <div className="settings-mgmt-sub">
-                    Sidebar values are remembered in your browser between visits.
+                    Sidebar values are remembered in your browser between
+                    visits.
                   </div>
                   <button
                     type="button"
                     className="clear-storage-btn"
                     onClick={() => {
-                      if (window.confirm('Reset all sidebar settings to defaults? This will reload the page.')) {
+                      if (
+                        window.confirm(
+                          "Reset all sidebar settings to defaults? This will reload the page.",
+                        )
+                      ) {
                         UserSettings.clear();
                         window.location.reload();
                       }
@@ -519,146 +777,227 @@ function RetirementSimulator() {
 
           {/* MAIN AREA */}
           <main className="main-area">
-            {!sim && (
-              <div className="initial-loading">
-                <div className="progress-track">
-                  <div className="progress-bar" style={{ width: `${progress * 100}%` }}></div>
-                </div>
-                <div className="initial-loading-label">Running {SIM_RUNS.toLocaleString()} simulations…</div>
+            {simulationError && (
+              <div role="alert">
+                <p>{simulationError}</p>
+                <button
+                  type="button"
+                  onClick={() => setRetryCount((count) => count + 1)}
+                >
+                  Retry simulation
+                </button>
               </div>
             )}
-            {sim && <>
-            {/* STATS */}
-            <div className="stats-row fade">
-              <div className="stat-cell">
-                <div className="stat-label">{useAges ? `Success through age ${simCurrentAge + simYears}` : "Strategy Success Rate"}</div>
-                <div className="stat-value success" style={{ color: successColor }}>
-                  {`${(sim.successRate * 100).toFixed(2)}%`}
+            {!sim && running && (
+              <div className="initial-loading">
+                <div className="progress-track">
+                  <div
+                    className="progress-bar"
+                    style={{ width: `${progress * 100}%` }}
+                  ></div>
+                </div>
+                <div className="initial-loading-label">
+                  Running {SIM_RUNS.toLocaleString()} simulations…
                 </div>
               </div>
-              <div className="stat-cell">
-                <div className="stat-label">{useAges ? `Balance at age ${simCurrentAge + simYears} (Median)` : "Ending Portfolio Balance (Median)"}</div>
-                <div className="stat-value">{fmtMoney(sim.medianEnding)}</div>
-                <div className="stat-sub">
-                  ≈ {fmtMoney(sim.medianEnding / Math.pow(1 + inflation, simYears))} today
+            )}
+            {sim && (
+              <>
+                {/* STATS */}
+                <div className="stats-row fade">
+                  <div className="stat-cell">
+                    <div className="stat-label">
+                      {simUseAges
+                        ? `Success through age ${simCurrentAge + simYears}`
+                        : "Strategy Success Rate"}
+                    </div>
+                    <div
+                      className="stat-value success"
+                      style={{ color: successColor }}
+                    >
+                      {`${(sim.successRate * 100).toFixed(2)}%`}
+                    </div>
+                  </div>
+                  <div className="stat-cell">
+                    <div className="stat-label">
+                      {simUseAges
+                        ? `Balance at age ${simCurrentAge + simYears} (Median)`
+                        : "Ending Portfolio Balance (Median)"}
+                    </div>
+                    <div className="stat-value">
+                      {fmtMoney(sim.medianEnding)}
+                    </div>
+                    <div className="stat-sub">
+                      ≈{" "}
+                      {fmtMoney(
+                        sim.medianEnding /
+                          Math.pow(1 + simInputs.inflation, simYears),
+                      )}{" "}
+                      today
+                    </div>
+                  </div>
+                  <div className="stat-cell">
+                    <div className="stat-label">
+                      Last Annual Withdrawal (Median)
+                    </div>
+                    <div className="stat-value">
+                      {fmtMoney((medianDepletion ?? yearData[simYears]).actual)}
+                    </div>
+                    <div className="stat-sub">
+                      ≈{" "}
+                      {fmtMoney(
+                        (medianDepletion ?? yearData[simYears]).actual /
+                          Math.pow(
+                            1 + simInputs.inflation,
+                            (medianDepletion ?? yearData[simYears]).year - 1,
+                          ),
+                      )}{" "}
+                      today
+                    </div>
+                  </div>
+                  <div className="stat-cell">
+                    <div className="stat-label">
+                      {simUseAges
+                        ? "Depletion Age (Median)"
+                        : "Depletion Year (Median)"}
+                    </div>
+                    <div className="stat-value">
+                      {medianDepletion
+                        ? simUseAges
+                          ? `Age ${simCurrentAge + medianDepletion.year - (medianDepletion.startDepleted ? 1 : 0)}`
+                          : medianDepletion.year <= simRetirementDelay
+                            ? `Before retirement (year ${medianDepletion.year})`
+                            : `Year ${medianDepletion.year - simRetirementDelay}`
+                        : "None"}
+                    </div>
+                  </div>
+                  <div className="stat-cell">
+                    <div className="stat-label">Total Drawn</div>
+                    <div className="stat-value">
+                      {fmtMoney(
+                        yearData.slice(1).reduce((sum, d) => sum + d.actual, 0),
+                      )}
+                    </div>
+                    <div className="stat-sub">
+                      ≈{" "}
+                      {fmtMoney(
+                        yearData
+                          .slice(1)
+                          .reduce(
+                            (sum, d) =>
+                              sum +
+                              d.actual /
+                                Math.pow(1 + simInputs.inflation, d.year - 1),
+                            0,
+                          ),
+                      )}{" "}
+                      today
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="stat-cell">
-                <div className="stat-label">Last Annual Withdrawal (Median)</div>
-                <div className="stat-value">
-                  {fmtMoney((medianDepletion ?? yearData[simYears]).actual)}
-                </div>
-                <div className="stat-sub">
-                  ≈ {fmtMoney((medianDepletion ?? yearData[simYears]).actual / Math.pow(1 + inflation, (medianDepletion ?? yearData[simYears]).year - 1))} today
-                </div>
-              </div>
-              <div className="stat-cell">
-                <div className="stat-label">{useAges ? "Depletion Age (Median)" : "Depletion Year (Median)"}</div>
-                <div className="stat-value">
-                  {medianDepletion
-                    ? useAges
-                      ? `Age ${simCurrentAge + medianDepletion.year - (medianDepletion.startDepleted ? 1 : 0)}`
-                      : medianDepletion.year <= simRetirementDelay
-                        ? `Before retirement (year ${medianDepletion.year})`
-                        : `Year ${medianDepletion.year - simRetirementDelay}`
-                    : "None"}
-                </div>
-              </div>
-              <div className="stat-cell">
-                <div className="stat-label">Total Drawn</div>
-                <div className="stat-value">
-                  {fmtMoney(yearData.slice(1).reduce((sum, d) => sum + d.actual, 0))}
-                </div>
-                <div className="stat-sub">
-                  ≈ {fmtMoney(yearData.slice(1).reduce((sum, d) => sum + d.actual / Math.pow(1 + inflation, d.year - 1), 0))} today
-                </div>
-              </div>
-            </div>
 
-            {/* SOLVER */}
-            <div className="fade">
-            <p id="solver-description" className="chart-subtitle">Find the annual withdrawal in today's dollars targeting a {targetSuccessRate}% chance of money lasting {useAges ? `from retirement at age ${retirementAge} through age ${planThroughAge}` : `for ${years} years in retirement`}.</p>
-            <div className="solver-row">
-              <div className="solver-label">{useAges ? `Target Success through Age ${planThroughAge}` : "Target Success Rate"}</div>
-              <div className="solver-slider">
-                <input
-                  type="range"
-                  aria-label="Target success rate"
-                  min={50}
-                  max={99}
-                  step={1}
-                  value={targetSuccessRate}
-                  onChange={(e) => setTargetSuccessRate(parseInt(e.target.value, 10))}
-                  style={{ "--pct": `${((targetSuccessRate - 50) / 49) * 100}%` }}
-                  disabled={solving}
+                {/* SOLVER */}
+                {solverError && <p role="alert">{solverError}</p>}
+                <div className="fade">
+                  <p id="solver-description" className="chart-subtitle">
+                    Find the annual withdrawal in today's dollars targeting a{" "}
+                    {targetSuccessRate}% chance of money lasting{" "}
+                    {useAges
+                      ? `from retirement at age ${retirementAge} through age ${planThroughAge}`
+                      : `for ${years} years in retirement`}
+                    .
+                  </p>
+                  <div className="solver-row">
+                    <div className="solver-label">
+                      {useAges
+                        ? `Target Success through Age ${planThroughAge}`
+                        : "Target Success Rate"}
+                    </div>
+                    <div className="solver-slider">
+                      <input
+                        type="range"
+                        aria-label="Target success rate"
+                        min={50}
+                        max={99}
+                        step={1}
+                        value={targetSuccessRate}
+                        onChange={(e) =>
+                          setTargetSuccessRate(parseInt(e.target.value, 10))
+                        }
+                        style={{
+                          "--pct": `${((targetSuccessRate - 50) / 49) * 100}%`,
+                        }}
+                        disabled={solving}
+                      />
+                    </div>
+                    <div className="solver-value">{targetSuccessRate}%</div>
+                    <button
+                      type="button"
+                      className="solve-btn"
+                      aria-describedby="solver-description"
+                      onClick={solveForTarget}
+                      disabled={solving || running}
+                    >
+                      <span className="solve-btn-ghost" aria-hidden="true">
+                        Solve for 99% Success
+                      </span>
+                      <span className="solve-btn-label">
+                        {solving
+                          ? `Solving · ${Math.round(solveProgress * 100)}%`
+                          : `Solve for ${targetSuccessRate}% Success`}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* CHART */}
+                <PortfolioChart
+                  yearData={yearData}
+                  retirementBalance={sim.percentiles[0]}
+                  running={running}
+                  progress={progress}
+                  balance={simInputs.balance}
+                  withdrawalFrequency={simInputs.withdrawalFrequency}
+                  medianDepletion={medianDepletion}
+                  simYears={simYears}
+                  showCalendarYears={showCalendarYears}
+                  onShowCalendarYearsChange={setShowCalendarYears}
+                  retirementDelay={simRetirementDelay}
+                  currentAge={simUseAges ? simCurrentAge : undefined}
                 />
-              </div>
-              <div className="solver-value">{targetSuccessRate}%</div>
-              <button
-                type="button"
-                className="solve-btn"
-                aria-describedby="solver-description"
-                onClick={solveForTarget}
-                disabled={solving || running}
-              >
-                <span className="solve-btn-ghost" aria-hidden="true">
-                  Solve for 99% Success
-                </span>
-                <span className="solve-btn-label">
-                  {solving
-                    ? `Solving · ${Math.round(solveProgress * 100)}%`
-                    : `Solve for ${targetSuccessRate}% Success`}
-                </span>
-              </button>
-            </div>
-            </div>
 
-            {/* CHART */}
-            <PortfolioChart
-              yearData={yearData}
-              retirementBalance={sim.percentiles[0]}
-              running={running}
-              progress={progress}
-              balance={balance}
-              withdrawalFrequency={withdrawalFrequency}
-              medianDepletion={medianDepletion}
-              simYears={simYears}
-              showCalendarYears={showCalendarYears}
-              onShowCalendarYearsChange={setShowCalendarYears}
-              retirementDelay={simRetirementDelay}
-              currentAge={useAges ? simCurrentAge : undefined}
-            />
+                <OutcomeOdds
+                  yearData={yearData}
+                  simYears={simYears}
+                  successRate={sim.successRate}
+                  totalRuns={sim.runs}
+                  retirementDelay={simRetirementDelay}
+                  currentAge={simUseAges ? simCurrentAge : undefined}
+                  inflation={simInputs.inflation}
+                />
 
-            <OutcomeOdds
-              yearData={yearData}
-              simYears={simYears}
-              successRate={sim.successRate}
-              totalRuns={sim.runs}
-              retirementDelay={simRetirementDelay}
-              currentAge={useAges ? simCurrentAge : undefined}
-              inflation={inflation}
-            />
+                <PlanSchedule
+                  progress={progress}
+                  yearData={yearData}
+                  medianDepletion={medianDepletion}
+                  retirementDelay={simRetirementDelay}
+                  currentAge={simUseAges ? simCurrentAge : undefined}
+                  running={running}
+                />
 
-            <PlanSchedule
-              progress={progress}
-              yearData={yearData}
-              medianDepletion={medianDepletion}
-              retirementDelay={simRetirementDelay}
-              currentAge={useAges ? simCurrentAge : undefined}
-              running={running}
-            />
-
-            <div className="footer-note">
-              <p>
-                {withdrawalFrequency === 'monthly'
-                  ? "Returns are sampled monthly, with the annual mean and volatility rescaled so twelve compounded months match the annual factor's mean and variance."
-                  : "Returns are sampled annually from a normal distribution; the input CAGR is converted to the per-year arithmetic mean by adding back the variance drag (≈ σ²/2), so the long-run geometric mean of paths tracks the chosen CAGR."}
-              </p>
-              <p>
-                Past performance does not guarantee future results; this model is illustrative, not advisory.
-              </p>
-            </div>
-            </>}
+                <div className="footer-note">
+                  <p>
+                    {simInputs.withdrawalFrequency === "monthly"
+                      ? "Returns are sampled monthly, with the annual mean and volatility rescaled so twelve compounded months match the annual factor's mean and variance."
+                      : "Returns are sampled annually from a normal distribution; the input CAGR is converted to the per-year arithmetic mean by adding back the variance drag (≈ σ²/2), so the long-run geometric mean of paths tracks the chosen CAGR."}
+                  </p>
+                  <p>
+                    Past performance does not guarantee future results; this
+                    model is illustrative, not advisory.
+                  </p>
+                </div>
+              </>
+            )}
           </main>
         </div>
       </div>
@@ -673,7 +1012,7 @@ function HistoricalDataModal({ onClose }) {
     const dialog = dialogRef.current;
     const previousOverflow = document.body.style.overflow;
     dialog.showModal();
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
       dialog.close();
       document.body.style.overflow = previousOverflow;
@@ -687,77 +1026,115 @@ function HistoricalDataModal({ onClose }) {
       aria-labelledby="historical-data-title"
       onClose={onClose}
       onClick={(event) => {
-        if (event.target !== event.currentTarget) return;
+        if (event.target !== event.currentTarget) {
+          return;
+        }
         const bounds = event.currentTarget.getBoundingClientRect();
-        if (event.clientX < bounds.left || event.clientX > bounds.right ||
-            event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
+        if (
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom
+        ) {
+          onClose();
+        }
       }}
     >
-      <button type="button" className="historical-modal-close" onClick={onClose} autoFocus aria-label="Close historical data">Close ?</button>
-      <h2 id="historical-data-title">Historical Stock Market &amp; Inflation Data</h2>
-    <p className="subtitle">Nominal total returns (including dividends). All figures annualized.</p>
+      <button
+        type="button"
+        className="historical-modal-close"
+        onClick={onClose}
+        autoFocus
+        aria-label="Close historical data"
+      >
+        Close ?
+      </button>
+      <h2 id="historical-data-title">
+        Historical Stock Market &amp; Inflation Data
+      </h2>
+      <p className="subtitle">
+        Nominal total returns (including dividends). All figures annualized.
+      </p>
 
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Metric</th>
-            <th scope="col">Time Frame</th>
-            <th scope="col">Full-Period Value</th>
-            <th scope="col">Worst 30-Yr Period</th>
-            <th scope="col">Worst 30-Yr Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="section-header"><td colSpan="5">Returns</td></tr>
-          <tr>
-            <td>CAGR — U.S. Stocks</td>
-            <td className="period-col">1871–2024</td>
-            <td>9.3%</td>
-            <td className="period-col">1903–1932</td>
-            <td>4.7%</td>
-          </tr>
-          <tr>
-            <td>CAGR — World Stocks</td>
-            <td className="period-col">1900–2024</td>
-            <td>8.3%</td>
-            <td className="period-col">~1914–1944</td>
-            <td>~4.0%</td>
-          </tr>
-          <tr className="section-header"><td colSpan="5">Volatility</td></tr>
-          <tr>
-            <td>Std Dev — U.S. Stocks</td>
-            <td className="period-col">1926–2024</td>
-            <td>19.8%</td>
-            <td className="period-col">~1925–1955</td>
-            <td>~28%</td>
-          </tr>
-          <tr>
-            <td>Std Dev — World Stocks</td>
-            <td className="period-col">1900–2024</td>
-            <td>17.4%</td>
-            <td className="period-col">~1914–1944</td>
-            <td>~23%</td>
-          </tr>
-          <tr className="section-header"><td colSpan="5">Inflation</td></tr>
-          <tr>
-            <td>U.S. CPI Inflation</td>
-            <td className="period-col">1900–2024</td>
-            <td>2.9%</td>
-            <td className="period-col">~1950–1980</td>
-            <td>~4.6%</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Metric</th>
+              <th scope="col">Time Frame</th>
+              <th scope="col">Full-Period Value</th>
+              <th scope="col">Worst 30-Yr Period</th>
+              <th scope="col">Worst 30-Yr Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="section-header">
+              <td colSpan="5">Returns</td>
+            </tr>
+            <tr>
+              <td>CAGR — U.S. Stocks</td>
+              <td className="period-col">1871–2024</td>
+              <td>9.3%</td>
+              <td className="period-col">1903–1932</td>
+              <td>4.7%</td>
+            </tr>
+            <tr>
+              <td>CAGR — World Stocks</td>
+              <td className="period-col">1900–2024</td>
+              <td>8.3%</td>
+              <td className="period-col">~1914–1944</td>
+              <td>~4.0%</td>
+            </tr>
+            <tr className="section-header">
+              <td colSpan="5">Volatility</td>
+            </tr>
+            <tr>
+              <td>Std Dev — U.S. Stocks</td>
+              <td className="period-col">1926–2024</td>
+              <td>19.8%</td>
+              <td className="period-col">~1925–1955</td>
+              <td>~28%</td>
+            </tr>
+            <tr>
+              <td>Std Dev — World Stocks</td>
+              <td className="period-col">1900–2024</td>
+              <td>17.4%</td>
+              <td className="period-col">~1914–1944</td>
+              <td>~23%</td>
+            </tr>
+            <tr className="section-header">
+              <td colSpan="5">Inflation</td>
+            </tr>
+            <tr>
+              <td>U.S. CPI Inflation</td>
+              <td className="period-col">1900–2024</td>
+              <td>2.9%</td>
+              <td className="period-col">~1950–1980</td>
+              <td>~4.6%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-    <div className="footnotes">
-      <strong>Sources:</strong> UBS Global Investment Returns Yearbook 2025 (Dimson, Marsh &amp; Staunton); Ibbotson/Morningstar SBBI data; Shiller CAPE dataset; NYU Stern historical returns; BLS CPI data.<br /><br />
-      <strong>Notes:</strong> U.S. Stocks = S&amp;P 500 and predecessor indices. World Stocks = DMS global equity index (23–35 countries, cap-weighted). "~" prefix indicates an approximate figure where precise rolling 30-year data for the global index is less granular than for U.S. data. Volatility is the annualized standard deviation of nominal returns. The world volatility figure of 17.4% reflects the diversified index, which benefits from cross-country correlation &lt; 1.
-    </div>
-    <div className="source-tag">Nominal · Total Return · Annualized</div>
+      <div className="footnotes">
+        <strong>Sources:</strong> UBS Global Investment Returns Yearbook 2025
+        (Dimson, Marsh &amp; Staunton); Ibbotson/Morningstar SBBI data; Shiller
+        CAPE dataset; NYU Stern historical returns; BLS CPI data.
+        <br />
+        <br />
+        <strong>Notes:</strong> U.S. Stocks = S&amp;P 500 and predecessor
+        indices. World Stocks = DMS global equity index (23–35 countries,
+        cap-weighted). "~" prefix indicates an approximate figure where precise
+        rolling 30-year data for the global index is less granular than for U.S.
+        data. Volatility is the annualized standard deviation of nominal
+        returns. The world volatility figure of 17.4% reflects the diversified
+        index, which benefits from cross-country correlation &lt; 1.
+      </div>
+      <div className="source-tag">Nominal · Total Return · Annualized</div>
     </dialog>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<RetirementSimulator />);
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <RetirementSimulator />,
+);

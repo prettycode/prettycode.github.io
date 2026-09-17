@@ -45,10 +45,6 @@
       "Bash(git fetch:*)",
       "Bash(git pull:*)"
     ],
-    "ask": [
-      "Bash(move:*)",
-      "Bash(curl:*)",
-      "Bash(powershell:*)"
-    ]
+    "ask": ["Bash(move:*)", "Bash(curl:*)", "Bash(powershell:*)"]
   }
 }

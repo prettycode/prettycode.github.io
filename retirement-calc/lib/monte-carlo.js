@@ -4,9 +4,57 @@
 // React component needs at render time, plus the URL the component uses to
 // instantiate the worker.
 
-const MONTE_CARLO_WORKER_URL = 'lib/monte-carlo-worker.js';
+const MONTE_CARLO_WORKER_URL = "lib/monte-carlo-worker.js";
 
 const SIM_RUNS = 1_000_000;
+
+// One request owns its worker, including startup failures and cancellation.
+function startSimulation(params, onProgress = () => {}) {
+  let worker;
+  let settled = false;
+  let cancel;
+  const promise = new Promise((resolve, reject) => {
+    const finish = (error, result) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (worker) {
+        worker.terminate();
+      }
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    };
+    cancel = () =>
+      finish(Object.assign(new Error("Cancelled"), { name: "AbortError" }));
+    try {
+      worker = new Worker(MONTE_CARLO_WORKER_URL);
+      worker.onerror = (event) => {
+        event.preventDefault();
+        finish(new Error("Simulation worker failed."));
+      };
+      worker.onmessageerror = () =>
+        finish(new Error("Simulation response could not be read."));
+      worker.onmessage = ({ data }) => {
+        if (settled) {
+          return;
+        }
+        if (data.type === "progress") {
+          onProgress(data.pct);
+        } else if (data.type === "done") {
+          finish(null, data.result);
+        }
+      };
+      worker.postMessage({ type: "run", params });
+    } catch (error) {
+      finish(error);
+    }
+  });
+  return { promise, cancel };
+}
 
 // Historical real return on 3-month T-Bills above CPI inflation, ~1928–2023.
 // Used so the T-Bill rate tracks the inflation slider (rate = inflation + this).
@@ -17,11 +65,11 @@ const T_BILL_REAL_PREMIUM = 0.005;
 const MARKET_PRESETS = {
   us: {
     historical: { cagr: 0.093, volatility: 0.198, inflation: 0.029 },
-    worst:      { cagr: 0.047, volatility: 0.28,  inflation: 0.046 },
+    worst: { cagr: 0.047, volatility: 0.28, inflation: 0.046 },
   },
   world: {
     historical: { cagr: 0.083, volatility: 0.174, inflation: 0.029 },
-    worst:      { cagr: 0.040, volatility: 0.23,  inflation: 0.046 },
+    worst: { cagr: 0.04, volatility: 0.23, inflation: 0.046 },
   },
 };
 
@@ -33,7 +81,7 @@ const MARKET_PRESETS = {
 function cagrToArithmetic(cagr, vol) {
   let m = 1 + cagr;
   for (let i = 0; i < 8; i++) {
-    m = (1 + cagr) * Math.exp(vol * vol / (2 * m * m));
+    m = (1 + cagr) * Math.exp((vol * vol) / (2 * m * m));
   }
   return m - 1;
 }
@@ -43,15 +91,25 @@ function cagrToArithmetic(cagr, vol) {
 // each spend). Mirrors the integer-scale loop in the worker so UI and
 // simulation agree.
 function bucketSize(wd, years, wGrow, disc) {
-  if (years <= 0) return 0;
+  if (years <= 0) {
+    return 0;
+  }
   if (disc === 0) {
     // No T-Bills earnings: sum the nominal withdrawals.
-    if (wGrow === 0) return years * wd;
-    return wd * (Math.pow(1 + wGrow, years) - 1) / wGrow;
+    if (wGrow === 0) {
+      return years * wd;
+    }
+    return (wd * (Math.pow(1 + wGrow, years) - 1)) / wGrow;
   }
-  if (years === 1) return wd;
+  if (years === 1) {
+    return wd;
+  }
   // L = wd + wd · (1 + wGrow) · Σⱼ₌₀^{N-2} ratio^j, ratio = (1+wGrow)/(1+disc).
   const ratio = (1 + wGrow) / (1 + disc);
-  if (Math.abs(ratio - 1) < 1e-9) return wd + (1 + wGrow) * wd * (years - 1);
-  return wd + wd * (1 + wGrow) * (1 - Math.pow(ratio, years - 1)) / (1 - ratio);
+  if (Math.abs(ratio - 1) < 1e-9) {
+    return wd + (1 + wGrow) * wd * (years - 1);
+  }
+  return (
+    wd + (wd * (1 + wGrow) * (1 - Math.pow(ratio, years - 1))) / (1 - ratio)
+  );
 }

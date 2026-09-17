@@ -49,8 +49,9 @@ const UserSettings = (() => {
     data !== null &&
     typeof data === "object" &&
     !Array.isArray(data) &&
-    Object.entries(data).every(([key, value]) =>
-      isKnownSetting(key) && typeof value === typeof SETTINGS_DEFAULTS[key]
+    Object.entries(data).every(
+      ([key, value]) =>
+        isKnownSetting(key) && typeof value === typeof SETTINGS_DEFAULTS[key],
     );
 
   const removeSavedSettings = () => {
@@ -62,7 +63,9 @@ const UserSettings = (() => {
   };
 
   const readAll = () => {
-    if (cache !== null) return cache;
+    if (cache !== null) {
+      return cache;
+    }
     try {
       const raw = localStorage.getItem(USER_SETTINGS_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
@@ -98,22 +101,26 @@ const UserSettings = (() => {
     has: isKnownSetting,
     get(key) {
       const stored = readAll();
-      return hasOwn(stored, key)
-        ? stored[key]
-        : SETTINGS_DEFAULTS[key];
+      return hasOwn(stored, key) ? stored[key] : SETTINGS_DEFAULTS[key];
     },
     set(key, value) {
-      if (!isKnownSetting(key)) return;
+      if (!isKnownSetting(key)) {
+        return;
+      }
       const stored = readAll();
       const isDefault = value === SETTINGS_DEFAULTS[key];
       const present = hasOwn(stored, key);
       if (isDefault) {
-        if (!present) return;
+        if (!present) {
+          return;
+        }
         const next = { ...stored };
         delete next[key];
         writeAll(next);
       } else {
-        if (present && stored[key] === value) return;
+        if (present && stored[key] === value) {
+          return;
+        }
         writeAll({ ...stored, [key]: value });
       }
     },

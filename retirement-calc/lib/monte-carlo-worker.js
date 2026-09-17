@@ -8,14 +8,16 @@
 // The only float math in this worker is the one-time Gaussian LUT build at
 // init; the per-run hot loop is purely integer.
 
-const BP = 10000;        // per-period rates: return, vol, inflation
-const MICRO = 1000000;   // cumulative factors: (1+inflation)^y
-const GS = 10000000;     // Gaussian sample scale (~7-digit per-sample resolution)
+const BP = 10000; // per-period rates: return, vol, inflation
+const MICRO = 1000000; // cumulative factors: (1+inflation)^y
+const GS = 10000000; // Gaussian sample scale (~7-digit per-sample resolution)
 
 // xorshift32 — integer PRNG, 2³²-1 period. Replaces Math.random() so the
 // hot loop stays in int32 land.
-let rngState = (Date.now() ^ 0x9E3779B9) | 0;
-if (rngState === 0) rngState = 1;
+let rngState = (Date.now() ^ 0x9e3779b9) | 0;
+if (rngState === 0) {
+  rngState = 1;
+}
 function nextU32() {
   rngState ^= rngState << 13;
   rngState ^= rngState >>> 17;
@@ -33,36 +35,59 @@ const GAUSS_LUT_SIZE = 65536;
 const GAUSS_LUT = new Int32Array(GAUSS_LUT_SIZE);
 (function buildGaussLut() {
   function invNormCDF(p) {
-    const a1=-39.69683028665376, a2=220.9460984245205, a3=-275.9285104469687,
-          a4=138.3577518672690, a5=-30.66479806614716, a6=2.506628277459239;
-    const b1=-54.47609879822406, b2=161.5858368580409, b3=-155.6989798598866,
-          b4=66.80131188771972, b5=-13.28068155288572;
-    const c1=-0.007784894002430293, c2=-0.3223964580411365, c3=-2.400758277161838,
-          c4=-2.549732539343734, c5=4.374664141464968, c6=2.938163982698783;
-    const d1=0.007784695709041462, d2=0.3224671290700398, d3=2.445134137142996,
-          d4=3.754408661907416;
-    const pLow = 0.02425, pHigh = 1 - pLow;
+    const a1 = -39.69683028665376,
+      a2 = 220.9460984245205,
+      a3 = -275.9285104469687,
+      a4 = 138.357751867269,
+      a5 = -30.66479806614716,
+      a6 = 2.506628277459239;
+    const b1 = -54.47609879822406,
+      b2 = 161.5858368580409,
+      b3 = -155.6989798598866,
+      b4 = 66.80131188771972,
+      b5 = -13.28068155288572;
+    const c1 = -0.007784894002430293,
+      c2 = -0.3223964580411365,
+      c3 = -2.400758277161838,
+      c4 = -2.549732539343734,
+      c5 = 4.374664141464968,
+      c6 = 2.938163982698783;
+    const d1 = 0.007784695709041462,
+      d2 = 0.3224671290700398,
+      d3 = 2.445134137142996,
+      d4 = 3.754408661907416;
+    const pLow = 0.02425,
+      pHigh = 1 - pLow;
     let q, r;
     if (p < pLow) {
       q = Math.sqrt(-2 * Math.log(p));
-      return (((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6) /
-             ((((d1*q+d2)*q+d3)*q+d4)*q+1);
+      return (
+        (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
+        ((((d1 * q + d2) * q + d3) * q + d4) * q + 1)
+      );
     }
     if (p <= pHigh) {
-      q = p - 0.5; r = q*q;
-      return (((((a1*r+a2)*r+a3)*r+a4)*r+a5)*r+a6) * q /
-             (((((b1*r+b2)*r+b3)*r+b4)*r+b5)*r+1);
+      q = p - 0.5;
+      r = q * q;
+      return (
+        ((((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q) /
+        (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1)
+      );
     }
     q = Math.sqrt(-2 * Math.log(1 - p));
-    return -(((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6) /
-            ((((d1*q+d2)*q+d3)*q+d4)*q+1);
+    return (
+      -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
+      ((((d1 * q + d2) * q + d3) * q + d4) * q + 1)
+    );
   }
   for (let i = 0; i < GAUSS_LUT_SIZE; i++) {
     GAUSS_LUT[i] = Math.round(invNormCDF((i + 0.5) / GAUSS_LUT_SIZE) * GS);
   }
 })();
 
-function gaussInt() { return GAUSS_LUT[nextU32() >>> 16]; }
+function gaussInt() {
+  return GAUSS_LUT[nextU32() >>> 16];
+}
 
 // Iterative Floyd quickselect with median-of-three pivot. After return, a[k]
 // holds the value that a full sort of a[l..r] would place at index k, with
@@ -73,30 +98,74 @@ function quickselect(a, k, l, r) {
   while (true) {
     if (r - l <= 1) {
       if (r - l === 1 && a[r] < a[l]) {
-        const t = a[l]; a[l] = a[r]; a[r] = t;
+        const t = a[l];
+        a[l] = a[r];
+        a[r] = t;
       }
       return;
     }
     const mid = (l + r) >>> 1;
-    let t = a[mid]; a[mid] = a[l + 1]; a[l + 1] = t;
-    if (a[l]     > a[r])     { t = a[l];     a[l]     = a[r];     a[r]     = t; }
-    if (a[l + 1] > a[r])     { t = a[l + 1]; a[l + 1] = a[r];     a[r]     = t; }
-    if (a[l]     > a[l + 1]) { t = a[l];     a[l]     = a[l + 1]; a[l + 1] = t; }
-    const pivot = a[l + 1];
-    let i = l + 1, j = r;
-    while (true) {
-      do i++; while (a[i] < pivot);
-      do j--; while (a[j] > pivot);
-      if (j < i) break;
-      t = a[i]; a[i] = a[j]; a[j] = t;
+    let t = a[mid];
+    a[mid] = a[l + 1];
+    a[l + 1] = t;
+    if (a[l] > a[r]) {
+      t = a[l];
+      a[l] = a[r];
+      a[r] = t;
     }
-    a[l + 1] = a[j]; a[j] = pivot;
-    if (j >= k) r = j - 1;
-    if (j <= k) l = j + 1;
+    if (a[l + 1] > a[r]) {
+      t = a[l + 1];
+      a[l + 1] = a[r];
+      a[r] = t;
+    }
+    if (a[l] > a[l + 1]) {
+      t = a[l];
+      a[l] = a[l + 1];
+      a[l + 1] = t;
+    }
+    const pivot = a[l + 1];
+    let i = l + 1,
+      j = r;
+    while (true) {
+      do {
+        i++;
+      } while (a[i] < pivot);
+      do {
+        j--;
+      } while (a[j] > pivot);
+      if (j < i) {
+        break;
+      }
+      t = a[i];
+      a[i] = a[j];
+      a[j] = t;
+    }
+    a[l + 1] = a[j];
+    a[j] = pivot;
+    if (j >= k) {
+      r = j - 1;
+    }
+    if (j <= k) {
+      l = j + 1;
+    }
   }
 }
 
-function runSimulation({ balance, withdrawal, returnRate, volatility, inflation, years, runs, upfrontYears, inflationAdjustBucket, bucketEarnsTBills, tBillRealPremium, monthly, retirementDelay = 0 }) {
+function runSimulation({
+  balance,
+  withdrawal,
+  returnRate,
+  volatility,
+  inflation,
+  years,
+  runs,
+  upfrontYears,
+  inflationAdjustBucket,
+  bucketEarnsTBills,
+  tBillRealPremium,
+  monthly,
+  retirementDelay = 0,
+}) {
   years += retirementDelay;
   // Boundary: convert UI inputs to integer scales once on entry.
   const balCents = Math.round(balance * 100);
@@ -113,8 +182,10 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // paths *below* annual mode — masking the spread-withdrawal advantage and
   // reversing the intuitive "monthly should beat annual" outcome.
   const annualA = 1 + returnRate;
-  const monthlyA = Math.pow(annualA, 1/12);
-  const monthlySigSq = Math.pow(annualA*annualA + volatility*volatility, 1/12) - monthlyA*monthlyA;
+  const monthlyA = Math.pow(annualA, 1 / 12);
+  const monthlySigSq =
+    Math.pow(annualA * annualA + volatility * volatility, 1 / 12) -
+    monthlyA * monthlyA;
   const returnMonthlyBp = Math.round((monthlyA - 1) * BP);
   const volMonthlyBp = Math.round(Math.sqrt(Math.max(0, monthlySigSq)) * BP);
   const inflMicro = Math.round(inflation * MICRO);
@@ -129,11 +200,13 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   const inflPow = new Float64Array(years + 1);
   inflPow[0] = MICRO;
   for (let y = 1; y <= years; y++) {
-    inflPow[y] = Math.floor(inflPow[y-1] * (MICRO + inflMicro) / MICRO);
+    inflPow[y] = Math.floor((inflPow[y - 1] * (MICRO + inflMicro)) / MICRO);
   }
   // The input is in today's dollars; the bucket starts at retirement's
   // purchasing-power equivalent, even when later bucket inflation is off.
-  const retirementWdCents = Math.floor(wdCents * inflPow[retirementDelay] / MICRO);
+  const retirementWdCents = Math.floor(
+    (wdCents * inflPow[retirementDelay]) / MICRO,
+  );
 
   // Upfront cash bucket: if upfrontYears > 1, year 1 withdraws a lump sum that
   // funds years 1..upfrontYears, and no further withdrawals happen until year
@@ -157,9 +230,9 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
       const num = MICRO + wGrowMicro;
       for (let i = 0; i < upfrontYears; i++) {
         sumMicro += pow;
-        pow = Math.floor(pow * num / MICRO);
+        pow = Math.floor((pow * num) / MICRO);
       }
-      lumpSumCents = Math.floor(retirementWdCents * sumMicro / MICRO);
+      lumpSumCents = Math.floor((retirementWdCents * sumMicro) / MICRO);
     } else {
       // ratio = (MICRO + wGrowMicro) / (MICRO + discMicro), tracked in MICRO
       // scale via iterative multiply to avoid pow() drift.
@@ -169,18 +242,20 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
       const den = MICRO + discMicro;
       for (let i = 0; i < upfrontYears - 1; i++) {
         sumMicro += ratioPow;
-        ratioPow = Math.floor(ratioPow * num / den);
+        ratioPow = Math.floor((ratioPow * num) / den);
       }
       // tBillsCents = retirementWdCents · (1+wGrow) · sumMicro / MICRO. Split into two
       // divides so intermediates stay inside Number-safe int range.
-      const grownWdCents = Math.floor(retirementWdCents * num / MICRO);
-      const tBillsCents = Math.floor(grownWdCents * sumMicro / MICRO);
+      const grownWdCents = Math.floor((retirementWdCents * num) / MICRO);
+      const tBillsCents = Math.floor((grownWdCents * sumMicro) / MICRO);
       lumpSumCents = retirementWdCents + tBillsCents;
     }
   }
 
   const yearBalances = new Array(years + 1);
-  for (let y = 0; y <= years; y++) yearBalances[y] = new Float64Array(runs);
+  for (let y = 0; y <= years; y++) {
+    yearBalances[y] = new Float64Array(runs);
+  }
   yearBalances[0].fill(balCents);
 
   const withdrawalSumCents = new Float64Array(years + 1);
@@ -194,8 +269,8 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
     for (let y = 1; y <= years; y++) {
       const retirementYear = y - retirementDelay;
       let actualW;
-      let isLumpYear = false;       // year 1 lump-sum draw — taken once at year start
-      let isBucketFunded = false;   // years 2..upfrontYears — bucket pays, no portfolio draw
+      let isLumpYear = false; // year 1 lump-sum draw — taken once at year start
+      let isBucketFunded = false; // years 2..upfrontYears — bucket pays, no portfolio draw
       if (retirementYear <= 0) {
         actualW = 0;
         isBucketFunded = true; // Growth-only years use annual return sampling.
@@ -207,10 +282,10 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
           actualW = 0;
           isBucketFunded = true;
         } else {
-          actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
+          actualW = Math.floor((wdCents * inflPow[y - 1]) / MICRO);
         }
       } else {
-        actualW = Math.floor(wdCents * inflPow[y-1] / MICRO);
+        actualW = Math.floor((wdCents * inflPow[y - 1]) / MICRO);
       }
       withdrawalSumCents[y] += actualW;
 
@@ -237,8 +312,10 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
           }
           const shockBp = ((volMonthlyBp * gaussInt()) / GS) | 0;
           let factorBp = BP + returnMonthlyBp + shockBp;
-          if (factorBp < 0) factorBp = 0;
-          bal = Math.floor(bal * factorBp / BP);
+          if (factorBp < 0) {
+            factorBp = 0;
+          }
+          bal = Math.floor((bal * factorBp) / BP);
         }
         yearBalances[y][r] = bal;
       } else {
@@ -255,16 +332,20 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
         // back in bp range. | 0 truncates the small int32 result.
         const shockBp = ((volBp * gaussInt()) / GS) | 0;
         let factorBp = BP + returnBp + shockBp;
-        if (factorBp < 0) factorBp = 0;  // a >100% loss can't push bal below 0
-        bal = Math.floor(bal * factorBp / BP);
+        if (factorBp < 0) {
+          factorBp = 0;
+        } // a >100% loss can't push bal below 0
+        bal = Math.floor((bal * factorBp) / BP);
         yearBalances[y][r] = bal;
       }
     }
 
-    if (bal > 0) survived++;
+    if (bal > 0) {
+      survived++;
+    }
 
     if (r % reportEvery === 0) {
-      self.postMessage({ type: 'progress', pct: r / runs });
+      self.postMessage({ type: "progress", pct: r / runs });
     }
   }
 
@@ -277,21 +358,21 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // work on each half, deciles on the relevant quarter. With 1M runs that's
   // ~n + n/2 + n/4 + n/4 + n/4 ≈ 2.25n comparisons per year vs ~n log n ≈ 20n
   // for a full sort.
-  const k10 = Math.floor(runs * 10 / 100);
-  const k25 = Math.floor(runs * 25 / 100);
-  const k50 = Math.floor(runs * 50 / 100);
-  const k75 = Math.floor(runs * 75 / 100);
-  const k90 = Math.floor(runs * 90 / 100);
+  const k10 = Math.floor((runs * 10) / 100);
+  const k25 = Math.floor((runs * 25) / 100);
+  const k50 = Math.floor((runs * 50) / 100);
+  const k75 = Math.floor((runs * 75) / 100);
+  const k90 = Math.floor((runs * 90) / 100);
   const last = runs - 1;
 
   const percentiles = [];
   for (let y = 0; y <= years; y++) {
     const v = yearBalances[y];
-    quickselect(v, k50, 0,        last);
-    quickselect(v, k25, 0,        k50 - 1);
-    quickselect(v, k10, 0,        k25 - 1);
-    quickselect(v, k75, k50 + 1,  last);
-    quickselect(v, k90, k75 + 1,  last);
+    quickselect(v, k50, 0, last);
+    quickselect(v, k25, 0, k50 - 1);
+    quickselect(v, k10, 0, k25 - 1);
+    quickselect(v, k75, k50 + 1, last);
+    quickselect(v, k90, k75 + 1, last);
     percentiles.push({
       year: y,
       p10: c2d(v[k10]),
@@ -307,12 +388,19 @@ function runSimulation({ balance, withdrawal, returnRate, volatility, inflation,
   // yearBalances[years] is no longer fully sorted, but k50 holds the median.
   const medianEnding = percentiles[years].p50;
 
-  return { percentiles, successRate, medianEnding, runs, lumpSum: c2d(lumpSumCents), retirementDelay };
+  return {
+    percentiles,
+    successRate,
+    medianEnding,
+    runs,
+    lumpSum: c2d(lumpSumCents),
+    retirementDelay,
+  };
 }
 
-self.onmessage = function(e) {
-  if (e.data.type === 'run') {
+self.onmessage = function (e) {
+  if (e.data.type === "run") {
     const result = runSimulation(e.data.params);
-    self.postMessage({ type: 'done', result: result });
+    self.postMessage({ type: "done", result: result });
   }
 };

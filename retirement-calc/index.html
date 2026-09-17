@@ -1,28 +1,53 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0b1117">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1117" />
     <title>Monte Carlo Retirement Simulator</title>
     <style>
-        html, body { margin: 0; padding: 0; background: #0b1117; }
-        #root { min-height: 100vh; }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0b1117;
+      }
+      #root {
+        min-height: 100vh;
+      }
     </style>
-    <link rel="stylesheet" href="lib/styles.css">
-    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <link rel="stylesheet" href="lib/styles.css" />
+    <script
+      crossorigin
+      src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"
+    ></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"></script>
     <script src="lib/monte-carlo.js"></script>
     <script src="lib/format.js"></script>
     <script src="lib/user-settings.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <div id="root"></div>
-    <script type="text/babel" data-presets="react" src="lib/slider.jsx"></script>
+    <script
+      type="text/babel"
+      data-presets="react"
+      src="lib/slider.jsx"
+    ></script>
     <script type="text/babel" data-presets="react" src="lib/chart.jsx"></script>
-    <script type="text/babel" data-presets="react" src="lib/outcome-odds.jsx"></script>
-    <script type="text/babel" data-presets="react" src="lib/plan-schedule.jsx"></script>
+    <script
+      type="text/babel"
+      data-presets="react"
+      src="lib/outcome-odds.jsx"
+    ></script>
+    <script
+      type="text/babel"
+      data-presets="react"
+      src="lib/plan-schedule.jsx"
+    ></script>
     <script type="text/babel" data-presets="react" src="lib/index.jsx"></script>
-</body>
+  </body>
 </html>
