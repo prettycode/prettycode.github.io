@@ -312,28 +312,149 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ─── Solver row (between stats and chart) ─── */
-.solver-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  gap: 22px;
-  align-items: center;
-  padding: 14px 18px;
+.solver-panel {
+  padding: 20px 22px;
   background: var(--cream-2);
   border: 1px solid var(--rule);
+  border-top: 2px solid var(--ink);
 }
 
-@media (max-width: 720px) {
-  .solver-row {
-    grid-template-columns: 1fr auto;
-    gap: 12px 18px;
+.solver-intro h2 {
+  margin: 0 0 8px;
+  font:
+    500 22px/1.2 "Fraunces",
+    serif;
+  letter-spacing: -0.02em;
+}
+
+.solver-intro p,
+.solver-note,
+.solver-feedback,
+.solver-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.solver-intro p {
+  max-width: 560px;
+}
+
+.solver-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 28px;
+  margin-top: 22px;
+}
+
+.solver-target-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.solver-target-heading label {
+  font:
+    500 13px "Fraunces",
+    serif;
+}
+
+.solver-target-heading output {
+  font:
+    500 24px "Fraunces",
+    serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.solver-target input {
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+
+.solver-range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font:
+    10px "JetBrains Mono",
+    monospace;
+  color: var(--ink-2);
+}
+
+.solver-note {
+  margin-top: 14px;
+}
+
+.solver-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+
+.solver-feedback strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.solver-feedback progress {
+  width: 100%;
+  height: 4px;
+  margin-top: 8px;
+  accent-color: var(--accent-2);
+}
+
+.solver-error {
+  margin-top: 10px;
+  color: #a83232;
+}
+
+.solve-btn {
+  min-height: 44px;
+  padding: 10px 18px;
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  font:
+    500 14px "Fraunces",
+    serif;
+  color: var(--cream);
+  cursor: pointer;
+}
+
+.solve-btn:hover:not(:disabled) {
+  background: var(--ink-2);
+}
+
+.solve-btn:focus-visible,
+.solver-target input:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 4px;
+}
+
+.solve-btn:disabled,
+.solver-target input:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+@media (max-width: 600px) {
+  .solver-panel {
+    padding: 18px 16px;
   }
-  .solver-row .solver-slider {
-    grid-column: 1 / -1;
-    order: 3;
+  .solver-controls {
+    grid-template-columns: 1fr;
+    gap: 18px;
   }
-  .solver-row .solve-btn {
-    grid-column: 1 / -1;
-    order: 4;
+  .solve-btn {
+    width: 100%;
   }
 }
 
@@ -460,78 +581,6 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
-.solver-label {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink-2);
-  white-space: nowrap;
-}
-
-.solver-slider {
-  display: flex;
-  align-items: center;
-}
-.solver-slider input[type="range"] {
-  width: 100%;
-}
-.solver-slider input[type="range"]:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.solver-value {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-  min-width: 36px;
-  text-align: right;
-}
-
-.solve-btn {
-  display: inline-grid;
-  padding: 8px 16px;
-  background: transparent;
-  border: 1px solid var(--ink);
-  font-family: "Fraunces", serif;
-  font-size: 13px;
-  font-weight: 500;
-  font-style: italic;
-  color: var(--ink);
-  cursor: pointer;
-  letter-spacing: -0.01em;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.solve-btn-ghost,
-.solve-btn-label {
-  grid-area: 1 / 1;
-}
-
-.solve-btn-ghost {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.solve-btn:hover:not(:disabled) {
-  background: var(--ink);
-  color: var(--cream);
-}
-
-.solve-btn:disabled {
-  opacity: 0.5;
-  cursor: progress;
-}
-
-/* ─── Advanced (collapsible) ─── */
 .advanced-body {
   padding-bottom: 4px;
 }

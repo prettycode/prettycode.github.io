@@ -81,6 +81,7 @@ function harness(saved = {}) {
     source +
       `
     return {sim, simInputs, simUseAges, running, solving, simulationError, solverError,
+      currentSolverResult, withdrawal, setWithdrawal, setTargetSuccessRate,
       solveForTarget, setInflation, setPlanningMode, setWithdrawalFrequency, setBalance,
       handleRetirementStartChange, setCurrentAge, setPlanThroughAge,
       setRetirementAge, currentAge,
@@ -290,7 +291,44 @@ test("changing inputs cancels a pending solver without applying its result", asy
   assert.ok(h.workers[1].terminated);
   assert.equal(h.render().solverError, null);
   assert.equal(h.render().solving, false);
+  assert.equal(h.render().currentSolverResult, null);
 });
+
+for (const limit of ["minimum", "maximum", null]) {
+  test(`solver reports the applied withdrawal and search limit: ${limit}`, async () => {
+    const h = harness();
+    h.render();
+    h.workers[0].done(result);
+    await flush();
+    const solve = h.render().solveForTarget();
+    let index = 1;
+    while (h.workers[index]) {
+      const worker = h.workers[index++];
+      const amount = worker.message.params.withdrawal;
+      worker.done({
+        ...result,
+        successRate:
+          limit === "minimum"
+            ? 0
+            : limit === "maximum"
+              ? 1
+              : amount <= 80000
+                ? 1
+                : 0,
+      });
+      await flush();
+    }
+    await solve;
+    let state = h.render();
+    const expected =
+      limit === "minimum" ? 10000 : limit === "maximum" ? 300000 : 80000;
+    assert.equal(state.withdrawal, expected);
+    assert.equal(state.currentSolverResult.withdrawal, expected);
+    assert.equal(state.currentSolverResult.limit, limit);
+    state.setInflation(0.1);
+    assert.equal(h.render().currentSolverResult, null);
+  });
+}
 
 for (const failure of ["constructor", "postMessage", "messageerror"]) {
   test(`worker ${failure} failure rejects and cleans up`, async () => {

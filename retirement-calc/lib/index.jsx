@@ -126,6 +126,7 @@ function RetirementSimulator() {
   const solverRequest = React.useRef(null);
   const [simulationError, setSimulationError] = useState(null);
   const [solverError, setSolverError] = useState(null);
+  const [solverResult, setSolverResult] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [sim, setSim] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -142,6 +143,28 @@ function RetirementSimulator() {
   const effectiveInflationAdjustBucket =
     inflationAdjustBucket && upfrontYears > 1;
   const effectiveBucketEarnsTBills = bucketEarnsTBills && upfrontYears > 1;
+
+  // A solver outcome belongs to the assumptions and target it was calculated for.
+  const solverSettingsKey = JSON.stringify([
+    balance,
+    cagr,
+    volatility,
+    inflation,
+    years,
+    retirementDelay,
+    upfrontYears,
+    effectiveInflationAdjustBucket,
+    effectiveBucketEarnsTBills,
+    withdrawalFrequency,
+    currentAge,
+    planningMode,
+    targetSuccessRate,
+  ]);
+  const currentSolverResult =
+    solverResult?.settingsKey === solverSettingsKey &&
+    solverResult.withdrawal === withdrawal
+      ? solverResult
+      : null;
 
   useEffect(() => {
     setRunning(true);
@@ -252,7 +275,18 @@ function RetirementSimulator() {
 
     setSolverError(null);
     setSolving(true);
+    setSolverResult(null);
     setSolveProgress(0);
+
+    const applyResult = (amount, limit = null) => {
+      setSolverResult({
+        withdrawal: amount,
+        target: targetSuccessRate,
+        settingsKey: solverSettingsKey,
+        limit,
+      });
+      setWithdrawal(amount);
+    };
 
     const baseParams = {
       retirementDelay,
@@ -287,13 +321,13 @@ function RetirementSimulator() {
       const loRate = await probe(MIN_WD);
       tick();
       if (loRate < TARGET) {
-        setWithdrawal(MIN_WD);
+        applyResult(MIN_WD, "minimum");
         return;
       }
       const hiRate = await probe(MAX_WD);
       tick();
       if (hiRate >= TARGET) {
-        setWithdrawal(MAX_WD);
+        applyResult(MAX_WD, "maximum");
         return;
       }
 
@@ -313,7 +347,7 @@ function RetirementSimulator() {
         tick();
       }
 
-      setWithdrawal(lo);
+      applyResult(lo);
     } catch (error) {
       if (error.name !== "AbortError") {
         setSolverError("The solver could not finish. Please try again.");
@@ -891,58 +925,117 @@ function RetirementSimulator() {
                 </div>
 
                 {/* SOLVER */}
-                {solverError && <p role="alert">{solverError}</p>}
-                <div className="fade">
-                  <p id="solver-description" className="chart-subtitle">
-                    Find the annual withdrawal in today's dollars targeting a{" "}
-                    {targetSuccessRate}% chance of money lasting{" "}
-                    {useAges
-                      ? `from retirement at age ${retirementAge} through age ${planThroughAge}`
-                      : `for ${years} years in retirement`}
-                    .
-                  </p>
-                  <div className="solver-row">
-                    <div className="solver-label">
+                <section
+                  className="solver-panel fade"
+                  aria-labelledby="solver-title"
+                >
+                  <div className="solver-intro">
+                    <h2 id="solver-title">
+                      How much should I withdrawal a target success rate?
+                    </h2>
+                    <p id="solver-description">
+                      Choose a target chance of your money lasting{" "}
                       {useAges
-                        ? `Target Success through Age ${planThroughAge}`
-                        : "Target Success Rate"}
-                    </div>
-                    <div className="solver-slider">
+                        ? `from age ${retirementAge} through age ${planThroughAge}`
+                        : `for ${years} years in retirement`}
+                      . We'll calculate an annual withdrawal using your plan's
+                      assumptions.
+                    </p>
+                  </div>
+                  <div className="solver-controls">
+                    <div className="solver-target">
+                      <div className="solver-target-heading">
+                        <label htmlFor="solver-target">
+                          Target success rate
+                        </label>
+                        <output htmlFor="solver-target">
+                          {targetSuccessRate}%
+                        </output>
+                      </div>
                       <input
+                        id="solver-target"
                         type="range"
-                        aria-label="Target success rate"
                         min={50}
                         max={99}
                         step={1}
                         value={targetSuccessRate}
-                        onChange={(e) =>
-                          setTargetSuccessRate(parseInt(e.target.value, 10))
-                        }
+                        aria-valuetext={`${targetSuccessRate}% chance of money lasting`}
+                        onChange={(e) => {
+                          setTargetSuccessRate(parseInt(e.target.value, 10));
+                          setSolverError(null);
+                          setSolverResult(null);
+                        }}
                         style={{
                           "--pct": `${((targetSuccessRate - 50) / 49) * 100}%`,
                         }}
                         disabled={solving}
                       />
+                      <div className="solver-range-labels" aria-hidden="true">
+                        <span>50%</span>
+                        <span>99%</span>
+                      </div>
                     </div>
-                    <div className="solver-value">{targetSuccessRate}%</div>
                     <button
                       type="button"
                       className="solve-btn"
-                      aria-describedby="solver-description"
+                      aria-describedby="solver-apply-note"
                       onClick={solveForTarget}
                       disabled={solving || running}
                     >
-                      <span className="solve-btn-ghost" aria-hidden="true">
-                        Solve for 99% Success
-                      </span>
-                      <span className="solve-btn-label">
-                        {solving
-                          ? `Solving · ${Math.round(solveProgress * 100)}%`
-                          : `Solve for ${targetSuccessRate}% Success`}
-                      </span>
+                      {solving ? "Calculating..." : "Calculate & apply"}
                     </button>
                   </div>
-                </div>
+                  {(solving || currentSolverResult || running) && (
+                    <div
+                      className="solver-feedback"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      {solving ? (
+                        <>
+                          <span>
+                            Finding amount to withdrawal for your{" "}
+                            {targetSuccessRate}% target
+                          </span>
+                          <progress
+                            aria-label="Withdrawal calculation"
+                            value={solveProgress}
+                            max={1}
+                          />
+                        </>
+                      ) : currentSolverResult ? (
+                        <>
+                          Portfolio Settings updated:
+                          <br />
+                          <strong>
+                            {fmtMoneyFull(currentSolverResult.withdrawal)} /
+                            year
+                          </strong>
+                          <span>
+                            {currentSolverResult.limit === "minimum"
+                              ? `Your ${currentSolverResult.target}% target could not be reached within the $10,000 to $300,000 range. The minimum withdrawal is applied.`
+                              : currentSolverResult.limit === "maximum"
+                                ? `The $300,000 search limit meets your ${currentSolverResult.target}% target. Higher withdrawals have not been checked.`
+                                : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`}
+                            {running && " Updating your results..."}
+                          </span>
+                        </>
+                      ) : (
+                        running && (
+                          <span>
+                            Updating your plan before calculating a
+                            withdrawal...
+                          </span>
+                        )
+                      )}
+                    </div>
+                  )}
+                  {solverError && (
+                    <p className="solver-error" role="alert">
+                      {solverError}
+                    </p>
+                  )}
+                </section>
 
                 {/* CHART */}
                 <PortfolioChart
