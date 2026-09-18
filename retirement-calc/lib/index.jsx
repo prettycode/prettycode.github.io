@@ -1,6 +1,12 @@
 const TARGET_SUCCESS_LIMITS = { min: 50, max: 99 };
 const RATE_STEP = 0.001;
 
+function formatSuccessChance(rate) {
+  const numerator = Math.round(rate * 10);
+  const divisor = [10, 5, 2, 1].find((value) => numerator % value === 0);
+  return `${numerator / divisor} in ${10 / divisor}`;
+}
+
 const { useState, useEffect } = React;
 
 // useState wrapper that persists through UserSettings: initial value comes
@@ -416,12 +422,12 @@ function RetirementSimulator() {
           {/* SIDEBAR */}
           <aside className="sidebar">
             <div className="panel-heading" style={{ marginBottom: 10 }}>
-              Planning Mode
+              {SETTING_LABELS.planningMode}
             </div>
             <div
               className="freq-toggle"
               role="group"
-              aria-label="Planning mode"
+              aria-label={SETTING_LABELS.planningMode}
               style={{ marginBottom: 28 }}
             >
               <button
@@ -455,7 +461,6 @@ function RetirementSimulator() {
                   step={1}
                   onChange={setCurrentAge}
                   format={(v) => `${v}`}
-                  editable
                   disabled={solving}
                 />
                 <Slider
@@ -467,7 +472,6 @@ function RetirementSimulator() {
                   step={1}
                   onChange={setRetirementAge}
                   format={(v) => `${v}`}
-                  editable
                   disabled={solving}
                 />
                 <Slider
@@ -479,7 +483,6 @@ function RetirementSimulator() {
                   step={1}
                   onChange={setPlanThroughAge}
                   format={(v) => `${v}`}
-                  editable
                   disabled={solving}
                 />
               </>
@@ -487,7 +490,7 @@ function RetirementSimulator() {
             <div className="panel-heading">Portfolio Settings</div>
 
             <Slider
-              label="Starting Balance"
+              label={SETTING_LABELS.balance}
               sublabel={
                 retirementDelay > 0
                   ? "Portfolio value today"
@@ -502,7 +505,7 @@ function RetirementSimulator() {
             />
 
             <Slider
-              label="Annual Withdrawal"
+              label={SETTING_LABELS.withdrawal}
               sublabel={
                 retirementDelay > 0
                   ? `Today's dollars; starts at ${fmtMoney(retirementWithdrawal)} at retirement, then increases with inflation`
@@ -519,7 +522,7 @@ function RetirementSimulator() {
             />
 
             <Slider
-              label="Starting Cash Bucket"
+              label={SETTING_LABELS.upfrontYears}
               sublabel="Lump-sum first withdrawal, in retirement-year dollars"
               value={upfrontYears}
               min={1}
@@ -583,7 +586,7 @@ function RetirementSimulator() {
               <summary className="panel-heading">Market Assumptions</summary>
 
               <Slider
-                label="CAGR"
+                label={SETTING_LABELS.cagr}
                 sublabel="Portfolio's Compound annual growth rate"
                 value={cagr}
                 min={0.01}
@@ -594,7 +597,7 @@ function RetirementSimulator() {
               />
 
               <Slider
-                label="Annual Volatility"
+                label={SETTING_LABELS.volatility}
                 sublabel="Portfolio's Standard deviation"
                 value={volatility}
                 min={0.02}
@@ -605,7 +608,7 @@ function RetirementSimulator() {
               />
 
               <Slider
-                label="Inflation Rate"
+                label={SETTING_LABELS.inflation}
                 sublabel="Cost-of-living growth"
                 value={inflation}
                 min={0}
@@ -618,7 +621,8 @@ function RetirementSimulator() {
               <div style={{ marginBottom: 22 }}>
                 <div className="toggle-label">Historical Presets</div>
                 <div className="toggle-sub" style={{ marginBottom: 8 }}>
-                  Apply CAGR, volatility, and inflation from historical data.{" "}
+                  Apply {SETTING_LABELS.cagr}, {SETTING_LABELS.volatility}, and{" "}
+                  {SETTING_LABELS.inflation} from historical data.{" "}
                   <button
                     type="button"
                     className="presets-source-inline"
@@ -635,14 +639,14 @@ function RetirementSimulator() {
                     className={`freq-btn${activePreset?.region === "us" ? " active" : ""}`}
                     onClick={() => selectRegion("us")}
                   >
-                    U.S.
+                    {PRESET_LABELS.us}
                   </button>
                   <button
                     type="button"
                     className={`freq-btn${activePreset?.region === "world" ? " active" : ""}`}
                     onClick={() => selectRegion("world")}
                   >
-                    World
+                    {PRESET_LABELS.world}
                   </button>
                 </div>
                 <div className="freq-toggle">
@@ -651,14 +655,14 @@ function RetirementSimulator() {
                     className={`freq-btn${activePreset?.scenario === "historical" ? " active" : ""}`}
                     onClick={() => selectScenario("historical")}
                   >
-                    Historical
+                    {PRESET_LABELS.historical}
                   </button>
                   <button
                     type="button"
                     className={`freq-btn${activePreset?.scenario === "worst" ? " active" : ""}`}
                     onClick={() => selectScenario("worst")}
                   >
-                    Worst 30-Yr
+                    {PRESET_LABELS.worst}
                   </button>
                 </div>
               </div>
@@ -724,7 +728,7 @@ function RetirementSimulator() {
                   />
                   <div>
                     <div className="toggle-label">
-                      Starting Cash Bucket is inflation-adjusted
+                      {SETTING_LABELS.upfrontYears} is inflation-adjusted
                     </div>
                     <div className="toggle-sub">
                       Increase cash bucket by inflation for years &gt; 1.
@@ -739,7 +743,7 @@ function RetirementSimulator() {
                   />
                   <div>
                     <div className="toggle-label">
-                      Starting Cash Bucket earns T-Bills
+                      {SETTING_LABELS.upfrontYears} earns T-Bills
                     </div>
                     <div className="toggle-sub">
                       Hold cash beyond 1 year in T-Bills earning{" "}
@@ -817,6 +821,9 @@ function RetirementSimulator() {
                     >
                       {`${(sim.successRate * 100).toFixed(2)}%`}
                     </div>
+                    <div className="stat-sub">
+                      ≈ {formatSuccessChance(sim.successRate)} chance
+                    </div>
                   </div>
                   <div className="stat-cell">
                     <div className="stat-label">
@@ -838,7 +845,7 @@ function RetirementSimulator() {
                   </div>
                   <div className="stat-cell">
                     <div className="stat-label">
-                      Last Annual Withdrawal (Median)
+                      Last {SETTING_LABELS.withdrawal} (Median)
                     </div>
                     <div className="stat-value">
                       {fmtMoney((medianDepletion ?? yearData[simYears]).actual)}
@@ -902,49 +909,76 @@ function RetirementSimulator() {
                   aria-labelledby="solver-title"
                 >
                   <div className="solver-intro">
-                    <h2 id="solver-title">
-                      {solvingBalance
-                        ? "How much starting balance do I need?"
-                        : "How much can I withdraw?"}
-                    </h2>
+                    <h2 id="solver-title">Find Your Numbers</h2>
                     <p id="solver-description">
-                      Choose a target chance of your money lasting{" "}
-                      {useAges
-                        ? `from age ${retirementAge} through age ${planThroughAge}`
-                        : `for ${years} years in retirement`}
-                      .{" "}
-                      {solvingBalance
-                        ? `We'll calculate a starting balance while keeping your annual withdrawal at ${fmtMoneyFull(withdrawal)} in today's dollars.`
-                        : "We'll calculate an annual withdrawal using your starting balance and plan's assumptions."}
+                      Choose a question, then set the target success rate for
+                      your money lasting through retirement.
                     </p>
                   </div>
-                  <fieldset className="solver-mode" disabled={solving}>
-                    <legend>Solve for</legend>
-                    {[
-                      ["withdrawal", "Annual Withdrawal"],
-                      ["balance", "Starting Balance"],
-                    ].map(([value, label]) => (
-                      <label key={value}>
-                        <input
-                          type="radio"
-                          name="solve-for"
-                          value={value}
-                          checked={solveFor === value}
-                          onChange={() => {
-                            setSolveFor(value);
-                            setSolverError(null);
-                            setSolverResult(null);
-                          }}
-                        />
-                        {label}
-                      </label>
-                    ))}
+                  <fieldset
+                    className="solver-mode"
+                    aria-labelledby="solver-title"
+                    disabled={solving}
+                  >
+                    <div className="solver-options">
+                      {[
+                        {
+                          value: "withdrawal",
+                          question: "How much can I withdraw?",
+                          description:
+                            "Find the highest annual withdrawal for my target success rate.",
+                          fixed: `Starting with ${fmtMoneyFull(balance)} ${retirementDelay > 0 ? "today" : "at retirement"}`,
+                        },
+                        {
+                          value: "balance",
+                          question: "How much do I need saved?",
+                          description: `Find the lowest balance ${retirementDelay > 0 ? "today" : "at retirement"} for my target success rate.`,
+                          fixed: `Withdrawing ${fmtMoneyFull(withdrawal)} / year in today's dollars`,
+                        },
+                      ].map(({ value, question, description, fixed }) => (
+                        <label key={value} className="solver-option">
+                          <input
+                            type="radio"
+                            name="solver-goal"
+                            value={value}
+                            checked={solveFor === value}
+                            aria-labelledby={`solver-${value}-question`}
+                            aria-describedby={`solver-${value}-description solver-${value}-fixed`}
+                            onChange={() => {
+                              setSolveFor(value);
+                              setSolverError(null);
+                              setSolverResult(null);
+                            }}
+                          />
+                          <span className="solver-option-copy">
+                            <span
+                              className="solver-option-title"
+                              id={`solver-${value}-question`}
+                            >
+                              {question}
+                            </span>
+                            <span id={`solver-${value}-description`}>
+                              {description}
+                            </span>
+                            <span
+                              className="solver-option-fixed"
+                              id={`solver-${value}-fixed`}
+                            >
+                              {fixed}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </fieldset>
                   <div className="solver-controls">
                     <div className="solver-target">
                       <div className="solver-target-heading">
                         <label htmlFor="solver-target">
-                          Target success rate
+                          <strong>Target success</strong> rate of money lasting{" "}
+                          {useAges
+                            ? `from age ${retirementAge} through age ${planThroughAge}`
+                            : `for ${years} years in retirement`}
                         </label>
                         <output htmlFor="solver-target">
                           {targetSuccessRate}%
@@ -980,13 +1014,13 @@ function RetirementSimulator() {
                       onClick={solveForTarget}
                       disabled={solving || running}
                     >
-                      {solving ? "Calculating..." : "Calculate & apply"}
+                      {solving ? "Calculating..." : "Calculate"}
                     </button>
                   </div>
                   <p className="solver-note" id="solver-apply-note">
                     {solvingBalance
-                      ? `Updates Starting Balance ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.balance.min)}–${fmtMoneyFull(AMOUNT_LIMITS.balance.max)}). Annual Withdrawal stays fixed.`
-                      : `Updates Annual Withdrawal in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)}–${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)}). Starting Balance stays fixed.`}
+                      ? `Updates ${SETTING_LABELS.balance} ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.balance.min)}–${fmtMoneyFull(AMOUNT_LIMITS.balance.max)}). ${SETTING_LABELS.withdrawal} stays fixed.`
+                      : `Updates ${SETTING_LABELS.withdrawal} in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)}–${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)}). ${SETTING_LABELS.balance} stays fixed.`}
                   </p>
                   {(solving || currentSolverResult || running) && (
                     <div
@@ -999,15 +1033,15 @@ function RetirementSimulator() {
                           <span>
                             Finding{" "}
                             {solvingBalance
-                              ? "starting balance"
-                              : "annual withdrawal"}{" "}
+                              ? SETTING_LABELS.balance.toLowerCase()
+                              : SETTING_LABELS.withdrawal.toLowerCase()}{" "}
                             for your {targetSuccessRate}% target
                           </span>
                           <progress
                             aria-label={
                               solvingBalance
-                                ? "Starting balance calculation"
-                                : "Withdrawal calculation"
+                                ? `${SETTING_LABELS.balance} calculation`
+                                : `${SETTING_LABELS.withdrawal} calculation`
                             }
                             value={solveProgress}
                             max={1}
@@ -1017,7 +1051,7 @@ function RetirementSimulator() {
                         <>
                           <strong>
                             {solvingBalance
-                              ? `${fmtMoneyFull(currentSolverResult.balance)} starting balance`
+                              ? `${fmtMoneyFull(currentSolverResult.balance)} ${SETTING_LABELS.balance.toLowerCase()}`
                               : `${fmtMoneyFull(currentSolverResult.withdrawal)} / year`}
                           </strong>
                           <span>
@@ -1040,8 +1074,8 @@ function RetirementSimulator() {
                           <span>
                             Updating your plan before calculating{" "}
                             {solvingBalance
-                              ? "a starting balance"
-                              : "an annual withdrawal"}
+                              ? `your ${SETTING_LABELS.balance.toLowerCase()}`
+                              : `your ${SETTING_LABELS.withdrawal.toLowerCase()}`}
                             ...
                           </span>
                         )
@@ -1168,8 +1202,8 @@ function HistoricalDataModal({ onClose }) {
               <th scope="col">Metric</th>
               <th scope="col">Time Frame</th>
               <th scope="col">Full-Period Value</th>
-              <th scope="col">Worst 30-Yr Period</th>
-              <th scope="col">Worst 30-Yr Value</th>
+              <th scope="col">{PRESET_LABELS.worst} Period</th>
+              <th scope="col">{PRESET_LABELS.worst} Value</th>
             </tr>
           </thead>
           <tbody>
@@ -1177,14 +1211,18 @@ function HistoricalDataModal({ onClose }) {
               <td colSpan="5">Returns</td>
             </tr>
             <tr>
-              <td>CAGR — U.S. Stocks</td>
+              <td>
+                {SETTING_LABELS.cagr} — {PRESET_LABELS.us} Stocks
+              </td>
               <td className="period-col">1871–2024</td>
               <td>{fmtPct(MARKET_PRESETS.us.historical.cagr)}</td>
               <td className="period-col">1903–1932</td>
               <td>{fmtPct(MARKET_PRESETS.us.worst.cagr)}</td>
             </tr>
             <tr>
-              <td>CAGR — World Stocks</td>
+              <td>
+                {SETTING_LABELS.cagr} — {PRESET_LABELS.world} Stocks
+              </td>
               <td className="period-col">1900–2024</td>
               <td>{fmtPct(MARKET_PRESETS.world.historical.cagr)}</td>
               <td className="period-col">~1914–1944</td>
@@ -1194,14 +1232,18 @@ function HistoricalDataModal({ onClose }) {
               <td colSpan="5">Volatility</td>
             </tr>
             <tr>
-              <td>Std Dev — U.S. Stocks</td>
+              <td>
+                {SETTING_LABELS.volatility} — {PRESET_LABELS.us} Stocks
+              </td>
               <td className="period-col">1926–2024</td>
               <td>{fmtPct(MARKET_PRESETS.us.historical.volatility)}</td>
               <td className="period-col">~1925–1955</td>
               <td>~{fmtPct(MARKET_PRESETS.us.worst.volatility, 0)}</td>
             </tr>
             <tr>
-              <td>Std Dev — World Stocks</td>
+              <td>
+                {SETTING_LABELS.volatility} — {PRESET_LABELS.world} Stocks
+              </td>
               <td className="period-col">1900–2024</td>
               <td>{fmtPct(MARKET_PRESETS.world.historical.volatility)}</td>
               <td className="period-col">~1914–1944</td>
@@ -1211,7 +1253,9 @@ function HistoricalDataModal({ onClose }) {
               <td colSpan="5">Inflation</td>
             </tr>
             <tr>
-              <td>U.S. CPI Inflation</td>
+              <td>
+                {PRESET_LABELS.us} CPI {SETTING_LABELS.inflation}
+              </td>
               <td className="period-col">1900–2024</td>
               <td>{fmtPct(MARKET_PRESETS.us.historical.inflation)}</td>
               <td className="period-col">~1950–1980</td>

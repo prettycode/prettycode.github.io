@@ -46,12 +46,6 @@ function PortfolioChart({
   // Chart geometry
   const W = 760;
   const H = 380;
-  const padL = 64;
-  const padR = 64;
-  const padT = 28;
-  const padB = 44;
-  const innerW = W - padL - padR;
-  const innerH = H - padT - padB;
 
   // Per-tick balance lookup: tick 0 = retirement, tick y = end of year y.
   const balanceAt = (t) =>
@@ -64,11 +58,25 @@ function PortfolioChart({
   const allWithdrawals = yearData.slice(1).map((d) => d.intended);
 
   const maxVal = Math.max(...allBalances.map((p) => p.p90), balance) * 1.05;
-  const x = (t) => padL + (t / simYears) * innerW;
-  const yScale = (v) => padT + innerH - (v / maxVal) * innerH;
-
   // Withdrawal scale (left axis)
   const maxW = (allWithdrawals.length ? Math.max(...allWithdrawals) : 0) * 1.15;
+
+  // Reserve only the space occupied by axis labels. JetBrains Mono glyphs
+  // advance 0.6em; include each label's axis offset and 2px of edge clearance.
+  const tickLabelWidth = (max, fontSize) =>
+    Math.ceil(
+      Math.max(...Y_AXIS_TICK_FRACTIONS.map((f) => fmtMoney(f * max).length)) *
+        fontSize *
+        0.6,
+    );
+  const padL = tickLabelWidth(maxW, 9) + 7 + 2;
+  const padR = tickLabelWidth(maxVal, 10) + 8 + 2;
+  const padT = 24; // Heading baseline 12px above plot, plus 9px text and clearance.
+  const padB = 40; // Time-axis title baseline 36px below plot, plus descenders.
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const x = (t) => padL + (t / simYears) * innerW;
+  const yScale = (v) => padT + innerH - (v / maxVal) * innerH;
   const yScaleW = (v) =>
     maxW > 0 ? padT + innerH - (v / maxW) * innerH : padT + innerH;
 
@@ -141,31 +149,25 @@ function PortfolioChart({
     upcomingYear && !beyondDepletion ? upcomingYear.actual : 0;
 
   return (
-    <div className="chart-section fade">
+    <section className="chart-section fade" aria-labelledby="chart-title">
       <div className="chart-title-row">
-        <h2 className="chart-title">Portfolio Trajectory</h2>
+        <h2 className="chart-title" id="chart-title">
+          Portfolio Trajectory
+        </h2>
+        <label className="chart-calendar-toggle">
+          <input
+            type="checkbox"
+            checked={showCalendarYears}
+            onChange={(e) => onShowCalendarYearsChange(e.target.checked)}
+          />
+          Show calendar years
+        </label>
       </div>
       <p className="chart-subtitle">
         Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo
         paths. Outer band, 10th–90th percentile; inner band, 25th–75th. Vertical
         marks show each year's median withdrawal, scaled to the left axis.
       </p>
-
-      <label className="toggle-row" style={{ marginBottom: 14 }}>
-        <input
-          type="checkbox"
-          checked={showCalendarYears}
-          onChange={(e) => onShowCalendarYearsChange(e.target.checked)}
-        />
-        <div>
-          <div className="toggle-label">Show calendar years</div>
-          <div className="toggle-sub">
-            {useAges
-              ? "Use calendar years instead of ages on the chart."
-              : "Use calendar years instead of years since retirement on the chart."}
-          </div>
-        </div>
-      </label>
 
       <div className={`chart-wrap${running ? " running" : ""}`}>
         {running && (
@@ -645,21 +647,27 @@ function PortfolioChart({
         <div className="legend-item">
           <span
             className="legend-swatch"
-            style={{ background: `rgba(44,74,62,${INNER_BAND_OPACITY})` }}
+            style={{
+              background: "var(--accent-2)",
+              opacity: INNER_BAND_OPACITY,
+            }}
           ></span>
           25th–75th percentile
         </div>
         <div className="legend-item">
           <span
             className="legend-swatch"
-            style={{ background: `rgba(44,74,62,${OUTER_BAND_OPACITY})` }}
+            style={{
+              background: "var(--accent-2)",
+              opacity: OUTER_BAND_OPACITY,
+            }}
           ></span>
           10th–90th percentile
         </div>
         <div className="legend-item">
           <span
-            className="legend-swatch"
-            style={{ background: "var(--ink)", border: "none" }}
+            className="legend-swatch legend-swatch-line"
+            style={{ background: "var(--ink)" }}
           ></span>
           Median path
         </div>
@@ -681,7 +689,7 @@ function PortfolioChart({
               fill="var(--withdrawal)"
             />
           </svg>
-          Annual withdrawal
+          {SETTING_LABELS.withdrawal}
         </div>
       </div>
 
@@ -694,6 +702,6 @@ function PortfolioChart({
         With a multi-year cash bucket, the first withdrawal is the lump sum
         drawn at retirement; the bucket-funded years that follow show no mark.
       </p>
-    </div>
+    </section>
   );
 }

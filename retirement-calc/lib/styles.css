@@ -309,7 +309,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ─── Solver row (between stats and chart) ─── */
-.solver-panel {
+.solver-panel,
+.chart-section {
   padding: 20px 22px;
   background: var(--cream-2);
   border: 1px solid var(--rule);
@@ -347,29 +348,75 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .solver-mode {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
+  min-width: 0;
   margin: 18px 0 0;
   padding: 0;
   border: 0;
   font-size: 12px;
 }
 
-.solver-mode legend {
-  margin-bottom: 8px;
-  font-weight: 600;
+.solver-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.solver-mode label {
+.solver-option {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--rule);
+  background: var(--cream);
   cursor: pointer;
 }
 
-.solver-mode input {
-  accent-color: var(--ink);
+.solver-option:hover {
+  border-color: var(--ink-2);
+}
+
+.solver-option:has(input:checked) {
+  border-color: var(--accent-2);
+  box-shadow: inset 0 0 0 1px var(--accent-2);
+}
+
+.solver-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 3px;
+}
+
+.solver-option input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: var(--accent-2);
+}
+
+.solver-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.solver-option-title {
+  font:
+    500 17px/1.3 "Fraunces",
+    serif;
+  color: var(--ink);
+}
+
+.solver-option-fixed {
+  margin-top: 4px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.solver-mode:disabled .solver-option {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 .solver-target-heading {
@@ -382,7 +429,7 @@ input[type="range"]::-moz-range-thumb {
 
 .solver-target-heading label {
   font:
-    500 13px "Fraunces",
+    400 13px "Fraunces",
     serif;
 }
 
@@ -588,12 +635,16 @@ input[type="range"]::-moz-range-thumb {
   color: var(--accent-2);
 }
 @media (max-width: 600px) {
-  .solver-panel {
+  .solver-panel,
+  .chart-section {
     padding: 18px 16px;
   }
   .solver-controls {
     grid-template-columns: 1fr;
     gap: 18px;
+  }
+  .solver-options {
+    grid-template-columns: 1fr;
   }
   .solve-btn {
     width: 100%;
@@ -871,10 +922,6 @@ input[type="range"]::-moz-range-thumb {
   font-variant-numeric: tabular-nums;
 }
 
-.stat-value.success {
-  font-style: italic;
-}
-
 /* ─── Chart Section ─── */
 .chart-section {
   position: relative;
@@ -883,22 +930,45 @@ input[type="range"]::-moz-range-thumb {
 .chart-title-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 8px;
 }
 
 .chart-title {
-  font-family: "Fraunces", serif;
-  font-size: 22px;
-  font-weight: 500;
-  font-style: italic;
-  letter-spacing: -0.01em;
+  margin: 0;
+  font:
+    500 22px/1.2 "Fraunces",
+    serif;
+  letter-spacing: -0.02em;
+}
+
+.chart-calendar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  font-size: 12px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.chart-calendar-toggle input {
+  margin: 0;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+
+.chart-calendar-toggle input:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 4px;
 }
 
 .chart-subtitle {
   font-size: 12px;
   color: var(--ink-2);
-  margin-bottom: 16px;
+  margin: 0 0 20px;
   max-width: 600px;
   line-height: 1.5;
 }
@@ -906,18 +976,13 @@ input[type="range"]::-moz-range-thumb {
 .chart-footnote {
   font-size: 11px;
   color: var(--ink-2);
-  font-style: italic;
   line-height: 1.55;
-  margin-top: 14px;
-  max-width: 600px;
+  margin: 12px 0 0;
 }
 
 .chart-wrap {
   position: relative;
   width: 100%;
-  background: var(--cream-2);
-  border: 1px solid var(--rule);
-  padding: 8px;
 }
 
 svg.chart {
@@ -929,13 +994,13 @@ svg.chart {
 
 .legend {
   display: flex;
-  gap: 24px;
+  gap: 10px 20px;
   flex-wrap: wrap;
-  margin-top: 14px;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--ink-2);
 }
 
@@ -943,12 +1008,17 @@ svg.chart {
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .legend-swatch {
   width: 16px;
   height: 10px;
-  border: 1px solid var(--ink);
+  flex-shrink: 0;
+}
+
+.legend-swatch-line {
+  height: 2px;
 }
 
 .tooltip {

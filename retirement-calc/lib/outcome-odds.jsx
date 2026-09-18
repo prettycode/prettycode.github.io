@@ -36,12 +36,7 @@ function OutcomeOdds({
   // Whole-number odds read better in prose than two-decimal percentages.
   // Rates inside 1–99% round to hundredths; anything rarer needs thousandths
   // so a small-but-real risk never prints as "about 0 in 100".
-  const inN = (p) => {
-    if (p < 0.01 || p > 0.99) {
-      return `about ${Math.max(1, Math.round(p * 1000))} in 1,000`;
-    }
-    return `about ${Math.round(p * 100)} in 100`;
-  };
+  const inN = (p) => `about ${fmtOdds(p)}`;
 
   // Tick y is the END of year y, so a band that is $0 there means that share
   // of futures had run out by then — "by" being the operative word, which is
