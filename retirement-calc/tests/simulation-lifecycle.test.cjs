@@ -73,7 +73,10 @@ function harness(saved = {}) {
     },
     clearTimeout() {},
   });
-  vm.runInContext(read("monte-carlo.js") + read("user-settings.js"), context);
+  vm.runInContext(
+    read("monte-carlo.js") + read("solver.js") + read("user-settings.js"),
+    context,
+  );
   const source = read("index.jsx")
     .replace(/\r\n/g, "\n")
     .split('  return (\n    <div className="sim-root">')[0];

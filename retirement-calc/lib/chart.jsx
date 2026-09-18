@@ -1,3 +1,9 @@
+const Y_AXIS_TICK_FRACTIONS = [0, 0.25, 0.5, 0.75, 1];
+const OUTER_BAND_OPACITY = 0.12;
+const INNER_BAND_OPACITY = 0.22;
+const WITHDRAWAL_MARKER_OPACITY = 0.55;
+const WITHDRAWAL_MARKER_RADIUS = 2.5;
+
 /* exported PortfolioChart */
 
 // ─── Portfolio Trajectory Chart ─────────────────────────────────────────────
@@ -89,7 +95,7 @@ function PortfolioChart({
   };
 
   // Y-axis ticks
-  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * maxVal);
+  const yTicks = Y_AXIS_TICK_FRACTIONS.map((t) => t * maxVal);
   const xTicks = (() => {
     const pxPerYear = innerW / Math.max(simYears, 1);
     const minPx = showCalendarYears || retirementDelay > 0 ? 40 : 24;
@@ -286,7 +292,7 @@ function PortfolioChart({
             strokeWidth="0.75"
             opacity="0.5"
           />
-          {[0, 0.25, 0.5, 0.75, 1].map((f, i) => {
+          {Y_AXIS_TICK_FRACTIONS.map((f, i) => {
             const v = f * maxW;
             return (
               <g key={i}>
@@ -317,12 +323,12 @@ function PortfolioChart({
           <path
             d={buildArea("p90", "p10")}
             fill="var(--accent-2)"
-            opacity="0.12"
+            opacity={OUTER_BAND_OPACITY}
           />
           <path
             d={buildArea("p75", "p25")}
             fill="var(--accent-2)"
-            opacity="0.22"
+            opacity={INNER_BAND_OPACITY}
           />
 
           {retirementDelay > 0 && (
@@ -408,9 +414,14 @@ function PortfolioChart({
                     y2={cy}
                     stroke="var(--withdrawal)"
                     strokeWidth="1"
-                    opacity="0.55"
+                    opacity={WITHDRAWAL_MARKER_OPACITY}
                   />
-                  <circle cx={cx} cy={cy} r="2.5" fill="var(--withdrawal)" />
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={WITHDRAWAL_MARKER_RADIUS}
+                    fill="var(--withdrawal)"
+                  />
                 </g>,
               );
             }
@@ -634,14 +645,14 @@ function PortfolioChart({
         <div className="legend-item">
           <span
             className="legend-swatch"
-            style={{ background: "rgba(44,74,62,0.22)" }}
+            style={{ background: `rgba(44,74,62,${INNER_BAND_OPACITY})` }}
           ></span>
           25th–75th percentile
         </div>
         <div className="legend-item">
           <span
             className="legend-swatch"
-            style={{ background: "rgba(44,74,62,0.12)" }}
+            style={{ background: `rgba(44,74,62,${OUTER_BAND_OPACITY})` }}
           ></span>
           10th–90th percentile
         </div>
@@ -661,9 +672,14 @@ function PortfolioChart({
               y2="3"
               stroke="var(--withdrawal)"
               strokeWidth="1"
-              opacity="0.55"
+              opacity={WITHDRAWAL_MARKER_OPACITY}
             />
-            <circle cx="8" cy="3" r="2.5" fill="var(--withdrawal)" />
+            <circle
+              cx="8"
+              cy="3"
+              r={WITHDRAWAL_MARKER_RADIUS}
+              fill="var(--withdrawal)"
+            />
           </svg>
           Annual withdrawal
         </div>

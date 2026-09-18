@@ -1,3 +1,6 @@
+const TARGET_SUCCESS_LIMITS = { min: 50, max: 99 };
+const RATE_STEP = 0.001;
+
 const { useState, useEffect } = React;
 
 // useState wrapper that persists through UserSettings: initial value comes
@@ -138,13 +141,14 @@ function RetirementSimulator() {
   const [targetSuccessRate, setTargetSuccessRate] =
     usePersistedState("targetSuccessRate");
 
-  // The bucket-* flags are no-ops when upfrontYears === 1 (no lump sum is
+  // The bucket-* flags are no-ops when only one year is funded (no lump sum is
   // taken). Depending on the *effective* values here keeps a checkbox toggle
   // from triggering a fresh Monte Carlo run with new random samples, which
   // would otherwise jiggle the success rate as pure simulation noise.
   const effectiveInflationAdjustBucket =
-    inflationAdjustBucket && upfrontYears > 1;
-  const effectiveBucketEarnsTBills = bucketEarnsTBills && upfrontYears > 1;
+    inflationAdjustBucket && Math.min(upfrontYears, years) > 1;
+  const effectiveBucketEarnsTBills =
+    bucketEarnsTBills && Math.min(upfrontYears, years) > 1;
 
   // A solver outcome belongs to the assumptions and target it was calculated for.
   const solverSettingsKey = JSON.stringify([
@@ -259,20 +263,11 @@ function RetirementSimulator() {
     retryCount,
   ]);
 
-  // Search for the lowest passing balance or highest passing withdrawal.
-  // Probe endpoints to detect range limits, then bisect on the slider grid.
-  // Reduced-run probes estimate the target; applying the result triggers
-  // the normal full-resolution simulation.
+  // Apply the solver estimate, triggering the full-resolution simulation.
   const solveForTarget = async () => {
     if (solving || running) {
       return;
     }
-    const TARGET = targetSuccessRate / 100;
-    const SOLVE_RUNS = 100_000;
-    const STEP = solvingBalance ? 50_000 : 1_000;
-    const MIN_AMOUNT = solvingBalance ? 100_000 : 10_000;
-    const MAX_AMOUNT = solvingBalance ? 10_000_000 : 300_000;
-    const MAX_ITER = 10;
 
     setSolverError(null);
     setSolving(true);
@@ -302,7 +297,6 @@ function RetirementSimulator() {
       volatility,
       inflation,
       years,
-      runs: SOLVE_RUNS,
       upfrontYears,
       inflationAdjustBucket: effectiveInflationAdjustBucket,
       bucketEarnsTBills: effectiveBucketEarnsTBills,
@@ -310,51 +304,16 @@ function RetirementSimulator() {
       monthly: withdrawalFrequency === "monthly",
     };
 
-    const probe = async (amount) => {
-      const request = startSimulation({ ...baseParams, [solveFor]: amount });
-      solverRequest.current = request;
-      const result = await request.promise;
-      return result.successRate;
-    };
-
-    const totalSteps = MAX_ITER + 2;
-    let step = 0;
-    const tick = () => {
-      step++;
-      setSolveProgress(step / totalSteps);
-    };
-
     try {
-      const loRate = await probe(MIN_AMOUNT);
-      tick();
-      if (solvingBalance ? loRate >= TARGET : loRate < TARGET) {
-        applyResult(MIN_AMOUNT, "minimum");
-        return;
-      }
-      const hiRate = await probe(MAX_AMOUNT);
-      tick();
-      if (solvingBalance ? hiRate < TARGET : hiRate >= TARGET) {
-        applyResult(MAX_AMOUNT, "maximum");
-        return;
-      }
-
-      let lo = MIN_AMOUNT;
-      let hi = MAX_AMOUNT;
-      for (let i = 0; i < MAX_ITER; i++) {
-        const mid = Math.round((lo + hi) / 2 / STEP) * STEP;
-        if (mid <= lo || mid >= hi) {
-          break;
-        }
-        const rate = await probe(mid);
-        if (solvingBalance ? rate < TARGET : rate >= TARGET) {
-          lo = mid;
-        } else {
-          hi = mid;
-        }
-        tick();
-      }
-
-      applyResult(solvingBalance ? hi : lo);
+      const request = startSolver(
+        baseParams,
+        solveFor,
+        targetSuccessRate,
+        setSolveProgress,
+      );
+      solverRequest.current = request;
+      const { amount, limit } = await request.promise;
+      applyResult(amount, limit);
     } catch (error) {
       if (error.name !== "AbortError") {
         setSolverError("The solver could not finish. Please try again.");
@@ -535,9 +494,9 @@ function RetirementSimulator() {
                   : "Portfolio value at retirement"
               }
               value={balance}
-              min={100_000}
-              max={10_000_000}
-              step={50_000}
+              min={AMOUNT_LIMITS.balance.min}
+              max={AMOUNT_LIMITS.balance.max}
+              step={AMOUNT_LIMITS.balance.step}
               onChange={setBalance}
               format={fmtMoney}
             />
@@ -550,9 +509,9 @@ function RetirementSimulator() {
                   : "Today's dollars; increased by rate of inflation each year"
               }
               value={withdrawal}
-              min={10_000}
-              max={300_000}
-              step={1_000}
+              min={AMOUNT_LIMITS.withdrawal.min}
+              max={AMOUNT_LIMITS.withdrawal.max}
+              step={AMOUNT_LIMITS.withdrawal.step}
               onChange={setWithdrawal}
               format={(v) =>
                 `${fmtMoney(v)} (${((v / balance) * 100).toFixed(1)}%)`
@@ -573,8 +532,14 @@ function RetirementSimulator() {
                   bucketEarnsTBills && v > 1
                     ? inflation + T_BILL_REAL_PREMIUM
                     : 0;
-                const bucket = bucketSize(retirementWithdrawal, v, wGrow, disc);
-                return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)})`;
+                const fundedYears = Math.min(v, years);
+                const bucket = bucketSize(
+                  retirementWithdrawal,
+                  fundedYears,
+                  wGrow,
+                  disc,
+                );
+                return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)}${v > years ? `; capped to ${fundedYears} ${fundedYears === 1 ? "yr" : "yrs"}` : ""})`;
               }}
             />
 
@@ -623,7 +588,7 @@ function RetirementSimulator() {
                 value={cagr}
                 min={0.01}
                 max={0.12}
-                step={0.001}
+                step={RATE_STEP}
                 onChange={setCagr}
                 format={fmtPct}
               />
@@ -634,7 +599,7 @@ function RetirementSimulator() {
                 value={volatility}
                 min={0.02}
                 max={0.3}
-                step={0.001}
+                step={RATE_STEP}
                 onChange={setVolatility}
                 format={fmtPct}
               />
@@ -645,7 +610,7 @@ function RetirementSimulator() {
                 value={inflation}
                 min={0}
                 max={0.08}
-                step={0.001}
+                step={RATE_STEP}
                 onChange={setInflation}
                 format={fmtPct}
               />
@@ -778,8 +743,8 @@ function RetirementSimulator() {
                     </div>
                     <div className="toggle-sub">
                       Hold cash beyond 1 year in T-Bills earning{" "}
-                      {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation +
-                      0.5% historical real return).
+                      {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation +{" "}
+                      {fmtPct(T_BILL_REAL_PREMIUM)} historical real return).
                     </div>
                   </div>
                 </label>
@@ -988,8 +953,8 @@ function RetirementSimulator() {
                       <input
                         id="solver-target"
                         type="range"
-                        min={50}
-                        max={99}
+                        min={TARGET_SUCCESS_LIMITS.min}
+                        max={TARGET_SUCCESS_LIMITS.max}
                         step={1}
                         value={targetSuccessRate}
                         aria-valuetext={`${targetSuccessRate}% chance of money lasting`}
@@ -999,13 +964,13 @@ function RetirementSimulator() {
                           setSolverResult(null);
                         }}
                         style={{
-                          "--pct": `${((targetSuccessRate - 50) / 49) * 100}%`,
+                          "--pct": `${((targetSuccessRate - TARGET_SUCCESS_LIMITS.min) / (TARGET_SUCCESS_LIMITS.max - TARGET_SUCCESS_LIMITS.min)) * 100}%`,
                         }}
                         disabled={solving}
                       />
                       <div className="solver-range-labels" aria-hidden="true">
-                        <span>50%</span>
-                        <span>99%</span>
+                        <span>{TARGET_SUCCESS_LIMITS.min}%</span>
+                        <span>{TARGET_SUCCESS_LIMITS.max}%</span>
                       </div>
                     </div>
                     <button
@@ -1020,8 +985,8 @@ function RetirementSimulator() {
                   </div>
                   <p className="solver-note" id="solver-apply-note">
                     {solvingBalance
-                      ? `Updates Starting Balance ${retirementDelay > 0 ? "today" : "at retirement"} in $50,000 increments ($100,000–$10,000,000). Annual Withdrawal stays fixed.`
-                      : "Updates Annual Withdrawal in $1,000 increments ($10,000–$300,000). Starting Balance stays fixed."}
+                      ? `Updates Starting Balance ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.balance.min)}–${fmtMoneyFull(AMOUNT_LIMITS.balance.max)}). Annual Withdrawal stays fixed.`
+                      : `Updates Annual Withdrawal in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)}–${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)}). Starting Balance stays fixed.`}
                   </p>
                   {(solving || currentSolverResult || running) && (
                     <div
@@ -1060,14 +1025,14 @@ function RetirementSimulator() {
                           <span>
                             {solvingBalance
                               ? currentSolverResult.limit === "minimum"
-                                ? `The $100,000 search minimum meets your ${currentSolverResult.target}% target. Lower balances have not been checked.`
+                                ? `The ${fmtMoneyFull(AMOUNT_LIMITS.balance.min)} search minimum meets your ${currentSolverResult.target}% target. Lower balances have not been checked.`
                                 : currentSolverResult.limit === "maximum"
-                                  ? `Your ${currentSolverResult.target}% target could not be reached within the $100,000 to $10,000,000 range. The maximum balance is applied.`
+                                  ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.balance.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.balance.max)} range. The maximum balance is applied.`
                                   : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`
                               : currentSolverResult.limit === "minimum"
-                                ? `Your ${currentSolverResult.target}% target could not be reached within the $10,000 to $300,000 range. The minimum withdrawal is applied.`
+                                ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} range. The minimum withdrawal is applied.`
                                 : currentSolverResult.limit === "maximum"
-                                  ? `The $300,000 search limit meets your ${currentSolverResult.target}% target. Higher withdrawals have not been checked.`
+                                  ? `The ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} search limit meets your ${currentSolverResult.target}% target. Higher withdrawals have not been checked.`
                                   : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`}
                             {running && " Updating your results..."}
                           </span>
@@ -1216,16 +1181,16 @@ function HistoricalDataModal({ onClose }) {
             <tr>
               <td>CAGR — U.S. Stocks</td>
               <td className="period-col">1871–2024</td>
-              <td>9.3%</td>
+              <td>{fmtPct(MARKET_PRESETS.us.historical.cagr)}</td>
               <td className="period-col">1903–1932</td>
-              <td>4.7%</td>
+              <td>{fmtPct(MARKET_PRESETS.us.worst.cagr)}</td>
             </tr>
             <tr>
               <td>CAGR — World Stocks</td>
               <td className="period-col">1900–2024</td>
-              <td>8.3%</td>
+              <td>{fmtPct(MARKET_PRESETS.world.historical.cagr)}</td>
               <td className="period-col">~1914–1944</td>
-              <td>~4.0%</td>
+              <td>~{fmtPct(MARKET_PRESETS.world.worst.cagr)}</td>
             </tr>
             <tr className="section-header">
               <td colSpan="5">Volatility</td>
@@ -1233,16 +1198,16 @@ function HistoricalDataModal({ onClose }) {
             <tr>
               <td>Std Dev — U.S. Stocks</td>
               <td className="period-col">1926–2024</td>
-              <td>19.8%</td>
+              <td>{fmtPct(MARKET_PRESETS.us.historical.volatility)}</td>
               <td className="period-col">~1925–1955</td>
-              <td>~28%</td>
+              <td>~{fmtPct(MARKET_PRESETS.us.worst.volatility, 0)}</td>
             </tr>
             <tr>
               <td>Std Dev — World Stocks</td>
               <td className="period-col">1900–2024</td>
-              <td>17.4%</td>
+              <td>{fmtPct(MARKET_PRESETS.world.historical.volatility)}</td>
               <td className="period-col">~1914–1944</td>
-              <td>~23%</td>
+              <td>~{fmtPct(MARKET_PRESETS.world.worst.volatility, 0)}</td>
             </tr>
             <tr className="section-header">
               <td colSpan="5">Inflation</td>
@@ -1250,9 +1215,9 @@ function HistoricalDataModal({ onClose }) {
             <tr>
               <td>U.S. CPI Inflation</td>
               <td className="period-col">1900–2024</td>
-              <td>2.9%</td>
+              <td>{fmtPct(MARKET_PRESETS.us.historical.inflation)}</td>
               <td className="period-col">~1950–1980</td>
-              <td>~4.6%</td>
+              <td>~{fmtPct(MARKET_PRESETS.us.worst.inflation)}</td>
             </tr>
           </tbody>
         </table>
@@ -1269,8 +1234,9 @@ function HistoricalDataModal({ onClose }) {
         cap-weighted). "~" prefix indicates an approximate figure where precise
         rolling 30-year data for the global index is less granular than for U.S.
         data. Volatility is the annualized standard deviation of nominal
-        returns. The world volatility figure of 17.4% reflects the diversified
-        index, which benefits from cross-country correlation &lt; 1.
+        returns. The world volatility figure of{" "}
+        {fmtPct(MARKET_PRESETS.world.historical.volatility)} reflects the
+        diversified index, which benefits from cross-country correlation &lt; 1.
       </div>
       <div className="source-tag">Nominal · Total Return · Annualized</div>
     </dialog>

@@ -112,8 +112,9 @@ function OutcomeOdds({
     const y = ranOutBy(r.key);
     return y === null
       ? {
-          odds: r.odds,
-          primary: `still had money at ${horizon}`,
+          odds: `At most ${r.odds}`,
+          lead: "had run out by",
+          primary: horizon,
           median: r.median,
         }
       : {

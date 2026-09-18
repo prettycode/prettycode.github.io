@@ -8,6 +8,9 @@
 // The only float math in this worker is the one-time Gaussian LUT build at
 // init; the per-run hot loop is purely integer.
 
+const MONTHS_PER_YEAR = 12;
+const CENTS_PER_DOLLAR = 100;
+
 const BP = 10000; // per-period rates: return, vol, inflation
 const MICRO = 1000000; // cumulative factors: (1+inflation)^y
 const GS = 10000000; // Gaussian sample scale (~7-digit per-sample resolution)
@@ -166,10 +169,12 @@ function runSimulation({
   monthly,
   retirementDelay = 0,
 }) {
+  // Only fund spending within the retirement horizon, excluding the delay.
+  upfrontYears = Math.min(upfrontYears, years);
   years += retirementDelay;
   // Boundary: convert UI inputs to integer scales once on entry.
-  const balCents = Math.round(balance * 100);
-  const wdCents = Math.round(withdrawal * 100);
+  const balCents = Math.round(balance * CENTS_PER_DOLLAR);
+  const wdCents = Math.round(withdrawal * CENTS_PER_DOLLAR);
   const returnBp = Math.round(returnRate * BP);
   const volBp = Math.round(volatility * BP);
   // Monthly conversions — pick μ_m and σ_m so 12 compounded months match the
@@ -182,9 +187,9 @@ function runSimulation({
   // paths *below* annual mode — masking the spread-withdrawal advantage and
   // reversing the intuitive "monthly should beat annual" outcome.
   const annualA = 1 + returnRate;
-  const monthlyA = Math.pow(annualA, 1 / 12);
+  const monthlyA = Math.pow(annualA, 1 / MONTHS_PER_YEAR);
   const monthlySigSq =
-    Math.pow(annualA * annualA + volatility * volatility, 1 / 12) -
+    Math.pow(annualA * annualA + volatility * volatility, 1 / MONTHS_PER_YEAR) -
     monthlyA * monthlyA;
   const returnMonthlyBp = Math.round((monthlyA - 1) * BP);
   const volMonthlyBp = Math.round(Math.sqrt(Math.max(0, monthlySigSq)) * BP);
@@ -300,10 +305,10 @@ function runSimulation({
       // have no portfolio draw, so sub-stepping them would only inflate the
       // RNG cost without changing the statistics.
       if (monthly && !isLumpYear && !isBucketFunded) {
-        const monthlyW = Math.floor(actualW / 12);
-        const lastW = actualW - 11 * monthlyW;
-        for (let m = 0; m < 12; m++) {
-          const w = m === 11 ? lastW : monthlyW;
+        const monthlyW = Math.floor(actualW / MONTHS_PER_YEAR);
+        const lastW = actualW - (MONTHS_PER_YEAR - 1) * monthlyW;
+        for (let m = 0; m < MONTHS_PER_YEAR; m++) {
+          const w = m === MONTHS_PER_YEAR - 1 ? lastW : monthlyW;
           bal -= w;
           if (bal <= 0) {
             bal = 0;
@@ -351,7 +356,7 @@ function runSimulation({
 
   // Boundary: emit dollars (integer cents → integer dollars) so the React
   // side's fmtMoney/fmtPct keep their existing signatures.
-  const c2d = (c) => Math.floor(c / 100);
+  const c2d = (c) => Math.floor(c / CENTS_PER_DOLLAR);
 
   // Chain the quantile selections so each one only searches the half of the
   // array left unresolved by its predecessor: p50 splits the array, quartiles

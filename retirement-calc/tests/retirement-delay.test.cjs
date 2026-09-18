@@ -40,6 +40,44 @@ test("delay adds growth-only years before the full retirement duration", () => {
   assert.equal(result.successRate, 1);
 });
 
+test("oversized cash buckets only fund the retirement horizon", () => {
+  for (const years of [1, 3]) {
+    for (const retirementDelay of [0, 5]) {
+      for (const monthly of [false, true]) {
+        for (const inflationAdjustBucket of [false, true]) {
+          for (const bucketEarnsTBills of [false, true]) {
+            const params = {
+              years,
+              retirementDelay,
+              monthly,
+              inflationAdjustBucket,
+              bucketEarnsTBills,
+              inflation: 0.03,
+            };
+            assert.deepEqual(
+              simulate({ ...params, upfrontYears: 10 }),
+              simulate({ ...params, upfrontYears: years }),
+            );
+          }
+        }
+      }
+    }
+  }
+});
+
+test("a two-year bucket does not bankrupt an affordable one-year plan", () => {
+  const result = simulate({
+    balance: 100_000,
+    withdrawal: 60_000,
+    years: 1,
+    upfrontYears: 2,
+    returnRate: 0,
+  });
+  assert.equal(result.successRate, 1);
+  assert.equal(result.percentiles[1].withdrawal, 60_000);
+  assert.equal(result.medianEnding, 40_000);
+});
+
 test("cash bucket is drawn at retirement, after growth-only years", () => {
   for (const monthly of [false, true]) {
     const result = simulate({ retirementDelay: 2, upfrontYears: 2, monthly });

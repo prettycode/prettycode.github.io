@@ -51,6 +51,35 @@ const MIXED = {
   runs: 20_000,
 };
 
+test("lifespan rungs without depletion give failure bounds, not survival odds", () => {
+  const source = fs
+    .readFileSync(path.join(__dirname, "../lib/outcome-odds.jsx"), "utf8")
+    .replace(/\r\n/g, "\n");
+  // Execute the component's actual derivation before its JSX render.
+  const component = source.slice(0, source.indexOf("  return (\n    <section"));
+  const ui = vm.createContext({ fmtMoney: String });
+  vm.runInContext(`${component}\nreturn lifespanLadder;\n}`, ui);
+  const rows = ui.OutcomeOdds({
+    yearData: [
+      null,
+      { endBalance: { p10: 0, p25: 0, p50: 0, p75: 100, p90: 200 } },
+    ],
+    simYears: 1,
+    successRate: 0.45,
+    totalRuns: 100,
+    retirementDelay: 0,
+    inflation: 0,
+  });
+  assert.equal(rows[2].odds, "1 in 2");
+  assert.equal(rows[2].lead, "had run out by");
+  assert.equal(rows[3].odds, "At most 3 in 4");
+  assert.equal(rows[4].odds, "At most 9 in 10");
+  for (const row of rows.slice(3)) {
+    assert.equal(row.lead, "had run out by");
+    assert.equal(row.primary, "the end of year 1");
+  }
+});
+
 // Mirrors OutcomeOdds' ranOutBy: first year the band reaches $0, else null.
 const ranOutBy = (result, key) => {
   for (let y = 1; y < result.percentiles.length; y++) {

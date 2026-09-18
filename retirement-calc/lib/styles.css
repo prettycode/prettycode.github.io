@@ -107,12 +107,6 @@
   gap: 36px;
 }
 
-@media (max-width: 920px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ─── Sidebar (Sliders) ─── */
 .sidebar {
   border-right: 1px solid var(--rule);
@@ -120,6 +114,9 @@
 }
 
 @media (max-width: 920px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--rule);
@@ -471,19 +468,6 @@ input[type="range"]::-moz-range-thumb {
   cursor: progress;
 }
 
-@media (max-width: 600px) {
-  .solver-panel {
-    padding: 18px 16px;
-  }
-  .solver-controls {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
-  .solve-btn {
-    width: 100%;
-  }
-}
-
 .historical-modal {
   width: min(940px, calc(100% - 32px));
   max-height: calc(100dvh - 48px);
@@ -602,6 +586,16 @@ input[type="range"]::-moz-range-thumb {
   color: var(--accent-2);
 }
 @media (max-width: 600px) {
+  .solver-panel {
+    padding: 18px 16px;
+  }
+  .solver-controls {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .solve-btn {
+    width: 100%;
+  }
   .historical-modal {
     padding: 20px 16px;
   }
@@ -775,13 +769,7 @@ input[type="range"]::-moz-range-thumb {
   font-size: 10px;
   font-style: italic;
 }
-@media (max-width: 720px) {
-  .plan-schedule-toolbar {
-    flex-direction: column;
-    margin-bottom: 16px;
-    gap: 0;
-  }
-}
+
 @media print {
   @page {
     size: landscape;
@@ -842,12 +830,6 @@ input[type="range"]::-moz-range-thumb {
   border-bottom: 1px solid var(--ink);
 }
 
-@media (max-width: 720px) {
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 .stat-cell {
   display: grid;
   grid-template-rows: subgrid;
@@ -858,22 +840,6 @@ input[type="range"]::-moz-range-thumb {
 
 .stat-cell:last-child {
   border-right: none;
-}
-
-@media (max-width: 720px) {
-  .stat-cell:nth-child(2),
-  .stat-cell:nth-child(4) {
-    border-right: none;
-  }
-  .stat-cell:nth-child(1),
-  .stat-cell:nth-child(2),
-  .stat-cell:nth-child(3),
-  .stat-cell:nth-child(4) {
-    border-bottom: 1px solid var(--rule);
-  }
-  .stat-cell:nth-child(5) {
-    grid-column: span 2;
-  }
 }
 
 .stat-label {
@@ -1133,6 +1099,27 @@ svg.chart {
 }
 
 @media (max-width: 720px) {
+  .plan-schedule-toolbar {
+    flex-direction: column;
+    margin-bottom: 16px;
+    gap: 0;
+  }
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .stat-cell:nth-child(2),
+  .stat-cell:nth-child(4) {
+    border-right: none;
+  }
+  .stat-cell:nth-child(1),
+  .stat-cell:nth-child(2),
+  .stat-cell:nth-child(3),
+  .stat-cell:nth-child(4) {
+    border-bottom: 1px solid var(--rule);
+  }
+  .stat-cell:nth-child(5) {
+    grid-column: span 2;
+  }
   .odds-rung {
     grid-template-columns: 1fr;
     gap: 2px;

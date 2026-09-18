@@ -19,4 +19,4 @@ const fmtMoneyFull = (n) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-const fmtPct = (n) => `${(n * 100).toFixed(1)}%`;
+const fmtPct = (n, digits = 1) => `${(n * 100).toFixed(digits)}%`;
