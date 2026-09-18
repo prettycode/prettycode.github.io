@@ -23,7 +23,7 @@ const SETTINGS_DEFAULTS = (() => {
     withdrawal: 150_000,
     withdrawalFrequency: "monthly",
     upfrontYears: 2,
-    planningMode: "settings",
+    planningMode: "ages",
     settingsYears: AGE_DEPLETION - AGE_NOW,
     settingsDelay: 0,
     currentAge: AGE_NOW,

@@ -450,21 +450,21 @@ function RetirementSimulator() {
             >
               <button
                 type="button"
-                className={`freq-btn${!useAges ? " active" : ""}`}
-                aria-pressed={!useAges}
-                disabled={solving}
-                onClick={() => setPlanningMode("settings")}
-              >
-                Duration
-              </button>
-              <button
-                type="button"
                 className={`freq-btn${useAges ? " active" : ""}`}
                 aria-pressed={useAges}
                 disabled={solving}
                 onClick={() => setPlanningMode("ages")}
               >
                 Age
+              </button>
+              <button
+                type="button"
+                className={`freq-btn${!useAges ? " active" : ""}`}
+                aria-pressed={!useAges}
+                disabled={solving}
+                onClick={() => setPlanningMode("settings")}
+              >
+                Duration
               </button>
             </div>
             {useAges && (
@@ -921,6 +921,32 @@ function RetirementSimulator() {
                   </div>
                 </div>
 
+                {/* CHART */}
+                <PortfolioChart
+                  yearData={yearData}
+                  retirementBalance={sim.percentiles[0]}
+                  running={running}
+                  progress={progress}
+                  balance={simInputs.balance}
+                  withdrawalFrequency={simInputs.withdrawalFrequency}
+                  medianDepletion={medianDepletion}
+                  simYears={simYears}
+                  showCalendarYears={showCalendarYears}
+                  onShowCalendarYearsChange={setShowCalendarYears}
+                  retirementDelay={simRetirementDelay}
+                  currentAge={simUseAges ? simCurrentAge : undefined}
+                />
+
+                <OutcomeOdds
+                  yearData={yearData}
+                  simYears={simYears}
+                  successRate={sim.successRate}
+                  totalRuns={sim.runs}
+                  retirementDelay={simRetirementDelay}
+                  currentAge={simUseAges ? simCurrentAge : undefined}
+                  inflation={simInputs.inflation}
+                />
+
                 {/* SOLVER */}
                 <section
                   className="solver-panel fade"
@@ -1133,32 +1159,6 @@ function RetirementSimulator() {
                     </p>
                   )}
                 </section>
-
-                {/* CHART */}
-                <PortfolioChart
-                  yearData={yearData}
-                  retirementBalance={sim.percentiles[0]}
-                  running={running}
-                  progress={progress}
-                  balance={simInputs.balance}
-                  withdrawalFrequency={simInputs.withdrawalFrequency}
-                  medianDepletion={medianDepletion}
-                  simYears={simYears}
-                  showCalendarYears={showCalendarYears}
-                  onShowCalendarYearsChange={setShowCalendarYears}
-                  retirementDelay={simRetirementDelay}
-                  currentAge={simUseAges ? simCurrentAge : undefined}
-                />
-
-                <OutcomeOdds
-                  yearData={yearData}
-                  simYears={simYears}
-                  successRate={sim.successRate}
-                  totalRuns={sim.runs}
-                  retirementDelay={simRetirementDelay}
-                  currentAge={simUseAges ? simCurrentAge : undefined}
-                  inflation={simInputs.inflation}
-                />
 
                 <PlanSchedule
                   progress={progress}
