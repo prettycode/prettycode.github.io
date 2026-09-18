@@ -1015,8 +1015,6 @@ function RetirementSimulator() {
                         </>
                       ) : currentSolverResult ? (
                         <>
-                          Portfolio Settings updated:
-                          <br />
                           <strong>
                             {solvingBalance
                               ? `${fmtMoneyFull(currentSolverResult.balance)} starting balance`

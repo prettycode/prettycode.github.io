@@ -425,7 +425,9 @@ input[type="range"]::-moz-range-thumb {
 
 .solver-feedback strong {
   color: var(--ink);
+  font-size: clamp(16px, 2vw, 20px);
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .solver-feedback progress {
