@@ -13,6 +13,10 @@
 const USER_SETTINGS_STORAGE_KEY = "retirement-calc-settings-v1";
 
 const SETTINGS_DEFAULTS = (() => {
+  const SWR_TARGET = 0.9;
+  const AGE_NOW = 43;
+  const AGE_DEPLETION = 90;
+
   const initialMarket = MARKET_PRESETS.world.historical;
   return {
     balance: 3_500_000,
@@ -20,12 +24,12 @@ const SETTINGS_DEFAULTS = (() => {
     withdrawalFrequency: "monthly",
     upfrontYears: 2,
     planningMode: "settings",
-    settingsYears: 30,
-    settingsDelay: 5,
-    currentAge: 43,
-    retirementAge: 50,
-    planThroughAge: 90,
-    targetSuccessRate: 90,
+    settingsYears: AGE_DEPLETION - AGE_NOW,
+    settingsDelay: 0,
+    currentAge: AGE_NOW,
+    retirementAge: AGE_NOW,
+    planThroughAge: AGE_DEPLETION,
+    targetSuccessRate: SWR_TARGET * 100,
     inflationAdjustBucket: false,
     bucketEarnsTBills: false,
     cagr: initialMarket.cagr,
