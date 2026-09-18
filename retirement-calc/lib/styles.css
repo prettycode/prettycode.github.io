@@ -349,6 +349,32 @@ input[type="range"]::-moz-range-thumb {
   margin-top: 22px;
 }
 
+.solver-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 18px 0 0;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
+}
+
+.solver-mode legend {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.solver-mode label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.solver-mode input {
+  accent-color: var(--ink);
+}
+
 .solver-target-heading {
   display: flex;
   align-items: baseline;

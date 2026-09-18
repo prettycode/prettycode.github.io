@@ -81,7 +81,7 @@ function harness(saved = {}) {
     source +
       `
     return {sim, simInputs, simUseAges, running, solving, simulationError, solverError,
-      currentSolverResult, withdrawal, setWithdrawal, setTargetSuccessRate,
+      currentSolverResult, balance, withdrawal, setWithdrawal, setTargetSuccessRate, setSolveFor,
       solveForTarget, setInflation, setPlanningMode, setWithdrawalFrequency, setBalance,
       handleRetirementStartChange, setCurrentAge, setPlanThroughAge,
       setRetirementAge, currentAge,
@@ -329,6 +329,70 @@ for (const limit of ["minimum", "maximum", null]) {
     assert.equal(h.render().currentSolverResult, null);
   });
 }
+
+for (const limit of ["minimum", "maximum", null]) {
+  test(`balance solver preserves withdrawal and reports range limit: ${limit}`, async () => {
+    const h = harness({ withdrawal: 123000, settingsDelay: 10 });
+    h.render();
+    h.workers[0].done(result);
+    await flush();
+    h.render().setSolveFor("balance");
+    const solve = h.render().solveForTarget();
+    let index = 1;
+    while (h.workers[index]) {
+      const worker = h.workers[index++];
+      const params = worker.message.params;
+      assert.equal(params.withdrawal, 123000);
+      assert.equal(params.retirementDelay, 10);
+      assert.equal(params.monthly, true);
+      worker.done({
+        ...result,
+        successRate:
+          limit === "minimum"
+            ? 1
+            : limit === "maximum"
+              ? 0
+              : params.balance >= 3020000
+                ? 0.9
+                : 0.89,
+      });
+      await flush();
+    }
+    await solve;
+    let state = h.render();
+    const expected =
+      limit === "minimum" ? 100000 : limit === "maximum" ? 10000000 : 3050000;
+    assert.equal(state.balance, expected);
+    assert.equal(state.withdrawal, 123000);
+    assert.equal(state.currentSolverResult.balance, expected);
+    assert.equal(state.currentSolverResult.limit, limit);
+    assert.equal(h.workers.at(-1).message.params.balance, expected);
+    state.setWithdrawal(124000);
+    state = h.render();
+    assert.equal(state.currentSolverResult, null);
+  });
+}
+
+test("changing withdrawal cancels a balance solve without applying stale results", async () => {
+  const h = harness();
+  h.render();
+  h.workers[0].done(result);
+  await flush();
+  h.render().setSolveFor("balance");
+  const state = h.render();
+  const solve = state.solveForTarget();
+  state.setWithdrawal(120000);
+  h.render();
+  await solve;
+  h.workers[1].done({ ...result, successRate: 1 });
+  await flush();
+  const next = h.render();
+  assert.equal(next.balance, state.balance);
+  assert.equal(next.withdrawal, 120000);
+  assert.equal(next.currentSolverResult, null);
+  assert.equal(next.solving, false);
+  assert.equal(next.solverError, null);
+});
 
 for (const failure of ["constructor", "postMessage", "messageerror"]) {
   test(`worker ${failure} failure rejects and cleans up`, async () => {

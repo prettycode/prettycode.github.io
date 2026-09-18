@@ -133,6 +133,8 @@ function RetirementSimulator() {
   const [running, setRunning] = useState(true);
   const [solving, setSolving] = useState(false);
   const [solveProgress, setSolveProgress] = useState(0);
+  const [solveFor, setSolveFor] = useState("withdrawal");
+  const solvingBalance = solveFor === "balance";
   const [targetSuccessRate, setTargetSuccessRate] =
     usePersistedState("targetSuccessRate");
 
@@ -146,7 +148,8 @@ function RetirementSimulator() {
 
   // A solver outcome belongs to the assumptions and target it was calculated for.
   const solverSettingsKey = JSON.stringify([
-    balance,
+    solveFor,
+    solvingBalance ? withdrawal : balance,
     cagr,
     volatility,
     inflation,
@@ -162,6 +165,7 @@ function RetirementSimulator() {
   ]);
   const currentSolverResult =
     solverResult?.settingsKey === solverSettingsKey &&
+    solverResult.balance === balance &&
     solverResult.withdrawal === withdrawal
       ? solverResult
       : null;
@@ -255,22 +259,19 @@ function RetirementSimulator() {
     retryCount,
   ]);
 
-  // Binary-search the worker for the withdrawal that yields the chosen
-  // target success rate. Success is monotonic in withdrawal (more spent →
-  // lower success), so we probe endpoints first to detect the unreachable
-  // cases, then halve the interval keeping the invariant rate(lo) ≥ target
-  // > rate(hi). Each probe runs a reduced-runs simulation (100K vs 1M) for
-  // speed; the final value is applied to the slider, which triggers the
-  // normal full-resolution rerun.
+  // Search for the lowest passing balance or highest passing withdrawal.
+  // Probe endpoints to detect range limits, then bisect on the slider grid.
+  // Reduced-run probes estimate the target; applying the result triggers
+  // the normal full-resolution simulation.
   const solveForTarget = async () => {
     if (solving || running) {
       return;
     }
     const TARGET = targetSuccessRate / 100;
     const SOLVE_RUNS = 100_000;
-    const STEP = 1_000;
-    const MIN_WD = 10_000;
-    const MAX_WD = 300_000;
+    const STEP = solvingBalance ? 50_000 : 1_000;
+    const MIN_AMOUNT = solvingBalance ? 100_000 : 10_000;
+    const MAX_AMOUNT = solvingBalance ? 10_000_000 : 300_000;
     const MAX_ITER = 10;
 
     setSolverError(null);
@@ -280,17 +281,23 @@ function RetirementSimulator() {
 
     const applyResult = (amount, limit = null) => {
       setSolverResult({
-        withdrawal: amount,
+        balance: solvingBalance ? amount : balance,
+        withdrawal: solvingBalance ? withdrawal : amount,
         target: targetSuccessRate,
         settingsKey: solverSettingsKey,
         limit,
       });
-      setWithdrawal(amount);
+      if (solvingBalance) {
+        setBalance(amount);
+      } else {
+        setWithdrawal(amount);
+      }
     };
 
     const baseParams = {
       retirementDelay,
       balance,
+      withdrawal,
       returnRate: cagrToArithmetic(cagr, volatility),
       volatility,
       inflation,
@@ -303,8 +310,8 @@ function RetirementSimulator() {
       monthly: withdrawalFrequency === "monthly",
     };
 
-    const probe = async (wd) => {
-      const request = startSimulation({ ...baseParams, withdrawal: wd });
+    const probe = async (amount) => {
+      const request = startSimulation({ ...baseParams, [solveFor]: amount });
       solverRequest.current = request;
       const result = await request.promise;
       return result.successRate;
@@ -318,28 +325,28 @@ function RetirementSimulator() {
     };
 
     try {
-      const loRate = await probe(MIN_WD);
+      const loRate = await probe(MIN_AMOUNT);
       tick();
-      if (loRate < TARGET) {
-        applyResult(MIN_WD, "minimum");
+      if (solvingBalance ? loRate >= TARGET : loRate < TARGET) {
+        applyResult(MIN_AMOUNT, "minimum");
         return;
       }
-      const hiRate = await probe(MAX_WD);
+      const hiRate = await probe(MAX_AMOUNT);
       tick();
-      if (hiRate >= TARGET) {
-        applyResult(MAX_WD, "maximum");
+      if (solvingBalance ? hiRate < TARGET : hiRate >= TARGET) {
+        applyResult(MAX_AMOUNT, "maximum");
         return;
       }
 
-      let lo = MIN_WD;
-      let hi = MAX_WD;
+      let lo = MIN_AMOUNT;
+      let hi = MAX_AMOUNT;
       for (let i = 0; i < MAX_ITER; i++) {
         const mid = Math.round((lo + hi) / 2 / STEP) * STEP;
         if (mid <= lo || mid >= hi) {
           break;
         }
         const rate = await probe(mid);
-        if (rate >= TARGET) {
+        if (solvingBalance ? rate < TARGET : rate >= TARGET) {
           lo = mid;
         } else {
           hi = mid;
@@ -347,7 +354,7 @@ function RetirementSimulator() {
         tick();
       }
 
-      applyResult(lo);
+      applyResult(solvingBalance ? hi : lo);
     } catch (error) {
       if (error.name !== "AbortError") {
         setSolverError("The solver could not finish. Please try again.");
@@ -931,17 +938,43 @@ function RetirementSimulator() {
                 >
                   <div className="solver-intro">
                     <h2 id="solver-title">
-                      How much should I withdrawal a target success rate?
+                      {solvingBalance
+                        ? "How much starting balance do I need?"
+                        : "How much can I withdraw?"}
                     </h2>
                     <p id="solver-description">
                       Choose a target chance of your money lasting{" "}
                       {useAges
                         ? `from age ${retirementAge} through age ${planThroughAge}`
                         : `for ${years} years in retirement`}
-                      . We'll calculate an annual withdrawal using your plan's
-                      assumptions.
+                      .{" "}
+                      {solvingBalance
+                        ? `We'll calculate a starting balance while keeping your annual withdrawal at ${fmtMoneyFull(withdrawal)} in today's dollars.`
+                        : "We'll calculate an annual withdrawal using your starting balance and plan's assumptions."}
                     </p>
                   </div>
+                  <fieldset className="solver-mode" disabled={solving}>
+                    <legend>Solve for</legend>
+                    {[
+                      ["withdrawal", "Annual Withdrawal"],
+                      ["balance", "Starting Balance"],
+                    ].map(([value, label]) => (
+                      <label key={value}>
+                        <input
+                          type="radio"
+                          name="solve-for"
+                          value={value}
+                          checked={solveFor === value}
+                          onChange={() => {
+                            setSolveFor(value);
+                            setSolverError(null);
+                            setSolverResult(null);
+                          }}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </fieldset>
                   <div className="solver-controls">
                     <div className="solver-target">
                       <div className="solver-target-heading">
@@ -985,6 +1018,11 @@ function RetirementSimulator() {
                       {solving ? "Calculating..." : "Calculate & apply"}
                     </button>
                   </div>
+                  <p className="solver-note" id="solver-apply-note">
+                    {solvingBalance
+                      ? `Updates Starting Balance ${retirementDelay > 0 ? "today" : "at retirement"} in $50,000 increments ($100,000–$10,000,000). Annual Withdrawal stays fixed.`
+                      : "Updates Annual Withdrawal in $1,000 increments ($10,000–$300,000). Starting Balance stays fixed."}
+                  </p>
                   {(solving || currentSolverResult || running) && (
                     <div
                       className="solver-feedback"
@@ -994,11 +1032,18 @@ function RetirementSimulator() {
                       {solving ? (
                         <>
                           <span>
-                            Finding amount to withdrawal for your{" "}
-                            {targetSuccessRate}% target
+                            Finding{" "}
+                            {solvingBalance
+                              ? "starting balance"
+                              : "annual withdrawal"}{" "}
+                            for your {targetSuccessRate}% target
                           </span>
                           <progress
-                            aria-label="Withdrawal calculation"
+                            aria-label={
+                              solvingBalance
+                                ? "Starting balance calculation"
+                                : "Withdrawal calculation"
+                            }
                             value={solveProgress}
                             max={1}
                           />
@@ -1008,23 +1053,33 @@ function RetirementSimulator() {
                           Portfolio Settings updated:
                           <br />
                           <strong>
-                            {fmtMoneyFull(currentSolverResult.withdrawal)} /
-                            year
+                            {solvingBalance
+                              ? `${fmtMoneyFull(currentSolverResult.balance)} starting balance`
+                              : `${fmtMoneyFull(currentSolverResult.withdrawal)} / year`}
                           </strong>
                           <span>
-                            {currentSolverResult.limit === "minimum"
-                              ? `Your ${currentSolverResult.target}% target could not be reached within the $10,000 to $300,000 range. The minimum withdrawal is applied.`
-                              : currentSolverResult.limit === "maximum"
-                                ? `The $300,000 search limit meets your ${currentSolverResult.target}% target. Higher withdrawals have not been checked.`
-                                : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`}
+                            {solvingBalance
+                              ? currentSolverResult.limit === "minimum"
+                                ? `The $100,000 search minimum meets your ${currentSolverResult.target}% target. Lower balances have not been checked.`
+                                : currentSolverResult.limit === "maximum"
+                                  ? `Your ${currentSolverResult.target}% target could not be reached within the $100,000 to $10,000,000 range. The maximum balance is applied.`
+                                  : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`
+                              : currentSolverResult.limit === "minimum"
+                                ? `Your ${currentSolverResult.target}% target could not be reached within the $10,000 to $300,000 range. The minimum withdrawal is applied.`
+                                : currentSolverResult.limit === "maximum"
+                                  ? `The $300,000 search limit meets your ${currentSolverResult.target}% target. Higher withdrawals have not been checked.`
+                                  : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`}
                             {running && " Updating your results..."}
                           </span>
                         </>
                       ) : (
                         running && (
                           <span>
-                            Updating your plan before calculating a
-                            withdrawal...
+                            Updating your plan before calculating{" "}
+                            {solvingBalance
+                              ? "a starting balance"
+                              : "an annual withdrawal"}
+                            ...
                           </span>
                         )
                       )}
