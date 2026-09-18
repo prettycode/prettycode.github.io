@@ -113,6 +113,35 @@
   padding-right: 32px;
 }
 
+@media (min-width: 921px) {
+  .sidebar {
+    position: sticky;
+    top: 28px;
+    align-self: start;
+    max-height: calc(100dvh - 56px);
+    overflow-y: auto;
+  }
+
+  .stats-row {
+    position: sticky;
+    top: 28px;
+    z-index: 20;
+    background: var(--cream);
+  }
+
+  /* Cover the top offset while keeping the stats row's border visible. */
+  .stats-row::before {
+    content: "";
+    position: absolute;
+    bottom: calc(100% + 1px);
+    left: 0;
+    right: 0;
+    height: 28px;
+    background: var(--cream);
+    pointer-events: none;
+  }
+}
+
 @media (max-width: 920px) {
   .layout {
     grid-template-columns: 1fr;
