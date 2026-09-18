@@ -428,3 +428,84 @@ for (const failure of ["constructor", "postMessage", "messageerror"]) {
     assert.equal(terminated, failure !== "constructor");
   });
 }
+
+for (const planningMode of ["settings", "ages"]) {
+  for (const match of [0, 3, null]) {
+    test(`${planningMode} delay solver finds earliest retirement without changing savings: ${match}`, async () => {
+      const h = harness({
+        planningMode,
+        currentAge: 43,
+        retirementAge: 48,
+        settingsDelay: 5,
+        planThroughAge: 53,
+        withdrawal: 123000,
+        upfrontYears: 10,
+        inflationAdjustBucket: true,
+        bucketEarnsTBills: true,
+      });
+      h.render();
+      h.workers[0].done(result);
+      await flush();
+      h.render().setSolveFor("retirementDelay");
+      const before = h.render();
+      const solve = before.solveForTarget();
+      let index = 1;
+      while (h.workers[index]) {
+        const worker = h.workers[index++];
+        const params = worker.message.params;
+        assert.equal(params.retirementDelay, index - 2);
+        assert.equal(params.balance, before.balance);
+        assert.equal(params.withdrawal, before.withdrawal);
+        assert.equal(
+          params.years,
+          planningMode === "ages" ? 10 - params.retirementDelay : 30,
+        );
+        assert.equal(params.inflationAdjustBucket, true);
+        assert.equal(params.bucketEarnsTBills, true);
+        // A single passing year also covers a non-monotonic success curve.
+        worker.done({
+          ...result,
+          successRate: params.retirementDelay === match ? 0.95 : 0.5,
+        });
+        await flush();
+      }
+      await solve;
+      let state = h.render();
+      assert.equal(state.settingsDelay, match ?? 5);
+      assert.equal(state.balance, before.balance);
+      assert.equal(state.withdrawal, before.withdrawal);
+      assert.equal(state.planThroughAge, 53);
+      assert.equal(state.currentSolverResult.found, match !== null);
+      assert.equal(state.currentSolverResult.retirementDelay, match ?? 5);
+      if (match === null) {
+        assert.equal(index - 1, planningMode === "ages" ? 10 : 51);
+        assert.equal(state.currentSolverResult.limit, "maximum");
+      } else {
+        assert.equal(index - 1, match + 1);
+        assert.equal(h.workers.at(-1).message.params.retirementDelay, match);
+      }
+      state.handleRetirementStartChange(4);
+      state = h.render();
+      assert.equal(state.currentSolverResult, null);
+    });
+  }
+}
+
+test("changing inputs cancels a delay solve without applying a stale retirement age", async () => {
+  const h = harness();
+  h.render();
+  h.workers[0].done(result);
+  await flush();
+  h.render().setSolveFor("retirementDelay");
+  const state = h.render();
+  const solve = state.solveForTarget();
+  state.setBalance(4000000);
+  h.render();
+  await solve;
+  h.workers[1].done({ ...result, successRate: 1 });
+  await flush();
+  const next = h.render();
+  assert.equal(next.retirementAge, state.retirementAge);
+  assert.equal(next.currentSolverResult, null);
+  assert.equal(next.solving, false);
+});

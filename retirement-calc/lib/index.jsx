@@ -144,6 +144,10 @@ function RetirementSimulator() {
   const [solveProgress, setSolveProgress] = useState(0);
   const [solveFor, setSolveFor] = useState("withdrawal");
   const solvingBalance = solveFor === "balance";
+  const solvingDelay = solveFor === "retirementDelay";
+  const maxSolverDelay = useAges
+    ? planThroughAge - currentAge - 1
+    : Math.max(RETIREMENT_DELAY_LIMIT, retirementDelay);
   const [targetSuccessRate, setTargetSuccessRate] =
     usePersistedState("targetSuccessRate");
 
@@ -163,11 +167,11 @@ function RetirementSimulator() {
     cagr,
     volatility,
     inflation,
-    years,
-    retirementDelay,
+    solvingDelay && useAges ? planThroughAge - currentAge : years,
+    solvingDelay ? null : retirementDelay,
     upfrontYears,
-    effectiveInflationAdjustBucket,
-    effectiveBucketEarnsTBills,
+    solvingDelay ? inflationAdjustBucket : effectiveInflationAdjustBucket,
+    solvingDelay ? bucketEarnsTBills : effectiveBucketEarnsTBills,
     withdrawalFrequency,
     currentAge,
     planningMode,
@@ -176,7 +180,8 @@ function RetirementSimulator() {
   const currentSolverResult =
     solverResult?.settingsKey === solverSettingsKey &&
     solverResult.balance === balance &&
-    solverResult.withdrawal === withdrawal
+    solverResult.withdrawal === withdrawal &&
+    solverResult.retirementDelay === retirementDelay
       ? solverResult
       : null;
 
@@ -283,12 +288,19 @@ function RetirementSimulator() {
     const applyResult = (amount, limit = null) => {
       setSolverResult({
         balance: solvingBalance ? amount : balance,
-        withdrawal: solvingBalance ? withdrawal : amount,
+        withdrawal: solvingBalance || solvingDelay ? withdrawal : amount,
+        retirementDelay:
+          solvingDelay && amount !== null ? amount : retirementDelay,
+        found: amount !== null,
         target: targetSuccessRate,
         settingsKey: solverSettingsKey,
         limit,
       });
-      if (solvingBalance) {
+      if (solvingDelay) {
+        if (amount !== null) {
+          handleRetirementStartChange(amount);
+        }
+      } else if (solvingBalance) {
         setBalance(amount);
       } else {
         setWithdrawal(amount);
@@ -296,6 +308,8 @@ function RetirementSimulator() {
     };
 
     const baseParams = {
+      planThroughYears:
+        solvingDelay && useAges ? planThroughAge - currentAge : undefined,
       retirementDelay,
       balance,
       withdrawal,
@@ -304,8 +318,12 @@ function RetirementSimulator() {
       inflation,
       years,
       upfrontYears,
-      inflationAdjustBucket: effectiveInflationAdjustBucket,
-      bucketEarnsTBills: effectiveBucketEarnsTBills,
+      inflationAdjustBucket: solvingDelay
+        ? inflationAdjustBucket
+        : effectiveInflationAdjustBucket,
+      bucketEarnsTBills: solvingDelay
+        ? bucketEarnsTBills
+        : effectiveBucketEarnsTBills,
       tBillRealPremium: T_BILL_REAL_PREMIUM,
       monthly: withdrawalFrequency === "monthly",
     };
@@ -565,7 +583,7 @@ function RetirementSimulator() {
                   sublabel="Start now or let the portfolio grow for longer first."
                   value={retirementDelay}
                   min={0}
-                  max={Math.max(10, settingsDelay)}
+                  max={Math.max(RETIREMENT_DELAY_LIMIT, settingsDelay)}
                   step={1}
                   onChange={handleRetirementStartChange}
                   disabled={solving}
@@ -935,6 +953,13 @@ function RetirementSimulator() {
                           description: `Find the lowest balance ${retirementDelay > 0 ? "today" : "at retirement"} for my target success rate.`,
                           fixed: `Withdrawing ${fmtMoneyFull(withdrawal)} / year in today's dollars`,
                         },
+                        {
+                          value: "retirementDelay",
+                          question: "When can I retire?",
+                          description:
+                            "Find the fewest years from today to retirement for my target success rate if I stop saving.",
+                          fixed: `Starting with ${fmtMoneyFull(balance)} today; withdrawing ${fmtMoneyFull(withdrawal)} / year in today's dollars at retirement`,
+                        },
                       ].map(({ value, question, description, fixed }) => (
                         <label key={value} className="solver-option">
                           <input
@@ -977,7 +1002,9 @@ function RetirementSimulator() {
                         <label htmlFor="solver-target">
                           <strong>Target success</strong> rate of money lasting{" "}
                           {useAges
-                            ? `from age ${retirementAge} through age ${planThroughAge}`
+                            ? solvingDelay
+                              ? `through age ${planThroughAge}`
+                              : `from age ${retirementAge} through age ${planThroughAge}`
                             : `for ${years} years in retirement`}
                         </label>
                         <output htmlFor="solver-target">
@@ -1018,9 +1045,11 @@ function RetirementSimulator() {
                     </button>
                   </div>
                   <p className="solver-note" id="solver-apply-note">
-                    {solvingBalance
-                      ? `Updates ${SETTING_LABELS.balance} ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.balance.min)}–${fmtMoneyFull(AMOUNT_LIMITS.balance.max)}). ${SETTING_LABELS.withdrawal} stays fixed.`
-                      : `Updates ${SETTING_LABELS.withdrawal} in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)}–${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)}). ${SETTING_LABELS.balance} stays fixed.`}
+                    {solvingDelay
+                      ? `Checks 0 to ${maxSolverDelay} years from today in one-year increments and updates ${useAges ? "Retirement Age" : "Retirement Start"}. While you wait, your portfolio can grow or shrink based on your selected market assumptions. No savings are added or withdrawals taken before retirement. ${useAges ? `Plan Through Age stays at ${planThroughAge}.` : `Retirement Duration stays at ${years} years.`} Withdrawals account for inflation while you wait.`
+                      : solvingBalance
+                        ? `Updates ${SETTING_LABELS.balance} ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.balance.min)}–${fmtMoneyFull(AMOUNT_LIMITS.balance.max)}). ${SETTING_LABELS.withdrawal} stays fixed.`
+                        : `Updates ${SETTING_LABELS.withdrawal} in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)}–${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)}). ${SETTING_LABELS.balance} stays fixed.`}
                   </p>
                   {(solving || currentSolverResult || running) && (
                     <div
@@ -1032,16 +1061,20 @@ function RetirementSimulator() {
                         <>
                           <span>
                             Finding{" "}
-                            {solvingBalance
-                              ? SETTING_LABELS.balance.toLowerCase()
-                              : SETTING_LABELS.withdrawal.toLowerCase()}{" "}
+                            {solvingDelay
+                              ? "your retirement start"
+                              : solvingBalance
+                                ? SETTING_LABELS.balance.toLowerCase()
+                                : SETTING_LABELS.withdrawal.toLowerCase()}{" "}
                             for your {targetSuccessRate}% target
                           </span>
                           <progress
                             aria-label={
-                              solvingBalance
-                                ? `${SETTING_LABELS.balance} calculation`
-                                : `${SETTING_LABELS.withdrawal} calculation`
+                              solvingDelay
+                                ? "Retirement start calculation"
+                                : solvingBalance
+                                  ? `${SETTING_LABELS.balance} calculation`
+                                  : `${SETTING_LABELS.withdrawal} calculation`
                             }
                             value={solveProgress}
                             max={1}
@@ -1050,22 +1083,32 @@ function RetirementSimulator() {
                       ) : currentSolverResult ? (
                         <>
                           <strong>
-                            {solvingBalance
-                              ? `${fmtMoneyFull(currentSolverResult.balance)} ${SETTING_LABELS.balance.toLowerCase()}`
-                              : `${fmtMoneyFull(currentSolverResult.withdrawal)} / year`}
+                            {solvingDelay
+                              ? !currentSolverResult.found
+                                ? "Target not reached"
+                                : currentSolverResult.retirementDelay === 0
+                                  ? "You can retire now"
+                                  : `Retire in ${currentSolverResult.retirementDelay} ${currentSolverResult.retirementDelay === 1 ? "year" : "years"}${useAges ? `, at age ${retirementAge}` : ""}`
+                              : solvingBalance
+                                ? `${fmtMoneyFull(currentSolverResult.balance)} ${SETTING_LABELS.balance.toLowerCase()}`
+                                : `${fmtMoneyFull(currentSolverResult.withdrawal)} / year`}
                           </strong>
                           <span>
-                            {solvingBalance
-                              ? currentSolverResult.limit === "minimum"
-                                ? `The ${fmtMoneyFull(AMOUNT_LIMITS.balance.min)} search minimum meets your ${currentSolverResult.target}% target. Lower balances have not been checked.`
-                                : currentSolverResult.limit === "maximum"
-                                  ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.balance.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.balance.max)} range. The maximum balance is applied.`
-                                  : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`
-                              : currentSolverResult.limit === "minimum"
-                                ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} range. The minimum withdrawal is applied.`
-                                : currentSolverResult.limit === "maximum"
-                                  ? `The ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} search limit meets your ${currentSolverResult.target}% target. Higher withdrawals have not been checked.`
-                                  : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`}
+                            {solvingDelay
+                              ? !currentSolverResult.found
+                                ? `No retirement start within 0 to ${maxSolverDelay} years met your ${currentSolverResult.target}% target without further savings. Your retirement start is unchanged.`
+                                : `Earliest whole-year retirement start from today meeting your ${currentSolverResult.target}% target without further savings. The simulated success rate may vary slightly.`
+                              : solvingBalance
+                                ? currentSolverResult.limit === "minimum"
+                                  ? `The ${fmtMoneyFull(AMOUNT_LIMITS.balance.min)} search minimum meets your ${currentSolverResult.target}% target. Lower balances have not been checked.`
+                                  : currentSolverResult.limit === "maximum"
+                                    ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.balance.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.balance.max)} range. The maximum balance is applied.`
+                                    : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`
+                                : currentSolverResult.limit === "minimum"
+                                  ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} range. The minimum withdrawal is applied.`
+                                  : currentSolverResult.limit === "maximum"
+                                    ? `The ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} search limit meets your ${currentSolverResult.target}% target. Higher withdrawals have not been checked.`
+                                    : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`}
                             {running && " Updating your results..."}
                           </span>
                         </>
@@ -1073,9 +1116,11 @@ function RetirementSimulator() {
                         running && (
                           <span>
                             Updating your plan before calculating{" "}
-                            {solvingBalance
-                              ? `your ${SETTING_LABELS.balance.toLowerCase()}`
-                              : `your ${SETTING_LABELS.withdrawal.toLowerCase()}`}
+                            {solvingDelay
+                              ? "your retirement start"
+                              : solvingBalance
+                                ? `your ${SETTING_LABELS.balance.toLowerCase()}`
+                                : `your ${SETTING_LABELS.withdrawal.toLowerCase()}`}
                             ...
                           </span>
                         )

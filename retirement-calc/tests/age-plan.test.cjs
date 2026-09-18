@@ -125,6 +125,7 @@ for (const planningMode of ["ages", "settings"]) {
       PortfolioChart() {},
     });
     vm.runInContext(fs.readFileSync("lib/monte-carlo.js", "utf8"), context);
+    vm.runInContext(fs.readFileSync("lib/solver.js", "utf8"), context);
     // Run the component's state/effect setup without requiring a JSX build dependency.
     const source =
       fs
