@@ -167,7 +167,7 @@ test("duration retirement start updates and persists the age plan", () => {
 });
 
 test("age changes update and persist the duration retirement start", () => {
-  const h = harness();
+  const h = harness({ settingsYears: 30 });
   let state = h.render();
   state.setPlanningMode("ages");
   state = h.render();
@@ -238,7 +238,7 @@ test("worker failure clears running, retry succeeds, and stale messages are igno
 });
 
 test("pending results retain inflation, mode, frequency and balance from the completed run", async () => {
-  const h = harness();
+  const h = harness({ planningMode: "settings" });
   h.render();
   h.workers[0].done(result);
   await flush();
@@ -298,12 +298,13 @@ test("changing inputs cancels a pending solver without applying its result", asy
 });
 
 for (const limit of ["minimum", "maximum", null]) {
-  test(`solver reports the applied withdrawal and search limit: ${limit}`, async () => {
+  test(`solver displays withdrawal without applying it and reports search limit: ${limit}`, async () => {
     const h = harness();
     h.render();
     h.workers[0].done(result);
     await flush();
-    const solve = h.render().solveForTarget();
+    const before = h.render();
+    const solve = before.solveForTarget();
     let index = 1;
     while (h.workers[index]) {
       const worker = h.workers[index++];
@@ -325,7 +326,10 @@ for (const limit of ["minimum", "maximum", null]) {
     let state = h.render();
     const expected =
       limit === "minimum" ? 10000 : limit === "maximum" ? 300000 : 80000;
-    assert.equal(state.withdrawal, expected);
+    assert.equal(state.withdrawal, before.withdrawal);
+    assert.equal(state.sim, before.sim);
+    assert.equal(state.running, false);
+    assert.equal(h.workers.length, index);
     assert.equal(state.currentSolverResult.withdrawal, expected);
     assert.equal(state.currentSolverResult.limit, limit);
     state.setInflation(0.1);
@@ -335,12 +339,17 @@ for (const limit of ["minimum", "maximum", null]) {
 
 for (const limit of ["minimum", "maximum", null]) {
   test(`balance solver preserves withdrawal and reports range limit: ${limit}`, async () => {
-    const h = harness({ withdrawal: 123000, settingsDelay: 10 });
+    const h = harness({
+      planningMode: "settings",
+      withdrawal: 123000,
+      settingsDelay: 10,
+    });
     h.render();
     h.workers[0].done(result);
     await flush();
     h.render().setSolveFor("balance");
-    const solve = h.render().solveForTarget();
+    const before = h.render();
+    const solve = before.solveForTarget();
     let index = 1;
     while (h.workers[index]) {
       const worker = h.workers[index++];
@@ -365,11 +374,13 @@ for (const limit of ["minimum", "maximum", null]) {
     let state = h.render();
     const expected =
       limit === "minimum" ? 100000 : limit === "maximum" ? 10000000 : 3050000;
-    assert.equal(state.balance, expected);
+    assert.equal(state.balance, before.balance);
+    assert.equal(state.sim, before.sim);
+    assert.equal(state.running, false);
+    assert.equal(h.workers.length, index);
     assert.equal(state.withdrawal, 123000);
     assert.equal(state.currentSolverResult.balance, expected);
     assert.equal(state.currentSolverResult.limit, limit);
-    assert.equal(h.workers.at(-1).message.params.balance, expected);
     state.setWithdrawal(124000);
     state = h.render();
     assert.equal(state.currentSolverResult, null);
@@ -437,6 +448,7 @@ for (const planningMode of ["settings", "ages"]) {
         currentAge: 43,
         retirementAge: 48,
         settingsDelay: 5,
+        settingsYears: 30,
         planThroughAge: 53,
         withdrawal: 123000,
         upfrontYears: 10,
@@ -471,7 +483,11 @@ for (const planningMode of ["settings", "ages"]) {
       }
       await solve;
       let state = h.render();
-      assert.equal(state.settingsDelay, match ?? 5);
+      assert.equal(state.settingsDelay, before.settingsDelay);
+      assert.equal(state.retirementAge, before.retirementAge);
+      assert.equal(state.sim, before.sim);
+      assert.equal(state.running, false);
+      assert.equal(h.workers.length, index);
       assert.equal(state.balance, before.balance);
       assert.equal(state.withdrawal, before.withdrawal);
       assert.equal(state.planThroughAge, 53);

@@ -47,7 +47,7 @@ test("incompatible saved settings are erased and ignored", () => {
 test("malformed saved JSON is erased and ignored", () => {
   const { api, storage } = settings();
   storage.value = "{broken";
-  assert.equal(api.get("planningMode"), "settings");
+  assert.equal(api.get("planningMode"), api.defaults.planningMode);
   assert.equal(storage.value, null);
 });
 
@@ -58,11 +58,14 @@ test("age settings do not supply missing duration settings", () => {
   assert.equal(api.get("settingsDelay"), api.defaults.settingsDelay);
 });
 
-test("fresh settings use duration defaults without inheriting an age timeline", () => {
+test("fresh settings use age-based planning and the default retirement horizon", () => {
   const { api } = settings();
-  assert.equal(api.get("planningMode"), "settings");
-  assert.equal(api.get("settingsYears"), api.defaults.settingsYears);
-  assert.equal(api.get("settingsDelay"), api.defaults.settingsDelay);
+  assert.equal(api.get("planningMode"), "ages");
+  assert.equal(api.get("currentAge"), 43);
+  assert.equal(api.get("retirementAge"), 43);
+  assert.equal(api.get("planThroughAge"), 90);
+  assert.equal(api.get("settingsYears"), 47);
+  assert.equal(api.get("settingsDelay"), 0);
 });
 
 test("age plan and target survive persistence and reset", () => {
