@@ -89,6 +89,7 @@ function harness(saved = {}) {
       handleRetirementStartChange, setCurrentAge, setPlanThroughAge,
       setRetirementAge, currentAge,
       retirementAge, planThroughAge, settingsDelay,
+      setInflationAdjustBucket, setBucketEarnsTBills,
       retry: () => setRetryCount(c => c + 1)};
   }`,
     context,
@@ -109,6 +110,31 @@ const result = {
   retirementDelay: 0,
   successRate: 0.9,
 };
+
+for (const setting of ["setInflationAdjustBucket", "setBucketEarnsTBills"]) {
+  test(`${setting} cancels a delay solve even when the current horizon funds only one year`, async () => {
+    const h = harness({
+      planningMode: "ages",
+      currentAge: 43,
+      retirementAge: 49,
+      planThroughAge: 50,
+      upfrontYears: 5,
+    });
+    h.render();
+    h.workers[0].done(result);
+    await flush();
+    h.render().setSolveFor("retirementDelay");
+    const state = h.render();
+    const solve = state.solveForTarget();
+    state[setting](true);
+    h.render();
+    assert.equal(h.workers[1].terminated, true);
+    await solve;
+    assert.equal(h.render().solving, false);
+    assert.equal(h.render().currentSolverResult, null);
+    assert.equal(h.workers.length, 2);
+  });
+}
 
 for (const planningMode of ["settings", "ages"]) {
   test(`${planningMode} startup reconciles retirement timing across mode switches`, () => {

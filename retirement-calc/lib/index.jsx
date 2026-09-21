@@ -184,6 +184,8 @@ function RetirementSimulator() {
   const currentSolverResult =
     solverResult?.settingsKey === solverSettingsKey ? solverResult : null;
 
+  useEffect(() => () => solverRequest.current?.cancel(), [solverSettingsKey]);
+
   useEffect(() => {
     setRunning(true);
     setProgress(0);
