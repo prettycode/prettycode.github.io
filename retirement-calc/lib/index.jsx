@@ -2,6 +2,9 @@ const TARGET_SUCCESS_LIMITS = { min: 50, max: 99 };
 const RATE_STEP = 0.001;
 
 function formatSuccessChance(rate) {
+  if (rate > 0 && rate < 1 && (rate < 0.1 || rate > 0.9)) {
+    return fmtOdds(rate);
+  }
   const numerator = Math.round(rate * 10);
   const divisor = [10, 5, 2, 1].find((value) => numerator % value === 0);
   return `${numerator / divisor} in ${10 / divisor}`;
