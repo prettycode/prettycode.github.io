@@ -1111,6 +1111,16 @@ function RetirementSimulator() {
                               : solvingBalance
                                 ? `${fmtMoneyFull(currentSolverResult.balance)} ${SETTING_LABELS.balance.toLowerCase()}`
                                 : `${fmtMoneyFull(currentSolverResult.withdrawal)} / year`}
+                            {!solvingDelay && (
+                              <>
+                                {" "}
+                                <span className="solver-result-context">
+                                  {solvingBalance
+                                    ? `(~${Math.round(currentSolverResult.balance / currentSolverResult.withdrawal)}x annual withdrawal)`
+                                    : `(~1/${Math.round(currentSolverResult.balance / currentSolverResult.withdrawal)} of starting balance)`}
+                                </span>
+                              </>
+                            )}
                           </strong>
                           <span>
                             {solvingDelay

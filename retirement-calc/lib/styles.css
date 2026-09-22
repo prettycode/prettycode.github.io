@@ -506,6 +506,12 @@ input[type="range"]::-moz-range-thumb {
   line-height: 1.2;
 }
 
+.solver-result-context {
+  color: var(--ink-2);
+  font-size: 0.75em;
+  font-weight: 400;
+}
+
 .solver-feedback progress {
   width: 100%;
   height: 4px;
