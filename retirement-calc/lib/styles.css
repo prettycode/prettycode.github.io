@@ -683,8 +683,10 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+/* The closing rule belongs to Advanced, so it hides when Advanced collapses. */
 .advanced-body {
-  padding-bottom: 4px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
 }
 
 .toggle-row {
@@ -730,9 +732,7 @@ input[type="range"]::-moz-range-thumb {
 
 /* ─── Settings management (not a model parameter) ─── */
 .settings-mgmt {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--rule);
+  margin-top: 16px;
 }
 
 .settings-mgmt-heading {
@@ -757,7 +757,6 @@ input[type="range"]::-moz-range-thumb {
   padding: 6px 12px;
   font-family: "Fraunces", serif;
   font-size: 12px;
-  font-style: italic;
   color: var(--ink-2);
   cursor: pointer;
   letter-spacing: -0.01em;

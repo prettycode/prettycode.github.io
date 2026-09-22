@@ -762,31 +762,31 @@ function RetirementSimulator() {
                     </div>
                   </div>
                 </label>
-                <div className="settings-mgmt">
-                  <div className="settings-mgmt-heading">Saved Settings</div>
-                  <div className="settings-mgmt-sub">
-                    Sidebar values are remembered in your browser between
-                    visits.
-                  </div>
-                  <button
-                    type="button"
-                    className="clear-storage-btn"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          "Reset all sidebar settings to defaults? This will reload the page.",
-                        )
-                      ) {
-                        UserSettings.clear();
-                        window.location.reload();
-                      }
-                    }}
-                  >
-                    Reset to Defaults
-                  </button>
-                </div>
               </div>
             </details>
+
+            <div className="settings-mgmt">
+              <div className="settings-mgmt-heading">Saved Settings</div>
+              <div className="settings-mgmt-sub">
+                Sidebar values are remembered in your browser between visits.
+              </div>
+              <button
+                type="button"
+                className="clear-storage-btn"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Reset all sidebar settings to defaults? This will reload the page.",
+                    )
+                  ) {
+                    UserSettings.clear();
+                    window.location.reload();
+                  }
+                }}
+              >
+                Reset to Defaults
+              </button>
+            </div>
           </aside>
 
           {/* MAIN AREA */}
