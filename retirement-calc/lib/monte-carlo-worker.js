@@ -264,6 +264,26 @@ function runSimulation({
   yearBalances[0].fill(balCents);
 
   const withdrawalSumCents = new Float64Array(years + 1);
+  // The portfolio excludes cash transferred to the bucket. Record the year
+  // that cash is spent separately so the risk chart counts both resources.
+  const bucketExhaustionYears = new Uint32Array(runs);
+  const bucketCosts = [];
+  if (isLumpSum) {
+    const growth = inflationAdjustBucket ? 1 + inflMicro / MICRO : 1;
+    const discount = bucketEarnsTBills ? 1 + tBillMicro / MICRO : 1;
+    let cumulative = 0;
+    for (let y = 1; y <= upfrontYears; y++) {
+      cumulative +=
+        (retirementWdCents * Math.pow(growth, y - 1)) /
+        Math.pow(discount, Math.max(0, y - 2));
+      // Match the integer lump sum exactly at the final boundary.
+      bucketCosts.push(
+        y === upfrontYears
+          ? lumpSumCents
+          : Math.min(lumpSumCents, Math.floor(cumulative)),
+      );
+    }
+  }
   let survived = 0;
   const reportEvery = Math.max(1, Math.floor(runs / 100));
 
@@ -283,6 +303,16 @@ function runSimulation({
         if (retirementYear === 1) {
           actualW = lumpSumCents;
           isLumpYear = true;
+          if (bal > 0 && lumpSumCents > 0) {
+            // An underfunded bucket only lasts as long as the money actually
+            // available. Allocate it to the earliest spending years first.
+            const fundedCents = Math.min(bal, lumpSumCents);
+            const lastCashYear =
+              fundedCents === lumpSumCents
+                ? upfrontYears
+                : bucketCosts.findIndex((cost) => cost >= fundedCents) + 1;
+            bucketExhaustionYears[r] = retirementDelay + lastCashYear;
+          }
         } else if (retirementYear <= upfrontYears) {
           actualW = 0;
           isBucketFunded = true;
@@ -373,6 +403,14 @@ function runSimulation({
   const percentiles = [];
   for (let y = 0; y <= years; y++) {
     const v = yearBalances[y];
+    // Count only after both the portfolio and the spending bucket are empty.
+    // The last bucket year's spending exhausts the cash by that year-end.
+    let depletedCount = 0;
+    for (let r = 0; r < runs; r++) {
+      if (v[r] === 0 && y >= bucketExhaustionYears[r]) {
+        depletedCount++;
+      }
+    }
     quickselect(v, k50, 0, last);
     quickselect(v, k25, 0, k50 - 1);
     quickselect(v, k10, 0, k25 - 1);
@@ -380,6 +418,7 @@ function runSimulation({
     quickselect(v, k90, k75 + 1, last);
     percentiles.push({
       year: y,
+      depletionRate: depletedCount / runs,
       p10: c2d(v[k10]),
       p25: c2d(v[k25]),
       p50: c2d(v[k50]),

@@ -51,6 +51,117 @@ const MIXED = {
   runs: 20_000,
 };
 
+test("depletion rates are cumulative and agree with final survival", () => {
+  for (const monthly of [false, true]) {
+    const result = simulate({ ...MIXED, monthly, retirementDelay: 3 });
+    let previous = 0;
+    for (const row of result.percentiles) {
+      assert.ok(row.depletionRate >= previous);
+      assert.ok(row.depletionRate <= 1);
+      previous = row.depletionRate;
+    }
+    assert.ok(Math.abs(previous - (1 - result.successRate)) < 1e-12);
+    assert.ok(previous > 0 && previous < 1);
+  }
+});
+
+test("depletion timing includes delayed retirement and exact exhaustion", () => {
+  for (const monthly of [false, true]) {
+    const result = simulate({
+      balance: 200,
+      withdrawal: 100,
+      returnRate: 0,
+      years: 4,
+      retirementDelay: 2,
+      monthly,
+    });
+    assert.deepEqual(
+      Array.from(result.percentiles, (p) => p.depletionRate),
+      [0, 0, 0, 0, 1, 1, 1],
+    );
+  }
+});
+
+test("positive sub-dollar balances are not counted as depleted", () => {
+  const result = simulate({
+    balance: 1,
+    withdrawal: 0,
+    returnRate: -0.5,
+    years: 1,
+  });
+  assert.equal(result.percentiles[1].p50, 0);
+  assert.equal(result.percentiles[1].depletionRate, 0);
+  assert.equal(result.successRate, 1);
+});
+
+test("a fully funded cash bucket delays exhaustion through its final year", () => {
+  for (const monthly of [false, true]) {
+    for (const retirementDelay of [0, 2]) {
+      const result = simulate({
+        balance: 200_000,
+        withdrawal: 40_000,
+        returnRate: 0,
+        upfrontYears: 5,
+        years: 10,
+        retirementDelay,
+        monthly,
+      });
+      assert.equal(result.percentiles[retirementDelay + 1].p50, 0);
+      for (const row of result.percentiles) {
+        assert.equal(
+          row.depletionRate,
+          row.year >= retirementDelay + 5 ? 1 : 0,
+        );
+      }
+    }
+  }
+});
+
+test("an underfunded cash bucket exhausts the actual available money", () => {
+  for (const balance of [80_000, 100_000]) {
+    const result = simulate({
+      balance,
+      withdrawal: 40_000,
+      returnRate: 0,
+      upfrontYears: 5,
+      years: 6,
+    });
+    const exhaustionYear = Math.ceil(balance / 40_000);
+    for (const row of result.percentiles) {
+      assert.equal(row.depletionRate, row.year >= exhaustionYear ? 1 : 0);
+    }
+  }
+});
+
+test("cash coverage respects inflation and T-Bill sizing", () => {
+  for (const inflationAdjustBucket of [false, true]) {
+    for (const bucketEarnsTBills of [false, true]) {
+      const params = {
+        withdrawal: 40_000,
+        returnRate: 0,
+        inflation: 0.04,
+        upfrontYears: 5,
+        years: 6,
+        inflationAdjustBucket,
+        bucketEarnsTBills,
+      };
+      const sizing = simulate({ ...params, balance: 1_000_000 });
+      // The reported lump sum is floored to dollars; one extra dollar fully
+      // funds it, and a total investment loss then leaves only bucket cash.
+      const result = simulate({
+        ...params,
+        balance: sizing.lumpSum + 1,
+        returnRate: -1,
+      });
+      assert.equal(result.percentiles[1].p50, 0);
+      assert.deepEqual(
+        Array.from(result.percentiles, (row) => row.depletionRate),
+        [0, 0, 0, 0, 0, 1, 1],
+      );
+    }
+  }
+});
+
 test("lifespan rungs without depletion give failure bounds, not survival odds", () => {
   const source = fs
     .readFileSync(path.join(__dirname, "../lib/outcome-odds.jsx"), "utf8")

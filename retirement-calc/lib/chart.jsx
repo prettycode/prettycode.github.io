@@ -40,6 +40,7 @@ function PortfolioChart({
   currentAge,
 }) {
   const [hover, setHover] = React.useState(null);
+  const [riskYear, setRiskYear] = React.useState(null);
   const useAges = currentAge !== undefined;
   const calendarStartYear = new Date().getFullYear();
 
@@ -56,20 +57,34 @@ function PortfolioChart({
     ...yearData.slice(1).map((d) => d.endBalance),
   ];
   const allWithdrawals = yearData.slice(1).map((d) => d.intended);
+  const riskAt = (t) => balanceAt(t).depletionRate;
+  const riskLabel = (t) =>
+    showCalendarYears
+      ? `${calendarStartYear + t}`
+      : useAges
+        ? `age ${currentAge + t}`
+        : t < retirementDelay
+          ? `year ${t} before retirement`
+          : `retirement year ${t - retirementDelay}`;
+  // Keep rare, nonzero risk visible without rounding it to 0% (or 100%).
+  const riskPct = (p) =>
+    p > 0 && p < 0.001 ? "<0.1%" : p < 1 && p > 0.999 ? ">99.9%" : fmtPct(p);
+  const selectedRiskYear = Math.min(hover ?? riskYear ?? simYears, simYears);
 
   const maxVal = Math.max(...allBalances.map((p) => p.p90), balance) * 1.05;
   // Withdrawal scale (left axis)
   const maxW = (allWithdrawals.length ? Math.max(...allWithdrawals) : 0) * 1.15;
 
-  // Reserve only the space occupied by axis labels. JetBrains Mono glyphs
-  // advance 0.6em; include each label's axis offset and 2px of edge clearance.
+  // Both charts share a time axis. Reserve room for the depletion chart's
+  // "100%" label (24px), its 8px tick gap, and 40px of container clearance.
+  // This also keeps the labels clear of the panel border on narrow screens.
   const tickLabelWidth = (max, fontSize) =>
     Math.ceil(
       Math.max(...Y_AXIS_TICK_FRACTIONS.map((f) => fmtMoney(f * max).length)) *
         fontSize *
         0.6,
     );
-  const padL = tickLabelWidth(maxW, 9) + 7 + 2;
+  const padL = Math.max(72, tickLabelWidth(maxW, 9) + 7 + 2);
   const padR = tickLabelWidth(maxVal, 10) + 8 + 2;
   const padT = 24; // Heading baseline 12px above plot, plus 9px text and clearance.
   const padB = 40; // Time-axis title baseline 36px below plot, plus descenders.
@@ -132,6 +147,7 @@ function PortfolioChart({
     const tickIdx = Math.round(((px - padL) / innerW) * simYears);
     if (tickIdx >= 0 && tickIdx <= simYears) {
       setHover(tickIdx);
+      setRiskYear(tickIdx);
     }
   };
 
@@ -147,6 +163,8 @@ function PortfolioChart({
     medianDepletion && upcomingYear && upcomingYear.year > medianDepletion.year;
   const hoverWithdrawal =
     upcomingYear && !beyondDepletion ? upcomingYear.actual : 0;
+
+  const riskReadout = `${riskPct(riskAt(selectedRiskYear))} run out of money by ${riskLabel(selectedRiskYear)}`;
 
   return (
     <section className="chart-section fade" aria-labelledby="chart-title">
@@ -702,6 +720,155 @@ function PortfolioChart({
         With a multi-year cash bucket, the first withdrawal is the lump sum
         drawn at retirement; the bucket-funded years that follow show no mark.
       </p>
+
+      <section
+        className={`depletion-panel${running ? " running" : ""}`}
+        aria-labelledby="depletion-title"
+        aria-busy={running}
+      >
+        <div className="depletion-heading">
+          <h3 id="depletion-title">
+            What are my chances of running out of money?
+          </h3>
+          <span>
+            {running
+              ? "Recalculating — showing previous results"
+              : "Cumulative simulation outcomes"}
+          </span>
+        </div>
+        <p className="depletion-summary">
+          <strong>{riskPct(riskAt(simYears))}</strong>
+          <span>of simulations ran out of money by {riskLabel(simYears)}.</span>
+        </p>
+        <div className="depletion-milestones">
+          {[0.1, 0.25, 0.5].map((threshold) => {
+            const first = allBalances.findIndex(
+              (p) => p.depletionRate >= threshold,
+            );
+            return (
+              <div key={threshold}>
+                <strong>{fmtPct(threshold, 0)} ran out</strong>
+                <span>
+                  {first < 0
+                    ? "Not reached in this horizon"
+                    : `By ${riskLabel(first)}`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="depletion-readout-track">
+          <p
+            className="depletion-readout"
+            style={{ "--risk-x": `${(x(selectedRiskYear) / W) * 100}cqw` }}
+          >
+            <strong className="depletion-readout-value">
+              {riskPct(riskAt(selectedRiskYear))}
+            </strong>
+            <span>
+              run out of money <strong>by {riskLabel(selectedRiskYear)}</strong>
+            </span>
+          </p>
+        </div>
+        <svg
+          className="chart depletion-chart"
+          viewBox={`0 0 ${W} 160`}
+          role="img"
+          aria-label={`${riskReadout}. Use arrow keys to inspect other years.`}
+          tabIndex="0"
+          onPointerMove={onMove}
+          onPointerLeave={() => setHover(null)}
+          onKeyDown={(e) => {
+            const year =
+              e.key === "ArrowLeft"
+                ? selectedRiskYear - 1
+                : e.key === "ArrowRight"
+                  ? selectedRiskYear + 1
+                  : e.key === "Home"
+                    ? 0
+                    : e.key === "End"
+                      ? simYears
+                      : null;
+            if (year !== null) {
+              e.preventDefault();
+              setHover(null);
+              setRiskYear(Math.max(0, Math.min(simYears, year)));
+            }
+          }}
+        >
+          <g>
+            {[0, 0.5, 1].map((p) => (
+              <g key={p}>
+                <line
+                  x1={padL}
+                  x2={W - padR}
+                  y1={116 - p * 100}
+                  y2={116 - p * 100}
+                  stroke="var(--rule)"
+                  strokeDasharray="2 3"
+                />
+                <text x={padL - 8} y={120 - p * 100} textAnchor="end">
+                  {fmtPct(p, 0)}
+                </text>
+              </g>
+            ))}
+            <path
+              d={`M ${x(0)} 116 ${allBalances.map((p, t) => `L ${x(t)} ${116 - p.depletionRate * 100}`).join(" ")} L ${x(simYears)} 116 Z`}
+              fill="var(--accent)"
+              opacity="0.12"
+            />
+            <path
+              d={allBalances
+                .map(
+                  (p, t) =>
+                    `${t === 0 ? "M" : "L"} ${x(t)} ${116 - p.depletionRate * 100}`,
+                )
+                .join(" ")}
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="2"
+            />
+            <line
+              x1={x(selectedRiskYear)}
+              x2={x(selectedRiskYear)}
+              y1="16"
+              y2="116"
+              stroke="var(--accent)"
+              strokeDasharray="3 3"
+            />
+            <circle
+              cx={x(selectedRiskYear)}
+              cy={116 - riskAt(selectedRiskYear) * 100}
+              r="4"
+              fill="var(--accent)"
+            />
+            {xTicks.map((t) => (
+              <text key={t} x={x(t)} y="136" textAnchor="middle">
+                {showCalendarYears
+                  ? calendarStartYear + t
+                  : useAges
+                    ? currentAge + t
+                    : t - retirementDelay}
+              </text>
+            ))}
+            <text x={padL + innerW / 2} y="156" textAnchor="middle">
+              {showCalendarYears
+                ? "CALENDAR YEAR"
+                : useAges
+                  ? "AGE"
+                  : "YEARS SINCE RETIREMENT"}
+            </text>
+          </g>
+        </svg>
+        <p className="chart-footnote">
+          Each point counts simulations whose invested portfolio and upfront
+          cash bucket were both exhausted by that year-end, including earlier
+          exhaustion. A fully funded bucket covers spending through its final
+          year; if no investments remain, money runs out at that year-end. These
+          are modeled frequencies, not guarantees; 0% means no simulation ran
+          out of money by that point.
+        </p>
+      </section>
     </section>
   );
 }
