@@ -187,15 +187,15 @@ function PortfolioChart({
         marks show each year's median withdrawal, scaled to the left axis.
       </p>
 
-      <div className={`chart-wrap${running ? " running" : ""}`}>
+      <div className="chart-wrap">
         {running && (
-          <div className="chart-progress-overlay">
+          <div className="chart-progress-overlay" aria-hidden="true">
             <span>Recalculating</span>
             <div className="mini-track">
               <div
                 className="mini-bar"
                 style={{ width: `${progress * 100}%` }}
-              ></div>
+              />
             </div>
             <span className="pct">{Math.round(progress * 100)}%</span>
           </div>
@@ -721,20 +721,12 @@ function PortfolioChart({
         drawn at retirement; the bucket-funded years that follow show no mark.
       </p>
 
-      <section
-        className={`depletion-panel${running ? " running" : ""}`}
-        aria-labelledby="depletion-title"
-        aria-busy={running}
-      >
+      <section className="depletion-panel" aria-labelledby="depletion-title">
         <div className="depletion-heading">
           <h3 id="depletion-title">
             What are my chances of running out of money?
           </h3>
-          <span>
-            {running
-              ? "Recalculating — showing previous results"
-              : "Cumulative simulation outcomes"}
-          </span>
+          <span>Cumulative simulation outcomes</span>
         </div>
         <p className="depletion-summary">
           <strong>{riskPct(riskAt(simYears))}</strong>

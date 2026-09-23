@@ -164,6 +164,32 @@ function RetirementSimulator() {
   const [sim, setSim] = useState(null);
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(true);
+  const mainAreaRef = React.useRef(null);
+  useEffect(() => {
+    if (!running || !mainAreaRef.current) {
+      return;
+    }
+    const centerProgress = () => {
+      const main = mainAreaRef.current;
+      if (!main) {
+        return;
+      }
+      const bounds = main.getBoundingClientRect();
+      const visibleTop = Math.max(0, bounds.top);
+      const visibleBottom = Math.min(window.innerHeight, bounds.bottom);
+      main.style.setProperty(
+        "--progress-center",
+        `${Math.max(0, (visibleTop + visibleBottom) / 2 - bounds.top)}px`,
+      );
+    };
+    centerProgress();
+    window.addEventListener("scroll", centerProgress, { passive: true });
+    window.addEventListener("resize", centerProgress);
+    return () => {
+      window.removeEventListener("scroll", centerProgress);
+      window.removeEventListener("resize", centerProgress);
+    };
+  }, [running]);
   const [solving, setSolving] = useState(false);
   const [solveProgress, setSolveProgress] = useState(0);
   const [solveFor, setSolveFor] = useState("withdrawal");
@@ -781,7 +807,24 @@ function RetirementSimulator() {
           </aside>
 
           {/* MAIN AREA */}
-          <main className="main-area">
+          <main
+            ref={mainAreaRef}
+            className={`main-area${running ? " running" : ""}`}
+          >
+            {sim && running && (
+              <div className="results-progress-overlay" role="status">
+                <span>Running simulations</span>
+                <div className="mini-track" aria-hidden="true">
+                  <div
+                    className="mini-bar"
+                    style={{ width: `${progress * 100}%` }}
+                  />
+                </div>
+                <span className="pct" aria-hidden="true">
+                  {Math.round(progress * 100)}%
+                </span>
+              </div>
+            )}
             {simulationError && (
               <div role="alert">
                 <p>{simulationError}</p>
@@ -807,7 +850,11 @@ function RetirementSimulator() {
               </div>
             )}
             {sim && (
-              <>
+              <div
+                className="results-content"
+                aria-busy={running}
+                inert={running ? "" : undefined}
+              >
                 {/* STATS */}
                 <div className="stats-row fade">
                   <div className="stat-cell">
@@ -923,7 +970,6 @@ function RetirementSimulator() {
                 <OutcomeOdds
                   yearData={yearData}
                   simYears={simYears}
-                  successRate={sim.successRate}
                   totalRuns={sim.runs}
                   retirementDelay={simRetirementDelay}
                   currentAge={simUseAges ? simCurrentAge : undefined}
@@ -1155,12 +1201,10 @@ function RetirementSimulator() {
                 </section>
 
                 <PlanSchedule
-                  progress={progress}
                   yearData={yearData}
                   medianDepletion={medianDepletion}
                   retirementDelay={simRetirementDelay}
                   currentAge={simUseAges ? simCurrentAge : undefined}
-                  running={running}
                 />
 
                 <div className="footer-note">
@@ -1174,7 +1218,7 @@ function RetirementSimulator() {
                     model is illustrative, not advisory.
                   </p>
                 </div>
-              </>
+              </div>
             )}
           </main>
         </div>

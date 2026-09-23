@@ -6,8 +6,6 @@ function PlanSchedule({
   medianDepletion,
   retirementDelay,
   currentAge,
-  running,
-  progress,
 }) {
   const detailsRef = React.useRef(null);
   React.useEffect(() => {
@@ -29,27 +27,8 @@ function PlanSchedule({
 
   const calendarStartYear = new Date().getFullYear();
   return (
-    <div
-      className={`plan-schedule-wrap${running ? " running" : ""}`}
-      aria-busy={running}
-    >
-      {running && (
-        <div className="chart-progress-overlay" role="status">
-          <span>Recalculating</span>
-          <div className="mini-track">
-            <div
-              className="mini-bar"
-              style={{ width: `${progress * 100}%` }}
-            ></div>
-          </div>
-          <span className="pct">{Math.round(progress * 100)}%</span>
-        </div>
-      )}
-      <details
-        className="plan-schedule"
-        ref={detailsRef}
-        inert={running ? "" : undefined}
-      >
+    <div className="plan-schedule-wrap">
+      <details className="plan-schedule" ref={detailsRef}>
         <summary>Full Plan Schedule</summary>
         <div className="plan-schedule-body">
           <div className="plan-schedule-toolbar">
@@ -67,7 +46,6 @@ function PlanSchedule({
             <button
               type="button"
               className="solve-btn"
-              disabled={running}
               onClick={() => window.print()}
             >
               Print schedule

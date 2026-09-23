@@ -1,8 +1,5 @@
-// The "Reading the Odds" section reads failure timing straight off the
-// percentile bands: a balance floored at $0 means a run has failed, so the
-// year the pXX band first touches the axis is the year XX% of futures had run
-// out. These tests pin that correspondence, since the ladder's rungs are
-// claims stated in plain language to the user and nothing else checks it.
+// Reading the Odds uses cumulative depletion, including bucket cash.
+// Portfolio bands are tested separately below for ordinary non-bucket runs.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -162,25 +159,41 @@ test("cash coverage respects inflation and T-Bill sizing", () => {
   }
 });
 
-test("lifespan rungs without depletion give failure bounds, not survival odds", () => {
+function deriveOdds(yearData, options = {}) {
   const source = fs
     .readFileSync(path.join(__dirname, "../lib/outcome-odds.jsx"), "utf8")
     .replace(/\r\n/g, "\n");
   // Execute the component's actual derivation before its JSX render.
   const component = source.slice(0, source.indexOf("  return (\n    <section"));
   const ui = vm.createContext({ fmtMoney: String });
-  vm.runInContext(`${component}\nreturn lifespanLadder;\n}`, ui);
-  const rows = ui.OutcomeOdds({
-    yearData: [
-      null,
-      { endBalance: { p10: 0, p25: 0, p50: 0, p75: 100, p90: 200 } },
-    ],
-    simYears: 1,
-    successRate: 0.45,
+  vm.runInContext(
+    `${component}\nreturn { lifespanLadder, firstTenthGone, medianSurvives, successRate };\n}`,
+    ui,
+  );
+  return ui.OutcomeOdds({
+    yearData,
+    simYears: yearData.length - 1,
     totalRuns: 100,
     retirementDelay: 0,
     inflation: 0,
+    ...options,
   });
+}
+
+test("lifespan rungs without depletion give failure bounds, not survival odds", () => {
+  const { lifespanLadder: rows } = deriveOdds([
+    null,
+    {
+      endBalance: {
+        p10: 0,
+        p25: 0,
+        p50: 0,
+        p75: 100,
+        p90: 200,
+        depletionRate: 0.55,
+      },
+    },
+  ]);
   assert.equal(rows[2].odds, "1 in 2");
   assert.equal(rows[2].lead, "had run out by");
   assert.equal(rows[3].odds, "At most 3 in 4");
@@ -191,7 +204,57 @@ test("lifespan rungs without depletion give failure bounds, not survival odds", 
   }
 });
 
-// Mirrors OutcomeOdds' ranOutBy: first year the band reaches $0, else null.
+test("odds dates match depletion milestones for full and partial cash buckets", () => {
+  for (const balance of [200_000, 100_000, 80_000]) {
+    for (const retirementDelay of [0, 2]) {
+      const result = simulate({
+        balance,
+        withdrawal: 40_000,
+        returnRate: 0,
+        upfrontYears: 5,
+        years: 10,
+        retirementDelay,
+      });
+      const yearData = [
+        null,
+        ...Array.from(result.percentiles.slice(1), (endBalance) => ({
+          endBalance,
+        })),
+      ];
+      const odds = deriveOdds(yearData, { retirementDelay, currentAge: 60 });
+      const exhaustionYear = retirementDelay + Math.ceil(balance / 40_000);
+      assert.equal(odds.firstTenthGone, exhaustionYear);
+      assert.equal(odds.successRate, 0);
+      assert.equal(odds.medianSurvives, false);
+      for (const rung of odds.lifespanLadder) {
+        assert.equal(rung.primary, `age ${60 + exhaustionYear}`);
+      }
+    }
+  }
+});
+
+test("odds use exact depletion thresholds even when portfolio bands disagree", () => {
+  const rates = [0, 0.1, 0.25, 0.5, 0.75, 0.9];
+  const yearData = [
+    null,
+    ...rates.map((depletionRate) => ({
+      endBalance: { p10: 0, p25: 0, p50: 0, p75: 0, p90: 0, depletionRate },
+    })),
+  ];
+  const odds = deriveOdds(yearData);
+  assert.equal(odds.firstTenthGone, 2);
+  assert.deepEqual(
+    Array.from(odds.lifespanLadder, (rung) => rung.primary),
+    [2, 3, 4, 5, 6].map((y) => `year ${y} of retirement`),
+  );
+  const beforeExhaustion = deriveOdds(yearData.slice(0, 2));
+  assert.equal(beforeExhaustion.firstTenthGone, null);
+  assert.equal(beforeExhaustion.successRate, 1);
+  assert.equal(beforeExhaustion.medianSurvives, true);
+  assert.equal(deriveOdds(yearData.slice(0, 5)).medianSurvives, false);
+});
+
+// Portfolio-band crossings, distinct from cash-aware depletion milestones.
 const ranOutBy = (result, key) => {
   for (let y = 1; y < result.percentiles.length; y++) {
     if (result.percentiles[y][key] <= 0) {

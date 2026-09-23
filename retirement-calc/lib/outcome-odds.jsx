@@ -8,16 +8,13 @@
 //
 // Source-of-truth contract, same as PortfolioChart: every figure here is read
 // from `yearData`, so this section cannot drift from the chart it interprets.
-// That extends to failure timing, which needs no separate tally — a balance
-// floored at $0 means a run has failed, so the year a percentile band first
-// touches the axis *is* the year that share of futures had run out. The ladder
-// below reads those crossings off the same rows the chart draws. Only the
-// success rate comes from elsewhere, and it comes from the same run.
+// Failure timing and survival use depletionRate, just like the depletion
+// chart: both the invested portfolio and upfront cash bucket must be empty.
+// Dollar percentiles describe only the invested portfolio.
 
 function OutcomeOdds({
   yearData,
   simYears,
-  successRate,
   totalRuns,
   retirementDelay,
   currentAge,
@@ -25,7 +22,8 @@ function OutcomeOdds({
 }) {
   const useAges = currentAge !== undefined;
   const ending = yearData[simYears].endBalance;
-  const failureRate = 1 - successRate;
+  const failureRate = ending.depletionRate;
+  const successRate = 1 - failureRate;
   const realFactor = Math.pow(1 + inflation, simYears);
   const today = (v) => fmtMoney(v / realFactor);
 
@@ -38,10 +36,7 @@ function OutcomeOdds({
   // so a small-but-real risk never prints as "about 0 in 100".
   const inN = (p) => `about ${fmtOdds(p)}`;
 
-  // Tick y is the END of year y, so a band that is $0 there means that share
-  // of futures had run out by then — "by" being the operative word, which is
-  // why the label takes the age at the end of the year (currentAge + y) and
-  // not the age it started at. Same convention as the chart's x-axis.
+  // Depletion is measured at year-end, matching the chart's x-axis.
   const byLabel = (y) =>
     useAges
       ? `age ${currentAge + y}`
@@ -49,14 +44,11 @@ function OutcomeOdds({
         ? `year ${y - retirementDelay} of retirement`
         : `year ${y}, before retirement began`;
 
-  // The year the `key` band first touches $0 — the year by which that share
-  // of futures had run out. Returns null when the band never reaches the axis,
-  // i.e. the plan does not fail that often, so no such year exists. Balances
-  // are floored at $0 and a depleted run never recovers, so the first crossing
-  // is the only crossing.
-  const ranOutBy = (key) => {
+  // First year the cumulative depletion rate reaches the requested share.
+  // An empty portfolio alone does not count while bucket cash remains.
+  const ranOutBy = (threshold) => {
     for (let y = 1; y <= simYears; y++) {
-      if (yearData[y].endBalance[key] <= 0) {
+      if (yearData[y].endBalance.depletionRate >= threshold) {
         return y;
       }
     }
@@ -68,13 +60,12 @@ function OutcomeOdds({
   // percentile of $0 does not mean "1 in 10 ends above $0". The honest
   // question for such a plan is *when* the money goes, so the rungs switch
   // from balances to depletion dates.
-  const medianSurvives = ending.p50 > 0;
+  const medianSurvives = failureRate < 0.5;
 
   // Each rung states an exceedance probability, which is what a percentile
   // actually is — the 90th percentile is the 1-in-10 line, and the median is
   // just the 1-in-2 rung rather than a favoured value. A lower rung sitting
-  // at $0 means at least that share of futures ended with nothing, so it gets
-  // the plain statement instead of "below $0".
+  // at $0 is a rounded portfolio balance, not proof of total depletion.
   const balanceLadder = [
     { odds: "1 in 10", dir: "above", value: ending.p90 },
     { odds: "1 in 4", dir: "above", value: ending.p75 },
@@ -83,7 +74,11 @@ function OutcomeOdds({
     { odds: "1 in 10", dir: "below", value: ending.p10 },
   ].map((r) =>
     r.dir === "below" && r.value <= 0
-      ? { odds: r.odds, primary: "ends with nothing left", median: r.median }
+      ? {
+          odds: r.odds,
+          primary: "ends with a portfolio balance of $0 (rounded)",
+          median: r.median,
+        }
       : {
           odds: r.odds,
           lead: `ends ${r.dir}`,
@@ -94,17 +89,15 @@ function OutcomeOdds({
   );
 
   // Cumulative shares rather than exceedances: each rung reads as a running
-  // total of futures that have run dry by that date. The share and the band
-  // are the same thing — the p25 band reaching $0 *is* a quarter of futures
-  // having run out — so the rung is keyed by the band the reader can see.
+  // total of futures that have exhausted both portfolio and bucket cash.
   const lifespanLadder = [
-    { odds: "1 in 10", key: "p10" },
-    { odds: "1 in 4", key: "p25" },
-    { odds: "1 in 2", key: "p50", median: true },
-    { odds: "3 in 4", key: "p75" },
-    { odds: "9 in 10", key: "p90" },
+    { odds: "1 in 10", threshold: 0.1 },
+    { odds: "1 in 4", threshold: 0.25 },
+    { odds: "1 in 2", threshold: 0.5, median: true },
+    { odds: "3 in 4", threshold: 0.75 },
+    { odds: "9 in 10", threshold: 0.9 },
   ].map((r) => {
-    const y = ranOutBy(r.key);
+    const y = ranOutBy(r.threshold);
     return y === null
       ? {
           odds: `At most ${r.odds}`,
@@ -123,10 +116,11 @@ function OutcomeOdds({
   // Quoted in the lead when it exists. Unconditional — "1 in 10 futures had
   // run out by X" — rather than conditioned on failure, which would need a
   // quantile the percentile set does not carry.
-  const firstTenthGone = ranOutBy("p10");
+  const firstTenthGone = ranOutBy(0.1);
 
   const ladder = medianSurvives ? balanceLadder : lifespanLadder;
-  const upsideRatio = medianSurvives ? ending.p90 / ending.p50 : null;
+  const upsideRatio =
+    medianSurvives && ending.p50 > 0 ? ending.p90 / ending.p50 : null;
 
   return (
     <section className="odds-section fade" aria-labelledby="odds-title">
@@ -143,9 +137,11 @@ function OutcomeOdds({
           ? `All ${totalRuns.toLocaleString()} simulated futures still had money at ${horizon}.`
           : successRate <= 0
             ? `None of the ${totalRuns.toLocaleString()} simulated futures reached ${horizon} with money left.`
-            : `Of ${totalRuns.toLocaleString()} simulated futures, ${inN(successRate)} still had money at ${horizon}; ${inN(failureRate)} ran out before then.`}
+            : `Of ${totalRuns.toLocaleString()} simulated futures, ${inN(successRate)} still had money at ${horizon}; ${inN(failureRate)} ran out by then.`}
         {firstTenthGone !== null &&
-          ` 1 in 10 had run out by ${byLabel(firstTenthGone)} — the year the outer band above first touches the axis.`}
+          ` At least 1 in 10 had run out by ${byLabel(firstTenthGone)} — the first year the depletion chart reaches 10%.`}{" "}
+        Running out means both the invested portfolio and upfront cash bucket
+        are exhausted.
       </p>
 
       <dl className="odds-ladder">
@@ -172,15 +168,16 @@ function OutcomeOdds({
           {fmtMoney(ending.p75)}, and a 4-in-5 chance of finishing{" "}
           {ending.p10 > 0
             ? `between ${fmtMoney(ending.p10)} and ${fmtMoney(ending.p90)}`
-            : `below ${fmtMoney(ending.p90)}, with the bottom tenth running out entirely`}
-          .
+            : `below ${fmtMoney(ending.p90)}, with the bottom tenth at a rounded portfolio balance of $0`}
+          . Dollar figures describe the invested portfolio and exclude bucket
+          cash.
         </p>
       ) : (
         <p className="odds-ladder-note">
-          Read a rung as a running total: by {byLabel(ranOutBy("p25"))}, a
-          quarter of all futures had run dry. More than half run dry before{" "}
-          {horizon}, which is why the median ending balance is $0 — each rung is
-          the year the matching band above meets the axis.
+          Read a rung as a running total: by {byLabel(ranOutBy(0.25))}, at least
+          a quarter of all futures had run dry. At least half run dry by{" "}
+          {horizon}. Each dated rung marks the first year the depletion chart
+          reaches that share of simulations.
         </p>
       )}
 
@@ -188,7 +185,7 @@ function OutcomeOdds({
         So the median is the middle outcome, not the most likely one — it is
         simply the line with half the futures above it and half below.
         {medianSurvives
-          ? ` No single dollar figure carries meaningful odds on its own.${upsideRatio >= 1.5 ? ` The spread is lopsided, too: the best tenth of futures finish above ${fmtMoney(ending.p90)}, roughly ${upsideRatio.toFixed(1)}× the median, while the worst tenth ${ending.p10 > 0 ? `finish below ${fmtMoney(ending.p10)}` : "run out of money altogether"}. That long upside tail drags the average well above the typical result, which is why every headline figure here is a median rather than an average.` : ""}`
+          ? ` No single dollar figure carries meaningful odds on its own.${upsideRatio >= 1.5 ? ` The spread is lopsided, too: the best tenth of futures finish above ${fmtMoney(ending.p90)}, roughly ${upsideRatio.toFixed(1)}× the median, while the worst tenth ${ending.p10 > 0 ? `finish below ${fmtMoney(ending.p10)}` : "finish with a rounded portfolio balance of $0"}. That long upside tail drags the average well above the typical result, which is why every headline figure here is a median rather than an average.` : ""}`
           : ` A median of $0 does not mean every future ends that way — ${inN(successRate)} still finish with money, some of it substantial. It means the middle of the range has fallen through the floor.`}
       </p>
     </section>

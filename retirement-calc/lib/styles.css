@@ -780,6 +780,7 @@ input[type="range"]::-moz-range-thumb {
 
 /* ─── Main Area ─── */
 .main-area {
+  position: relative;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -789,11 +790,18 @@ input[type="range"]::-moz-range-thumb {
 .plan-schedule-wrap {
   position: relative;
 }
-.plan-schedule-wrap.running {
+.results-content {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+  transition: opacity 0.25s ease;
+}
+.main-area.running {
   cursor: progress;
 }
-.plan-schedule-wrap.running .plan-schedule {
-  opacity: 0.28;
+.main-area.running .results-content {
+  opacity: 0.4;
   pointer-events: none;
   user-select: none;
 }
@@ -874,8 +882,8 @@ input[type="range"]::-moz-range-thumb {
   .sim-root::before,
   .masthead,
   .sidebar,
-  .main-area > :not(.plan-schedule-wrap),
-  .plan-schedule-wrap > .chart-progress-overlay,
+  .main-area > :not(.results-content),
+  .results-content > :not(.plan-schedule-wrap),
   .plan-schedule > summary,
   .plan-schedule-toolbar button {
     display: none !important;
@@ -884,7 +892,8 @@ input[type="range"]::-moz-range-thumb {
     max-width: none;
   }
   .layout,
-  .main-area {
+  .main-area,
+  .results-content {
     display: block;
   }
   .plan-schedule {
@@ -1132,10 +1141,6 @@ input[type="range"]::-moz-range-thumb {
 .depletion-chart:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
-}
-
-.depletion-panel.running .depletion-chart {
-  opacity: 0.45;
 }
 
 svg.chart {
@@ -1406,22 +1411,15 @@ svg.chart {
   opacity: 0;
 }
 
-/* While re-running: dim the chart and overlay a small progress label */
-svg.chart {
-  transition: opacity 0.25s ease;
-}
-.chart-wrap.running svg.chart {
-  opacity: 0.28;
-}
-.chart-wrap.running {
-  cursor: progress;
-}
-
-.chart-progress-overlay {
+/* Main progress stays centered in the visible portion of the results. */
+.chart-progress-overlay,
+.results-progress-overlay {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  max-width: calc(100% - 16px);
+  white-space: nowrap;
   z-index: 10;
   pointer-events: none;
   display: flex;
@@ -1438,20 +1436,47 @@ svg.chart {
   font-variant-numeric: tabular-nums;
 }
 
-.chart-progress-overlay .pct {
+.results-progress-overlay {
+  top: var(--progress-center, 50%);
+  flex-direction: column;
+  gap: 16px;
+  width: 300px;
+  padding: 28px 32px;
+  border-color: var(--accent);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 18%);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.chart-progress-overlay .pct,
+.results-progress-overlay .pct {
   color: var(--accent);
   font-weight: 700;
 }
 
-.chart-progress-overlay .mini-track {
+.chart-progress-overlay .mini-track,
+.results-progress-overlay .mini-track {
   width: 70px;
+  flex-shrink: 1;
   height: 1.5px;
   background: var(--rule);
   position: relative;
   overflow: hidden;
 }
 
-.chart-progress-overlay .mini-bar {
+.results-progress-overlay .mini-track {
+  width: 100%;
+  height: 4px;
+}
+
+.results-progress-overlay .pct {
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.chart-progress-overlay .mini-bar,
+.results-progress-overlay .mini-bar {
   position: absolute;
   top: 0;
   left: 0;
