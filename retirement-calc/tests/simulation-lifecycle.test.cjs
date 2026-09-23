@@ -86,7 +86,7 @@ function harness(saved = {}) {
     return {sim, simInputs, simUseAges, running, solving, simulationError, solverError,
       currentSolverResult, balance, withdrawal, setWithdrawal, setTargetSuccessRate, setSolveFor,
       upfrontYears, maxUpfrontYears, startingBucketSize, setUpfrontYears,
-      solveForTarget, setInflation, setPlanningMode, setWithdrawalFrequency, setBalance,
+      solveForTarget, setInflation, setPlanningMode, setBalance,
       handleRetirementStartChange, setCurrentAge, setPlanThroughAge,
       setRetirementAge, currentAge,
       retirementAge, planThroughAge, settingsDelay,
@@ -317,7 +317,7 @@ test("worker failure clears running, retry succeeds, and stale messages are igno
   assert.ok(h.workers.every((w) => w.terminated));
 });
 
-test("pending results retain inflation, mode, frequency and balance from the completed run", async () => {
+test("pending results retain inflation, mode and balance from the completed run", async () => {
   const h = harness({ planningMode: "settings" });
   h.render();
   h.workers[0].done(result);
@@ -326,7 +326,6 @@ test("pending results retain inflation, mode, frequency and balance from the com
   const original = state.simInputs;
   state.setInflation(0.1);
   state.setPlanningMode("ages");
-  state.setWithdrawalFrequency("annual");
   state.setBalance(4000000);
   h.render();
   state = h.render();
@@ -338,7 +337,6 @@ test("pending results retain inflation, mode, frequency and balance from the com
   state = h.render();
   assert.equal(state.simInputs.inflation, 0.1);
   assert.equal(state.simUseAges, true);
-  assert.equal(state.simInputs.withdrawalFrequency, "annual");
   assert.equal(state.simInputs.balance, 4000000);
 });
 
@@ -436,7 +434,6 @@ for (const limit of ["minimum", "maximum", null]) {
       const params = worker.message.params;
       assert.equal(params.withdrawal, 123000);
       assert.equal(params.retirementDelay, 10);
-      assert.equal(params.monthly, true);
       worker.done({
         ...result,
         successRate:

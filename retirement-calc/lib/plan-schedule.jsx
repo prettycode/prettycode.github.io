@@ -37,11 +37,10 @@ function PlanSchedule({
               Balances are portfolio percentiles, not a single simulated
               outcome. Withdrawals match the chart’s median marks; a cash bucket
               appears as an initial lump sum followed by years with no portfolio
-              draw. Monthly draws are shown as annual totals. Year and age
-              identify the start of each row. Growth / loss is the year-end
-              median balance minus the starting median balance plus withdrawals;
-              it is derived from these balances, not the median of individual
-              simulation gains.
+              draw. Year and age identify the start of each row. Growth / loss
+              is the year-end median balance minus the starting median balance
+              plus withdrawals; it is derived from these balances, not the
+              median of individual simulation gains.
             </p>
             <button
               type="button"

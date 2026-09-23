@@ -10,7 +10,6 @@ const SETTING_LABELS = Object.freeze({
   settingsDelay: "Retirement Start",
   balance: "Starting Balance",
   withdrawal: "Annual Withdrawal",
-  withdrawalFrequency: "Withdrawal Frequency",
   upfrontYears: "Starting Cash Bucket",
   cagr: "CAGR",
   volatility: "Annual Volatility",

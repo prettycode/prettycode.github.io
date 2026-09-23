@@ -32,9 +32,6 @@ function RetirementSimulator() {
   const [withdrawal, setWithdrawal] = usePersistedState("withdrawal", () =>
     Math.min(UserSettings.get("withdrawal"), balance),
   );
-  const [withdrawalFrequency, setWithdrawalFrequency] = usePersistedState(
-    "withdrawalFrequency",
-  );
   const [savedUpfrontYears, setUpfrontYears] =
     usePersistedState("upfrontYears");
   const [inflationAdjustBucket, setInflationAdjustBucket] = usePersistedState(
@@ -223,7 +220,6 @@ function RetirementSimulator() {
     upfrontYears,
     solvingDelay ? inflationAdjustBucket : effectiveInflationAdjustBucket,
     solvingDelay ? bucketEarnsTBills : effectiveBucketEarnsTBills,
-    withdrawalFrequency,
     currentAge,
     planningMode,
     targetSuccessRate,
@@ -251,7 +247,6 @@ function RetirementSimulator() {
       upfrontYears,
       inflationAdjustBucket,
       bucketEarnsTBills,
-      withdrawalFrequency,
       currentAge,
       retirementAge,
       planThroughAge,
@@ -272,7 +267,6 @@ function RetirementSimulator() {
           inflationAdjustBucket: effectiveInflationAdjustBucket,
           bucketEarnsTBills: effectiveBucketEarnsTBills,
           tBillRealPremium: T_BILL_REAL_PREMIUM,
-          monthly: withdrawalFrequency === "monthly",
         },
         (pct) => {
           if (active) {
@@ -316,7 +310,6 @@ function RetirementSimulator() {
     upfrontYears,
     effectiveInflationAdjustBucket,
     effectiveBucketEarnsTBills,
-    withdrawalFrequency,
     currentAge,
     planningMode,
     retryCount,
@@ -364,7 +357,6 @@ function RetirementSimulator() {
         ? bucketEarnsTBills
         : effectiveBucketEarnsTBills,
       tBillRealPremium: T_BILL_REAL_PREMIUM,
-      monthly: withdrawalFrequency === "monthly",
     };
 
     try {
@@ -396,9 +388,7 @@ function RetirementSimulator() {
   const simRetirementDelay = sim ? sim.retirementDelay : retirementDelay;
   const simCurrentAge = sim ? sim.currentAge : currentAge;
 
-  const simInputs = sim
-    ? sim.inputs
-    : { inflation, balance, withdrawalFrequency, planningMode };
+  const simInputs = sim ? sim.inputs : { inflation, balance, planningMode };
   const simUseAges = simInputs.planningMode === "ages";
 
   // Derived stats
@@ -610,31 +600,6 @@ function RetirementSimulator() {
                 `${fmtMoney(v)} (${((v / balance) * 100).toFixed(1)}%)`
               }
             />
-
-            <div className="slider-row">
-              <div className="slider-label">
-                {SETTING_LABELS.withdrawalFrequency}
-              </div>
-              <div className="slider-sub" style={{ marginBottom: 8 }}>
-                When draws are taken from the portfolio
-              </div>
-              <div className="freq-toggle">
-                <button
-                  type="button"
-                  className={`freq-btn${withdrawalFrequency === "annual" ? " active" : ""}`}
-                  onClick={() => setWithdrawalFrequency("annual")}
-                >
-                  Annual
-                </button>
-                <button
-                  type="button"
-                  className={`freq-btn${withdrawalFrequency === "monthly" ? " active" : ""}`}
-                  onClick={() => setWithdrawalFrequency("monthly")}
-                >
-                  Monthly
-                </button>
-              </div>
-            </div>
 
             <Slider
               label={SETTING_LABELS.upfrontYears}
@@ -958,7 +923,6 @@ function RetirementSimulator() {
                   running={running}
                   progress={progress}
                   balance={simInputs.balance}
-                  withdrawalFrequency={simInputs.withdrawalFrequency}
                   medianDepletion={medianDepletion}
                   simYears={simYears}
                   showCalendarYears={showCalendarYears}
@@ -1209,9 +1173,10 @@ function RetirementSimulator() {
 
                 <div className="footer-note">
                   <p>
-                    {simInputs.withdrawalFrequency === "monthly"
-                      ? "Returns are sampled monthly, with the annual mean and volatility rescaled so twelve compounded months match the annual factor's mean and variance."
-                      : "Returns are sampled annually from a normal distribution; the input CAGR is converted to the per-year arithmetic mean by adding back the variance drag (≈ σ²/2), so the long-run geometric mean of paths tracks the chosen CAGR."}
+                    Returns are sampled annually from a normal distribution; the
+                    input CAGR is converted to the per-year arithmetic mean by
+                    adding back the variance drag (≈ σ²/2), so the long-run
+                    geometric mean of paths tracks the chosen CAGR.
                   </p>
                   <p>
                     Past performance does not guarantee future results; this

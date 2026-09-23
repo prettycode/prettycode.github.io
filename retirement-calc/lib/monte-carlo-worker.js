@@ -8,7 +8,6 @@
 // The only float math in this worker is the one-time Gaussian LUT build at
 // init; the per-run hot loop is purely integer.
 
-const MONTHS_PER_YEAR = 12;
 const CENTS_PER_DOLLAR = 100;
 
 const BP = 10000; // per-period rates: return, vol, inflation
@@ -166,7 +165,6 @@ function runSimulation({
   inflationAdjustBucket,
   bucketEarnsTBills,
   tBillRealPremium,
-  monthly,
   retirementDelay = 0,
 }) {
   // Only fund spending within the retirement horizon, excluding the delay.
@@ -177,22 +175,6 @@ function runSimulation({
   const wdCents = Math.round(withdrawal * CENTS_PER_DOLLAR);
   const returnBp = Math.round(returnRate * BP);
   const volBp = Math.round(volatility * BP);
-  // Monthly conversions — pick μ_m and σ_m so 12 compounded months match the
-  // annual factor's mean AND variance:
-  //   E:   (1+μ_m)¹² = 1+r          →  μ_m = (1+r)^(1/12) − 1
-  //   Var: ((1+μ_m)² + σ_m²)¹² = (1+r)² + σ²   (12 i.i.d. arithmetic factors)
-  // The textbook σ/√12 scaling is for *log* returns; under the arithmetic
-  // factor model used here it leaves the year's compounded variance ~22%
-  // too high at typical inputs, and the extra volatility drag drags median
-  // paths *below* annual mode — masking the spread-withdrawal advantage and
-  // reversing the intuitive "monthly should beat annual" outcome.
-  const annualA = 1 + returnRate;
-  const monthlyA = Math.pow(annualA, 1 / MONTHS_PER_YEAR);
-  const monthlySigSq =
-    Math.pow(annualA * annualA + volatility * volatility, 1 / MONTHS_PER_YEAR) -
-    monthlyA * monthlyA;
-  const returnMonthlyBp = Math.round((monthlyA - 1) * BP);
-  const volMonthlyBp = Math.round(Math.sqrt(Math.max(0, monthlySigSq)) * BP);
   const inflMicro = Math.round(inflation * MICRO);
   // T-Bill nominal rate = inflation + historical real premium (~0.5%). Held in
   // MICRO scale alongside inflMicro so bucket discounting compounds at the same
@@ -294,15 +276,11 @@ function runSimulation({
     for (let y = 1; y <= years; y++) {
       const retirementYear = y - retirementDelay;
       let actualW;
-      let isLumpYear = false; // year 1 lump-sum draw — taken once at year start
-      let isBucketFunded = false; // years 2..upfrontYears — bucket pays, no portfolio draw
       if (retirementYear <= 0) {
         actualW = 0;
-        isBucketFunded = true; // Growth-only years use annual return sampling.
       } else if (isLumpSum) {
         if (retirementYear === 1) {
           actualW = lumpSumCents;
-          isLumpYear = true;
           if (bal > 0 && lumpSumCents > 0) {
             // An underfunded bucket only lasts as long as the money actually
             // available. Allocate it to the earliest spending years first.
@@ -315,7 +293,6 @@ function runSimulation({
           }
         } else if (retirementYear <= upfrontYears) {
           actualW = 0;
-          isBucketFunded = true;
         } else {
           actualW = Math.floor((wdCents * inflPow[y - 1]) / MICRO);
         }
@@ -329,50 +306,24 @@ function runSimulation({
         continue;
       }
 
-      // Monthly mode sub-steps the post-bucket years only: 12 draws of W/12,
-      // each followed by a monthly return shock. Lump-sum and bucket-funded
-      // years stay annual — the lump leaves all at once, and bucket years
-      // have no portfolio draw, so sub-stepping them would only inflate the
-      // RNG cost without changing the statistics.
-      if (monthly && !isLumpYear && !isBucketFunded) {
-        const monthlyW = Math.floor(actualW / MONTHS_PER_YEAR);
-        const lastW = actualW - (MONTHS_PER_YEAR - 1) * monthlyW;
-        for (let m = 0; m < MONTHS_PER_YEAR; m++) {
-          const w = m === MONTHS_PER_YEAR - 1 ? lastW : monthlyW;
-          bal -= w;
-          if (bal <= 0) {
-            bal = 0;
-            depleted = true;
-            break;
-          }
-          const shockBp = ((volMonthlyBp * gaussInt()) / GS) | 0;
-          let factorBp = BP + returnMonthlyBp + shockBp;
-          if (factorBp < 0) {
-            factorBp = 0;
-          }
-          bal = Math.floor((bal * factorBp) / BP);
-        }
-        yearBalances[y][r] = bal;
-      } else {
-        bal -= actualW;
-        if (bal <= 0) {
-          bal = 0;
-          depleted = true;
-          yearBalances[y][r] = 0;
-          continue;
-        }
-
-        // Per-year growth factor in bp: BP + returnBp + volBp·gauss/GS.
-        // (volBp·gauss) ≤ 3000·5e7 ≈ 1.5e11, fits Number exactly; /GS lands
-        // back in bp range. | 0 truncates the small int32 result.
-        const shockBp = ((volBp * gaussInt()) / GS) | 0;
-        let factorBp = BP + returnBp + shockBp;
-        if (factorBp < 0) {
-          factorBp = 0;
-        } // a >100% loss can't push bal below 0
-        bal = Math.floor((bal * factorBp) / BP);
-        yearBalances[y][r] = bal;
+      bal -= actualW;
+      if (bal <= 0) {
+        bal = 0;
+        depleted = true;
+        yearBalances[y][r] = 0;
+        continue;
       }
+
+      // Per-year growth factor in bp: BP + returnBp + volBp·gauss/GS.
+      // (volBp·gauss) ≤ 3000·5e7 ≈ 1.5e11, fits Number exactly; /GS lands
+      // back in bp range. | 0 truncates the small int32 result.
+      const shockBp = ((volBp * gaussInt()) / GS) | 0;
+      let factorBp = BP + returnBp + shockBp;
+      if (factorBp < 0) {
+        factorBp = 0;
+      } // a >100% loss can't push bal below 0
+      bal = Math.floor((bal * factorBp) / BP);
+      yearBalances[y][r] = bal;
     }
 
     if (bal > 0) {

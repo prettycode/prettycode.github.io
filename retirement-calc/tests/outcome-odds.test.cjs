@@ -24,7 +24,7 @@ const simulate = (overrides = {}) =>
     inflationAdjustBucket: false,
     bucketEarnsTBills: false,
     tBillRealPremium: 0.005,
-    monthly: false,
+
     ...overrides,
   });
 
@@ -49,34 +49,29 @@ const MIXED = {
 };
 
 test("depletion rates are cumulative and agree with final survival", () => {
-  for (const monthly of [false, true]) {
-    const result = simulate({ ...MIXED, monthly, retirementDelay: 3 });
-    let previous = 0;
-    for (const row of result.percentiles) {
-      assert.ok(row.depletionRate >= previous);
-      assert.ok(row.depletionRate <= 1);
-      previous = row.depletionRate;
-    }
-    assert.ok(Math.abs(previous - (1 - result.successRate)) < 1e-12);
-    assert.ok(previous > 0 && previous < 1);
+  const result = simulate({ ...MIXED, retirementDelay: 3 });
+  let previous = 0;
+  for (const row of result.percentiles) {
+    assert.ok(row.depletionRate >= previous);
+    assert.ok(row.depletionRate <= 1);
+    previous = row.depletionRate;
   }
+  assert.ok(Math.abs(previous - (1 - result.successRate)) < 1e-12);
+  assert.ok(previous > 0 && previous < 1);
 });
 
 test("depletion timing includes delayed retirement and exact exhaustion", () => {
-  for (const monthly of [false, true]) {
-    const result = simulate({
-      balance: 200,
-      withdrawal: 100,
-      returnRate: 0,
-      years: 4,
-      retirementDelay: 2,
-      monthly,
-    });
-    assert.deepEqual(
-      Array.from(result.percentiles, (p) => p.depletionRate),
-      [0, 0, 0, 0, 1, 1, 1],
-    );
-  }
+  const result = simulate({
+    balance: 200,
+    withdrawal: 100,
+    returnRate: 0,
+    years: 4,
+    retirementDelay: 2,
+  });
+  assert.deepEqual(
+    Array.from(result.percentiles, (p) => p.depletionRate),
+    [0, 0, 0, 0, 1, 1, 1],
+  );
 });
 
 test("positive sub-dollar balances are not counted as depleted", () => {
@@ -92,24 +87,18 @@ test("positive sub-dollar balances are not counted as depleted", () => {
 });
 
 test("a fully funded cash bucket delays exhaustion through its final year", () => {
-  for (const monthly of [false, true]) {
-    for (const retirementDelay of [0, 2]) {
-      const result = simulate({
-        balance: 200_000,
-        withdrawal: 40_000,
-        returnRate: 0,
-        upfrontYears: 5,
-        years: 10,
-        retirementDelay,
-        monthly,
-      });
-      assert.equal(result.percentiles[retirementDelay + 1].p50, 0);
-      for (const row of result.percentiles) {
-        assert.equal(
-          row.depletionRate,
-          row.year >= retirementDelay + 5 ? 1 : 0,
-        );
-      }
+  for (const retirementDelay of [0, 2]) {
+    const result = simulate({
+      balance: 200_000,
+      withdrawal: 40_000,
+      returnRate: 0,
+      upfrontYears: 5,
+      years: 10,
+      retirementDelay,
+    });
+    assert.equal(result.percentiles[retirementDelay + 1].p50, 0);
+    for (const row of result.percentiles) {
+      assert.equal(row.depletionRate, row.year >= retirementDelay + 5 ? 1 : 0);
     }
   }
 });
@@ -319,23 +308,16 @@ test("a plan that never fails has no band crossings to report", () => {
 });
 
 test("a plan that always fails crosses every band in the year the money goes", () => {
-  for (const monthly of [false, true]) {
-    // $250 funds two $100 draws with no growth; the third empties it.
-    const result = simulate({
-      balance: 250,
-      withdrawal: 100,
-      returnRate: 0,
-      years: 3,
-      monthly,
-    });
-    assert.equal(result.successRate, 0);
-    for (const [key] of BANDS) {
-      assert.equal(
-        ranOutBy(result, key),
-        3,
-        `${key} crossed at the wrong year`,
-      );
-    }
+  // $250 funds two $100 draws with no growth; the third empties it.
+  const result = simulate({
+    balance: 250,
+    withdrawal: 100,
+    returnRate: 0,
+    years: 3,
+  });
+  assert.equal(result.successRate, 0);
+  for (const [key] of BANDS) {
+    assert.equal(ranOutBy(result, key), 3, `${key} crossed at the wrong year`);
   }
 });
 

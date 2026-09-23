@@ -31,7 +31,6 @@ function PortfolioChart({
   running,
   progress,
   balance,
-  withdrawalFrequency,
   medianDepletion,
   simYears,
   showCalendarYears = false,
@@ -714,11 +713,9 @@ function PortfolioChart({
       <p className="chart-footnote">
         {retirementDelay > 0 &&
           `The portfolio grows for ${retirementDelay} years before retirement, with no withdrawals or contributions. `}
-        {withdrawalFrequency === "monthly"
-          ? "Withdrawals are taken in twelve monthly draws; each chart mark shows the year's total at the start of the year it funds. "
-          : "Withdrawals are taken at the start of each retirement year. "}
-        With a multi-year cash bucket, the first withdrawal is the lump sum
-        drawn at retirement; the bucket-funded years that follow show no mark.
+        Withdrawals are taken at the start of each retirement year. With a
+        multi-year cash bucket, the first withdrawal is the lump sum drawn at
+        retirement; the bucket-funded years that follow show no mark.
       </p>
 
       <section className="depletion-panel" aria-labelledby="depletion-title">

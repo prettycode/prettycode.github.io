@@ -21,7 +21,6 @@ const SETTINGS_DEFAULTS = (() => {
   return {
     balance: 3_500_000,
     withdrawal: 150_000,
-    withdrawalFrequency: "monthly",
     upfrontYears: 2,
     planningMode: "ages",
     settingsYears: AGE_DEPLETION - AGE_NOW,
@@ -75,8 +74,19 @@ const UserSettings = (() => {
     try {
       const raw = localStorage.getItem(USER_SETTINGS_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
+      const hadFrequency =
+        parsed !== null &&
+        typeof parsed === "object" &&
+        hasOwn(parsed, "withdrawalFrequency");
+      // Retire the old frequency preference without discarding other settings.
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        delete parsed.withdrawalFrequency;
+      }
       if (isCompatible(parsed)) {
         cache = parsed;
+        if (hadFrequency) {
+          writeAll(cache);
+        }
       } else {
         cache = {};
         removeSavedSettings();

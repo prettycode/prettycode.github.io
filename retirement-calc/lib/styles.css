@@ -301,7 +301,7 @@ input[type="range"]::-moz-range-thumb {
   border-bottom-color: var(--accent);
 }
 
-/* ─── Segmented toggle (Annual / Monthly) ─── */
+/* ─── Segmented toggles ─── */
 .freq-toggle {
   display: flex;
   border: 1px solid var(--ink);
