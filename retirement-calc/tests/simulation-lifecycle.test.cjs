@@ -85,6 +85,7 @@ function harness(saved = {}) {
       `
     return {sim, simInputs, simUseAges, running, solving, simulationError, solverError,
       currentSolverResult, balance, withdrawal, setWithdrawal, setTargetSuccessRate, setSolveFor,
+      upfrontYears, maxUpfrontYears, startingBucketSize, setUpfrontYears,
       solveForTarget, setInflation, setPlanningMode, setWithdrawalFrequency, setBalance,
       handleRetirementStartChange, setCurrentAge, setPlanThroughAge,
       setRetirementAge, currentAge,
@@ -110,6 +111,59 @@ const result = {
   retirementDelay: 0,
   successRate: 0.9,
 };
+
+test("cash bucket is capped on load and when portfolio amounts change", () => {
+  const h = harness({ balance: 3_500_000, withdrawal: 3_500_000 });
+  let state = h.render();
+  assert.equal(state.upfrontYears, 1);
+  assert.equal(state.maxUpfrontYears, 1);
+  assert.equal(h.workers.at(-1).message.params.upfrontYears, 1);
+  h.render();
+  assert.equal(
+    vm.runInContext('UserSettings.get("upfrontYears")', h.context),
+    1,
+  );
+
+  state.setWithdrawal(1_000_000);
+  state = h.render();
+  assert.equal(state.maxUpfrontYears, 3);
+  assert.equal(state.upfrontYears, 1);
+  state.setUpfrontYears(3);
+  state = h.render();
+  assert.equal(state.upfrontYears, 3);
+  state.setBalance(2_000_000);
+  state = h.render();
+  assert.equal(state.upfrontYears, 2);
+  assert.equal(state.maxUpfrontYears, 2);
+  state.setWithdrawal(2_000_000);
+  state = h.render();
+  assert.equal(state.upfrontYears, 1);
+  assert.equal(h.workers.at(-1).message.params.upfrontYears, 1);
+});
+
+test("cash bucket maximum accounts for inflation and T-Bill settings", () => {
+  const h = harness({
+    balance: 3_000_000,
+    withdrawal: 1_000_000,
+    upfrontYears: 3,
+    inflation: 0.05,
+  });
+  let state = h.render();
+  assert.equal(state.maxUpfrontYears, 3);
+  state.setInflationAdjustBucket(true);
+  state = h.render();
+  assert.equal(state.maxUpfrontYears, 2);
+  assert.equal(state.upfrontYears, 2);
+  assert.ok(state.startingBucketSize(state.maxUpfrontYears) <= state.balance);
+  assert.ok(
+    state.startingBucketSize(state.maxUpfrontYears + 1) > state.balance,
+  );
+  state.setInflationAdjustBucket(false);
+  state.setBucketEarnsTBills(true);
+  state = h.render();
+  assert.equal(state.maxUpfrontYears, 3);
+  assert.equal(state.upfrontYears, 2);
+});
 
 for (const setting of ["setInflationAdjustBucket", "setBucketEarnsTBills"]) {
   test(`${setting} cancels a delay solve even when the current horizon funds only one year`, async () => {

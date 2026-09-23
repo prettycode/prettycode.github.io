@@ -1,5 +1,6 @@
 const TARGET_SUCCESS_LIMITS = { min: 50, max: 99 };
 const RATE_STEP = 0.001;
+const MAX_PERSON_AGE = 120;
 
 function formatSuccessChance(rate) {
   if (rate > 0 && rate < 1 && (rate < 0.1 || rate > 0.9)) {
@@ -28,11 +29,14 @@ function usePersistedState(key, initialize = () => UserSettings.get(key)) {
 function RetirementSimulator() {
   const [historicalDataOpen, setHistoricalDataOpen] = useState(false);
   const [balance, setBalance] = usePersistedState("balance");
-  const [withdrawal, setWithdrawal] = usePersistedState("withdrawal");
+  const [withdrawal, setWithdrawal] = usePersistedState("withdrawal", () =>
+    Math.min(UserSettings.get("withdrawal"), balance),
+  );
   const [withdrawalFrequency, setWithdrawalFrequency] = usePersistedState(
     "withdrawalFrequency",
   );
-  const [upfrontYears, setUpfrontYears] = usePersistedState("upfrontYears");
+  const [savedUpfrontYears, setUpfrontYears] =
+    usePersistedState("upfrontYears");
   const [inflationAdjustBucket, setInflationAdjustBucket] = usePersistedState(
     "inflationAdjustBucket",
   );
@@ -70,6 +74,23 @@ function RetirementSimulator() {
   const retirementDelay = settingsDelay;
   const retirementWithdrawal =
     withdrawal * Math.pow(1 + inflation, retirementDelay);
+  const startingBucketSize = (bucketYears) =>
+    bucketSize(
+      retirementWithdrawal,
+      Math.min(bucketYears, years),
+      inflationAdjustBucket ? inflation : 0,
+      bucketEarnsTBills && bucketYears > 1
+        ? inflation + T_BILL_REAL_PREMIUM
+        : 0,
+    );
+  let maxUpfrontYears = 10;
+  while (maxUpfrontYears > 1 && startingBucketSize(maxUpfrontYears) > balance) {
+    maxUpfrontYears--;
+  }
+  const upfrontYears = Math.min(savedUpfrontYears, maxUpfrontYears);
+  useEffect(() => {
+    setUpfrontYears(upfrontYears);
+  }, [upfrontYears]);
   const [marketAssumptionsOpen, setMarketAssumptionsOpen] = usePersistedState(
     "marketAssumptionsOpen",
   );
@@ -459,9 +480,9 @@ function RetirementSimulator() {
                 Duration
               </button>
             </div>
-            {useAges && (
+            <div className="panel-heading">Your Retirement Plan</div>
+            {useAges ? (
               <>
-                <div className="panel-heading">Your Retirement Plan</div>
                 <Slider
                   label="Current Age"
                   sublabel="Your age today"
@@ -489,11 +510,41 @@ function RetirementSimulator() {
                   sublabel={`${retirementDelay} years until retirement; ${years} years in retirement`}
                   value={planThroughAge}
                   min={retirementAge + 1}
-                  max={Math.max(120, planThroughAge)}
+                  max={Math.max(MAX_PERSON_AGE, planThroughAge)}
                   step={1}
                   onChange={setPlanThroughAge}
                   format={(v) => `${v}`}
                   disabled={solving}
+                />
+              </>
+            ) : (
+              <>
+                <Slider
+                  label="Retirement Duration"
+                  sublabel="Years in retirement, excluding any delay"
+                  value={settingsYears}
+                  min={1}
+                  max={Math.max(MAX_PERSON_AGE, settingsYears)}
+                  step={1}
+                  onChange={setSettingsYears}
+                  format={(v) => `${v} yrs`}
+                  disabled={solving}
+                />
+
+                <Slider
+                  label="Retirement Start"
+                  sublabel="Start now or let the portfolio grow for longer first"
+                  value={retirementDelay}
+                  min={0}
+                  max={Math.max(RETIREMENT_DELAY_LIMIT, settingsDelay)}
+                  step={1}
+                  onChange={handleRetirementStartChange}
+                  disabled={solving}
+                  format={(v) =>
+                    v === 0
+                      ? "Immediately"
+                      : `Wait ${v} ${v === 1 ? "year" : "years"}`
+                  }
                 />
               </>
             )}
@@ -510,7 +561,10 @@ function RetirementSimulator() {
               min={AMOUNT_LIMITS.balance.min}
               max={AMOUNT_LIMITS.balance.max}
               step={AMOUNT_LIMITS.balance.step}
-              onChange={setBalance}
+              onChange={(value) => {
+                setBalance(value);
+                setWithdrawal((amount) => Math.min(amount, value));
+              }}
               format={fmtMoney}
             />
 
@@ -523,7 +577,7 @@ function RetirementSimulator() {
               }
               value={withdrawal}
               min={AMOUNT_LIMITS.withdrawal.min}
-              max={AMOUNT_LIMITS.withdrawal.max}
+              max={balance}
               step={AMOUNT_LIMITS.withdrawal.step}
               onChange={setWithdrawal}
               format={(v) =>
@@ -531,62 +585,43 @@ function RetirementSimulator() {
               }
             />
 
+            <div className="slider-row">
+              <div className="slider-label">Withdrawal Frequency</div>
+              <div className="slider-sub" style={{ marginBottom: 8 }}>
+                When draws are taken from the portfolio
+              </div>
+              <div className="freq-toggle">
+                <button
+                  type="button"
+                  className={`freq-btn${withdrawalFrequency === "annual" ? " active" : ""}`}
+                  onClick={() => setWithdrawalFrequency("annual")}
+                >
+                  Annual
+                </button>
+                <button
+                  type="button"
+                  className={`freq-btn${withdrawalFrequency === "monthly" ? " active" : ""}`}
+                  onClick={() => setWithdrawalFrequency("monthly")}
+                >
+                  Monthly
+                </button>
+              </div>
+            </div>
+
             <Slider
               label={SETTING_LABELS.upfrontYears}
               sublabel="Lump-sum first withdrawal, in retirement-year dollars"
               value={upfrontYears}
               min={1}
-              max={10}
+              max={maxUpfrontYears}
               step={1}
               onChange={setUpfrontYears}
               format={(v) => {
-                const wGrow = inflationAdjustBucket ? inflation : 0;
-                const disc =
-                  bucketEarnsTBills && v > 1
-                    ? inflation + T_BILL_REAL_PREMIUM
-                    : 0;
                 const fundedYears = Math.min(v, years);
-                const bucket = bucketSize(
-                  retirementWithdrawal,
-                  fundedYears,
-                  wGrow,
-                  disc,
-                );
+                const bucket = startingBucketSize(v);
                 return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)}${v > years ? `; capped to ${fundedYears} ${fundedYears === 1 ? "yr" : "yrs"}` : ""})`;
               }}
             />
-
-            {!useAges && (
-              <>
-                <Slider
-                  label="Retirement Duration"
-                  sublabel="Years in retirement, excluding any delay"
-                  value={settingsYears}
-                  min={1}
-                  max={Math.max(50, settingsYears)}
-                  step={1}
-                  onChange={setSettingsYears}
-                  format={(v) => `${v} yrs`}
-                  disabled={solving}
-                />
-
-                <Slider
-                  label="Retirement Start"
-                  sublabel="Start now or let the portfolio grow for longer first."
-                  value={retirementDelay}
-                  min={0}
-                  max={Math.max(RETIREMENT_DELAY_LIMIT, settingsDelay)}
-                  step={1}
-                  onChange={handleRetirementStartChange}
-                  disabled={solving}
-                  format={(v) =>
-                    v === 0
-                      ? "Immediately"
-                      : `Wait ${v} ${v === 1 ? "year" : "years"}`
-                  }
-                />
-              </>
-            )}
 
             <details
               className="panel-section"
@@ -685,51 +720,6 @@ function RetirementSimulator() {
             >
               <summary className="panel-heading">Advanced</summary>
               <div className="advanced-body">
-                <div
-                  className="adv-freq"
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 9,
-                    marginBottom: 14,
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 12,
-                      flexShrink: 0,
-                      textAlign: "center",
-                      lineHeight: "14px",
-                      color: "var(--accent)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    •
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div className="toggle-label">Withdrawal Frequency</div>
-                    <div className="toggle-sub" style={{ marginBottom: 8 }}>
-                      When draws are taken from the portfolio.
-                    </div>
-                    <div className="freq-toggle">
-                      <button
-                        type="button"
-                        className={`freq-btn${withdrawalFrequency === "annual" ? " active" : ""}`}
-                        onClick={() => setWithdrawalFrequency("annual")}
-                      >
-                        Annual
-                      </button>
-                      <button
-                        type="button"
-                        className={`freq-btn${withdrawalFrequency === "monthly" ? " active" : ""}`}
-                        onClick={() => setWithdrawalFrequency("monthly")}
-                      >
-                        Monthly
-                      </button>
-                    </div>
-                  </div>
-                </div>
                 <label className="toggle-row">
                   <input
                     type="checkbox"
