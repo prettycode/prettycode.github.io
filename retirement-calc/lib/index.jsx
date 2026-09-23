@@ -484,8 +484,8 @@ function RetirementSimulator() {
             {useAges ? (
               <>
                 <Slider
-                  label="Current Age"
-                  sublabel="Your age today"
+                  label={SETTING_LABELS.currentAge}
+                  sublabel="What is your age today?"
                   value={currentAge}
                   min={18}
                   max={retirementAge}
@@ -495,8 +495,8 @@ function RetirementSimulator() {
                   disabled={solving}
                 />
                 <Slider
-                  label="Retirement Age"
-                  sublabel="Withdrawals begin at this age"
+                  label={SETTING_LABELS.retirementAge}
+                  sublabel="At what age will you start withdrawing from your portfolio?"
                   value={retirementAge}
                   min={currentAge}
                   max={planThroughAge - 1}
@@ -506,7 +506,7 @@ function RetirementSimulator() {
                   disabled={solving}
                 />
                 <Slider
-                  label="Plan Through Age"
+                  label={SETTING_LABELS.planThroughAge}
                   sublabel={`${retirementDelay} years until retirement; ${years} years in retirement`}
                   value={planThroughAge}
                   min={retirementAge + 1}
@@ -520,20 +520,8 @@ function RetirementSimulator() {
             ) : (
               <>
                 <Slider
-                  label="Retirement Duration"
-                  sublabel="Years in retirement, excluding any delay"
-                  value={settingsYears}
-                  min={1}
-                  max={Math.max(MAX_PERSON_AGE, settingsYears)}
-                  step={1}
-                  onChange={setSettingsYears}
-                  format={(v) => `${v} yrs`}
-                  disabled={solving}
-                />
-
-                <Slider
-                  label="Retirement Start"
-                  sublabel="Start now or let the portfolio grow for longer first"
+                  label={SETTING_LABELS.settingsDelay}
+                  sublabel="Will you start now or wait for a later date? The portfolio will grow more if you wait."
                   value={retirementDelay}
                   min={0}
                   max={Math.max(RETIREMENT_DELAY_LIMIT, settingsDelay)}
@@ -545,6 +533,18 @@ function RetirementSimulator() {
                       ? "Immediately"
                       : `Wait ${v} ${v === 1 ? "year" : "years"}`
                   }
+                />
+
+                <Slider
+                  label={SETTING_LABELS.settingsYears}
+                  sublabel="Once retired, how long will you be retired?"
+                  value={settingsYears}
+                  min={1}
+                  max={Math.max(MAX_PERSON_AGE, settingsYears)}
+                  step={1}
+                  onChange={setSettingsYears}
+                  format={(v) => `${v} yrs`}
+                  disabled={solving}
                 />
               </>
             )}
@@ -586,7 +586,9 @@ function RetirementSimulator() {
             />
 
             <div className="slider-row">
-              <div className="slider-label">Withdrawal Frequency</div>
+              <div className="slider-label">
+                {SETTING_LABELS.withdrawalFrequency}
+              </div>
               <div className="slider-sub" style={{ marginBottom: 8 }}>
                 When draws are taken from the portfolio
               </div>
@@ -617,9 +619,8 @@ function RetirementSimulator() {
               step={1}
               onChange={setUpfrontYears}
               format={(v) => {
-                const fundedYears = Math.min(v, years);
                 const bucket = startingBucketSize(v);
-                return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)}${v > years ? `; capped to ${fundedYears} ${fundedYears === 1 ? "yr" : "yrs"}` : ""})`;
+                return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)})`;
               }}
             />
 
@@ -1055,7 +1056,7 @@ function RetirementSimulator() {
                   <p className="solver-note" id="solver-note">
                     Results are shown here without changing your plan.{" "}
                     {solvingDelay
-                      ? `Checks 0 to ${maxSolverDelay} years from today in one-year increments to estimate ${useAges ? "Retirement Age" : "Retirement Start"}. While you wait, your portfolio can grow or shrink based on your selected market assumptions. No savings are added or withdrawals taken before retirement. ${useAges ? `Plan Through Age stays at ${planThroughAge}.` : `Retirement Duration stays at ${years} years.`} Withdrawals account for inflation while you wait.`
+                      ? `Checks 0 to ${maxSolverDelay} years from today in one-year increments to estimate ${useAges ? SETTING_LABELS.retirementAge : SETTING_LABELS.settingsDelay}. While you wait, your portfolio can grow or shrink based on your selected market assumptions. No savings are added or withdrawals taken before retirement. ${useAges ? `${SETTING_LABELS.planThroughAge} stays at ${planThroughAge}.` : `${SETTING_LABELS.settingsYears} stays at ${years} years.`} Withdrawals account for inflation while you wait.`
                       : solvingBalance
                         ? `Estimates ${SETTING_LABELS.balance} ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.balance.min)}–${fmtMoneyFull(AMOUNT_LIMITS.balance.max)}). ${SETTING_LABELS.withdrawal} stays fixed.`
                         : `Estimates ${SETTING_LABELS.withdrawal} in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)}–${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)}). ${SETTING_LABELS.balance} stays fixed.`}
