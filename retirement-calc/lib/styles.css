@@ -36,26 +36,6 @@
   box-sizing: border-box;
 }
 
-/* Subtle paper grain */
-.sim-root::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image:
-    radial-gradient(
-      circle at 25% 30%,
-      rgba(168, 127, 42, 0.04) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 75% 70%,
-      rgba(184, 64, 31, 0.03) 0%,
-      transparent 50%
-    );
-  pointer-events: none;
-  z-index: 0;
-}
-
 .sim-inner {
   max-width: 1240px;
   margin: 0 auto;
@@ -341,6 +321,9 @@ input[type="range"]::-moz-range-thumb {
 .solver-panel,
 .chart-section {
   padding: 20px 22px;
+}
+
+.solver-panel {
   background: var(--cream-2);
   border: 1px solid var(--rule);
   border-top: 2px solid var(--ink);
@@ -851,7 +834,6 @@ input[type="range"]::-moz-range-thumb {
     padding: 0;
     color: black;
   }
-  .sim-root::before,
   .masthead,
   .sidebar,
   .main-area > :not(.results-content),
@@ -998,23 +980,6 @@ input[type="range"]::-moz-range-thumb {
 .chart-wrap {
   position: relative;
   width: 100%;
-}
-
-.depletion-panel {
-  margin-bottom: 24px;
-  padding: 20px 0;
-  box-shadow:
-    inset 0 0 0 1px var(--rule),
-    inset 3px 0 var(--accent);
-  background: var(--cream);
-}
-
-.depletion-heading,
-.depletion-summary,
-.depletion-milestones,
-.depletion-panel > .chart-footnote {
-  margin-left: 20px;
-  margin-right: 20px;
 }
 
 .depletion-heading {

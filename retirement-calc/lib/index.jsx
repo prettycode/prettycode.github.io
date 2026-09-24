@@ -397,7 +397,6 @@ function RetirementSimulator() {
               format={(v) => `${v}`}
               disabled={solving}
             />
-            <div className="panel-heading">Portfolio Settings</div>
 
             <Slider
               label={SETTING_LABELS.balance}

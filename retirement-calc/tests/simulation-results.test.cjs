@@ -149,7 +149,7 @@ test("trajectory and risk read the same worker snapshot with separate balance me
   const source = fs
     .readFileSync("lib/chart.jsx", "utf8")
     .replace(/\r\n/g, "\n");
-  const component = source.slice(0, source.indexOf("  return (\n    <section"));
+  const component = source.slice(0, source.indexOf("  return (\n    <"));
   const ui = vm.createContext({
     React: { useState: () => [null, () => {}] },
     fmtMoney: String,

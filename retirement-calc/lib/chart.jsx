@@ -168,8 +168,11 @@ function PortfolioChart({
   const riskReadout = `${riskPct(riskAt(selectedRiskYear))} run out of money by ${riskLabel(selectedRiskYear)}`;
 
   return (
-    <section className="chart-section fade" aria-labelledby="chart-title">
-      <section className="depletion-panel" aria-labelledby="depletion-title">
+    <>
+      <section
+        className="chart-section depletion-panel fade"
+        aria-labelledby="depletion-title"
+      >
         <div className="depletion-heading">
           <h3 id="depletion-title">Will I run out of money?</h3>
           <span>Cumulative simulation outcomes</span>
@@ -317,388 +320,443 @@ function PortfolioChart({
         </p>
       </section>
 
-      <div className="chart-title-row">
-        <h2 className="chart-title" id="chart-title">
-          How will my investments do?
-        </h2>
-        <label className="chart-calendar-toggle">
-          <input
-            type="checkbox"
-            checked={showCalendarYears}
-            onChange={(e) => onShowCalendarYearsChange(e.target.checked)}
-          />
-          Show calendar years
-        </label>
-      </div>
-      <p className="chart-subtitle">
-        Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo
-        paths. Outer band, 10th–90th percentile; inner band, 25th–75th. Vertical
-        marks show each year's median withdrawal, scaled to the left axis.
-      </p>
+      <section className="chart-section fade" aria-labelledby="chart-title">
+        <div className="chart-title-row">
+          <h2 className="chart-title" id="chart-title">
+            How might my investment portfolio do?
+          </h2>
+          <label className="chart-calendar-toggle">
+            <input
+              type="checkbox"
+              checked={showCalendarYears}
+              onChange={(e) => onShowCalendarYearsChange(e.target.checked)}
+            />
+            Show calendar years
+          </label>
+        </div>
+        <p className="chart-subtitle">
+          Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo
+          paths. Outer band, 10th–90th percentile; inner band, 25th–75th. Vertical
+          marks show each year's median withdrawal, scaled to the left axis.
+        </p>
 
-      <div className="chart-wrap">
-        {running && (
-          <div className="chart-progress-overlay" aria-hidden="true">
-            <span>Recalculating</span>
-            <div className="mini-track">
-              <div
-                className="mini-bar"
-                style={{ width: `${progress * 100}%` }}
-              />
+        <div className="chart-wrap">
+          {running && (
+            <div className="chart-progress-overlay" aria-hidden="true">
+              <span>Recalculating</span>
+              <div className="mini-track">
+                <div
+                  className="mini-bar"
+                  style={{ width: `${progress * 100}%` }}
+                />
+              </div>
+              <span className="pct">{Math.round(progress * 100)}%</span>
             </div>
-            <span className="pct">{Math.round(progress * 100)}%</span>
-          </div>
-        )}
-        <svg
-          className="chart"
-          viewBox={`0 0 ${W} ${H}`}
-          onMouseMove={onMove}
-          onMouseLeave={() => setHover(null)}
-        >
-          <defs>
-            <pattern
-              id="grain"
-              width="3"
-              height="3"
-              patternUnits="userSpaceOnUse"
-            >
-              <rect width="3" height="3" fill="transparent" />
-              <circle cx="1" cy="1" r="0.3" fill="rgba(26,22,18,0.04)" />
-            </pattern>
-          </defs>
-
-          {/* Plot bg */}
-          <rect
-            x={padL}
-            y={padT}
-            width={innerW}
-            height={innerH}
-            fill="var(--cream)"
-          />
-          <rect
-            x={padL}
-            y={padT}
-            width={innerW}
-            height={innerH}
-            fill="url(#grain)"
-          />
-
-          {/* Y gridlines + portfolio-value labels (right axis) */}
-          {yTicks.map((t, i) => (
-            <g key={i}>
-              <line
-                x1={padL}
-                x2={W - padR}
-                y1={yScale(t)}
-                y2={yScale(t)}
-                stroke="var(--rule)"
-                strokeWidth="0.5"
-                strokeDasharray={i === 0 ? "0" : "2 3"}
-              />
-              <text
-                x={W - padR + 8}
-                y={yScale(t) + 4}
-                textAnchor="start"
-                fontFamily="JetBrains Mono"
-                fontSize="10"
-                fill="var(--ink-2)"
-              >
-                {fmtMoney(t)}
-              </text>
-            </g>
-          ))}
-
-          {/* Tick 0 is today; retirement begins at tick retirementDelay. */}
-          {xTicks.map((t) => (
-            <g key={t}>
-              <line
-                x1={x(t)}
-                x2={x(t)}
-                y1={padT + innerH}
-                y2={padT + innerH + 4}
-                stroke="var(--ink)"
-                strokeWidth="0.5"
-              />
-              <text
-                x={x(t)}
-                y={padT + innerH + 18}
-                textAnchor="middle"
-                fontFamily="JetBrains Mono"
-                fontSize="10"
-                fill="var(--ink-2)"
-              >
-                {showCalendarYears
-                  ? calendarStartYear + t
-                  : useAges
-                    ? currentAge + t
-                    : t - retirementDelay}
-              </text>
-            </g>
-          ))}
-          <text
-            x={padL + innerW / 2}
-            y={padT + innerH + 36}
-            textAnchor="middle"
-            fontFamily="JetBrains Mono"
-            fontSize="9"
-            letterSpacing="0.15em"
-            fill="var(--ink-2)"
+          )}
+          <svg
+            className="chart"
+            viewBox={`0 0 ${W} ${H}`}
+            onMouseMove={onMove}
+            onMouseLeave={() => setHover(null)}
           >
-            {showCalendarYears
-              ? "CALENDAR YEAR"
-              : useAges
-                ? "AGE"
-                : "YEARS SINCE RETIREMENT"}
-          </text>
+            <defs>
+              <pattern
+                id="grain"
+                width="3"
+                height="3"
+                patternUnits="userSpaceOnUse"
+              >
+                <rect width="3" height="3" fill="transparent" />
+                <circle cx="1" cy="1" r="0.3" fill="rgba(26,22,18,0.04)" />
+              </pattern>
+            </defs>
 
-          {/* Left axis (withdrawal) — own ticks + frame */}
-          <line
-            x1={padL}
-            x2={padL}
-            y1={padT}
-            y2={padT + innerH}
-            stroke="var(--withdrawal)"
-            strokeWidth="0.75"
-            opacity="0.5"
-          />
-          {Y_AXIS_TICK_FRACTIONS.map((f, i) => {
-            const v = f * maxW;
-            return (
+            {/* Plot bg */}
+            <rect
+              x={padL}
+              y={padT}
+              width={innerW}
+              height={innerH}
+              fill="var(--cream)"
+            />
+            <rect
+              x={padL}
+              y={padT}
+              width={innerW}
+              height={innerH}
+              fill="url(#grain)"
+            />
+
+            {/* Y gridlines + portfolio-value labels (right axis) */}
+            {yTicks.map((t, i) => (
               <g key={i}>
                 <line
-                  x1={padL - 4}
-                  x2={padL}
-                  y1={yScaleW(v)}
-                  y2={yScaleW(v)}
-                  stroke="var(--withdrawal)"
-                  strokeWidth="0.75"
-                  opacity="0.6"
+                  x1={padL}
+                  x2={W - padR}
+                  y1={yScale(t)}
+                  y2={yScale(t)}
+                  stroke="var(--rule)"
+                  strokeWidth="0.5"
+                  strokeDasharray={i === 0 ? "0" : "2 3"}
                 />
                 <text
-                  x={padL - 7}
-                  y={yScaleW(v) + 3}
-                  textAnchor="end"
+                  x={W - padR + 8}
+                  y={yScale(t) + 4}
+                  textAnchor="start"
                   fontFamily="JetBrains Mono"
-                  fontSize="9"
-                  fill="var(--withdrawal)"
+                  fontSize="10"
+                  fill="var(--ink-2)"
                 >
-                  {fmtMoney(v)}
+                  {fmtMoney(t)}
                 </text>
               </g>
-            );
-          })}
+            ))}
 
-          {/* Percentile bands */}
-          <path
-            d={buildArea("p90", "p10")}
-            fill="var(--accent-2)"
-            opacity={OUTER_BAND_OPACITY}
-          />
-          <path
-            d={buildArea("p75", "p25")}
-            fill="var(--accent-2)"
-            opacity={INNER_BAND_OPACITY}
-          />
+            {/* Tick 0 is today; retirement begins at tick retirementDelay. */}
+            {xTicks.map((t) => (
+              <g key={t}>
+                <line
+                  x1={x(t)}
+                  x2={x(t)}
+                  y1={padT + innerH}
+                  y2={padT + innerH + 4}
+                  stroke="var(--ink)"
+                  strokeWidth="0.5"
+                />
+                <text
+                  x={x(t)}
+                  y={padT + innerH + 18}
+                  textAnchor="middle"
+                  fontFamily="JetBrains Mono"
+                  fontSize="10"
+                  fill="var(--ink-2)"
+                >
+                  {showCalendarYears
+                    ? calendarStartYear + t
+                    : useAges
+                      ? currentAge + t
+                      : t - retirementDelay}
+                </text>
+              </g>
+            ))}
+            <text
+              x={padL + innerW / 2}
+              y={padT + innerH + 36}
+              textAnchor="middle"
+              fontFamily="JetBrains Mono"
+              fontSize="9"
+              letterSpacing="0.15em"
+              fill="var(--ink-2)"
+            >
+              {showCalendarYears
+                ? "CALENDAR YEAR"
+                : useAges
+                  ? "AGE"
+                  : "YEARS SINCE RETIREMENT"}
+            </text>
 
-          {retirementDelay > 0 && (
-            <g>
-              <line
-                x1={x(retirementDelay)}
-                x2={x(retirementDelay)}
-                y1={padT}
-                y2={padT + innerH}
-                stroke="var(--ink-2)"
-                strokeWidth="1"
-                strokeDasharray="4 4"
-              />
-              <text
-                x={x(retirementDelay) + 6}
-                y={padT + 12}
-                fontFamily="JetBrains Mono"
-                fontSize="10"
-                fill="var(--ink-2)"
-              >
-                {useAges
-                  ? `Retire at age ${currentAge + retirementDelay}`
-                  : "Retirement starts"}
-              </text>
-            </g>
-          )}
+            {/* Left axis (withdrawal) — own ticks + frame */}
+            <line
+              x1={padL}
+              x2={padL}
+              y1={padT}
+              y2={padT + innerH}
+              stroke="var(--withdrawal)"
+              strokeWidth="0.75"
+              opacity="0.5"
+            />
+            {Y_AXIS_TICK_FRACTIONS.map((f, i) => {
+              const v = f * maxW;
+              return (
+                <g key={i}>
+                  <line
+                    x1={padL - 4}
+                    x2={padL}
+                    y1={yScaleW(v)}
+                    y2={yScaleW(v)}
+                    stroke="var(--withdrawal)"
+                    strokeWidth="0.75"
+                    opacity="0.6"
+                  />
+                  <text
+                    x={padL - 7}
+                    y={yScaleW(v) + 3}
+                    textAnchor="end"
+                    fontFamily="JetBrains Mono"
+                    fontSize="9"
+                    fill="var(--withdrawal)"
+                  >
+                    {fmtMoney(v)}
+                  </text>
+                </g>
+              );
+            })}
 
-          {/* Median portfolio line — truncated at the depletion year so the
-              path clearly terminates at $0 instead of vanishing along the
-              axis. When the depletion-year withdrawal alone exhausts the
-              portfolio (yearData[y].startDepleted), the path ends at the
-              moment of withdrawal — x(y-1) — rather than running flat to
-              x(y). The growth-shock case (startBalance survives the draw
-              but a market shock takes the median to $0 by year-end) ends
-              with a diagonal to x(y). */}
-          <path
-            d={(() => {
+            {/* Percentile bands */}
+            <path
+              d={buildArea("p90", "p10")}
+              fill="var(--accent-2)"
+              opacity={OUTER_BAND_OPACITY}
+            />
+            <path
+              d={buildArea("p75", "p25")}
+              fill="var(--accent-2)"
+              opacity={INNER_BAND_OPACITY}
+            />
+
+            {retirementDelay > 0 && (
+              <g>
+                <line
+                  x1={x(retirementDelay)}
+                  x2={x(retirementDelay)}
+                  y1={padT}
+                  y2={padT + innerH}
+                  stroke="var(--ink-2)"
+                  strokeWidth="1"
+                  strokeDasharray="4 4"
+                />
+                <text
+                  x={x(retirementDelay) + 6}
+                  y={padT + 12}
+                  fontFamily="JetBrains Mono"
+                  fontSize="10"
+                  fill="var(--ink-2)"
+                >
+                  {useAges
+                    ? `Retire at age ${currentAge + retirementDelay}`
+                    : "Retirement starts"}
+                </text>
+              </g>
+            )}
+
+            {/* Median portfolio line — truncated at the depletion year so the
+                path clearly terminates at $0 instead of vanishing along the
+                axis. When the depletion-year withdrawal alone exhausts the
+                portfolio (yearData[y].startDepleted), the path ends at the
+                moment of withdrawal — x(y-1) — rather than running flat to
+                x(y). The growth-shock case (startBalance survives the draw
+                but a market shock takes the median to $0 by year-end) ends
+                with a diagonal to x(y). */}
+            <path
+              d={(() => {
+                const lastYear = portfolioDepletion
+                  ? portfolioDepletion.year
+                  : simYears;
+                const endsAtWithdrawal =
+                  portfolioDepletion && portfolioDepletion.startDepleted;
+                const fullYears = endsAtWithdrawal ? lastYear - 1 : lastYear;
+                let d = `M ${x(0)} ${yScale(retirementBalance.p50)}`;
+                for (let y = 1; y <= fullYears; y++) {
+                  d += ` L ${x(y - 1)} ${yScale(stepDown("p50", y))}`;
+                  d += ` L ${x(y)} ${yScale(yearData[y].endBalance.p50)}`;
+                }
+                if (endsAtWithdrawal) {
+                  d += ` L ${x(fullYears)} ${yScale(0)}`;
+                }
+                return d;
+              })()}
+              fill="none"
+              stroke="var(--ink)"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+
+            {/* Withdrawal lollipops. Year y's draw is a discrete event at the
+                start of year y, so its mark sits at x(y-1) — the moment the
+                money leaves. Bucket-funded years naturally show no mark
+                (actual = 0); years past depletion are skipped. The depleting
+                year uses yearData[y].actual, which is already capped at the
+                prior median balance, so the mark height matches what could
+                actually be drawn rather than the still-inflating intended. */}
+            {(() => {
               const lastYear = portfolioDepletion
                 ? portfolioDepletion.year
                 : simYears;
-              const endsAtWithdrawal =
-                portfolioDepletion && portfolioDepletion.startDepleted;
-              const fullYears = endsAtWithdrawal ? lastYear - 1 : lastYear;
-              let d = `M ${x(0)} ${yScale(retirementBalance.p50)}`;
-              for (let y = 1; y <= fullYears; y++) {
-                d += ` L ${x(y - 1)} ${yScale(stepDown("p50", y))}`;
-                d += ` L ${x(y)} ${yScale(yearData[y].endBalance.p50)}`;
+              const marks = [];
+              for (let y = 1; y <= lastYear; y++) {
+                const w = yearData[y].actual;
+                if (w <= 0) {
+                  continue;
+                }
+                const cx = x(y - 1);
+                const cy = yScaleW(w);
+                marks.push(
+                  <g key={y}>
+                    <line
+                      x1={cx}
+                      x2={cx}
+                      y1={yScaleW(0)}
+                      y2={cy}
+                      stroke="var(--withdrawal)"
+                      strokeWidth="1"
+                      opacity={WITHDRAWAL_MARKER_OPACITY}
+                    />
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={WITHDRAWAL_MARKER_RADIUS}
+                      fill="var(--withdrawal)"
+                    />
+                  </g>,
+                );
               }
-              if (endsAtWithdrawal) {
-                d += ` L ${x(fullYears)} ${yScale(0)}`;
-              }
-              return d;
+              return marks;
             })()}
-            fill="none"
-            stroke="var(--ink)"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
 
-          {/* Withdrawal lollipops. Year y's draw is a discrete event at the
-              start of year y, so its mark sits at x(y-1) — the moment the
-              money leaves. Bucket-funded years naturally show no mark
-              (actual = 0); years past depletion are skipped. The depleting
-              year uses yearData[y].actual, which is already capped at the
-              prior median balance, so the mark height matches what could
-              actually be drawn rather than the still-inflating intended. */}
-          {(() => {
-            const lastYear = portfolioDepletion
-              ? portfolioDepletion.year
-              : simYears;
-            const marks = [];
-            for (let y = 1; y <= lastYear; y++) {
-              const w = yearData[y].actual;
-              if (w <= 0) {
-                continue;
-              }
-              const cx = x(y - 1);
-              const cy = yScaleW(w);
-              marks.push(
-                <g key={y}>
-                  <line
-                    x1={cx}
-                    x2={cx}
-                    y1={yScaleW(0)}
-                    y2={cy}
-                    stroke="var(--withdrawal)"
-                    strokeWidth="1"
-                    opacity={WITHDRAWAL_MARKER_OPACITY}
-                  />
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={WITHDRAWAL_MARKER_RADIUS}
-                    fill="var(--withdrawal)"
-                  />
-                </g>,
-              );
-            }
-            return marks;
-          })()}
-
-          {/* Hover guide */}
-          {hoverBalance && (
-            <>
-              <line
-                x1={x(hover)}
-                x2={x(hover)}
-                y1={padT}
-                y2={padT + innerH}
-                stroke="var(--ink)"
-                strokeWidth="0.75"
-                strokeDasharray="2 2"
-                opacity="0.5"
-              />
-              <circle
-                cx={x(hover)}
-                cy={yScale(hoverBalance.p50)}
-                r="4"
-                fill="var(--ink)"
-              />
-              <circle
-                cx={x(hover)}
-                cy={yScale(hoverBalance.p50)}
-                r="2"
-                fill="var(--cream)"
-              />
-              {hoverWithdrawal > 0 && (
+            {/* Hover guide */}
+            {hoverBalance && (
+              <>
+                <line
+                  x1={x(hover)}
+                  x2={x(hover)}
+                  y1={padT}
+                  y2={padT + innerH}
+                  stroke="var(--ink)"
+                  strokeWidth="0.75"
+                  strokeDasharray="2 2"
+                  opacity="0.5"
+                />
                 <circle
                   cx={x(hover)}
-                  cy={yScaleW(hoverWithdrawal)}
-                  r="3"
-                  fill="var(--withdrawal)"
+                  cy={yScale(hoverBalance.p50)}
+                  r="4"
+                  fill="var(--ink)"
                 />
-              )}
-            </>
-          )}
+                <circle
+                  cx={x(hover)}
+                  cy={yScale(hoverBalance.p50)}
+                  r="2"
+                  fill="var(--cream)"
+                />
+                {hoverWithdrawal > 0 && (
+                  <circle
+                    cx={x(hover)}
+                    cy={yScaleW(hoverWithdrawal)}
+                    r="3"
+                    fill="var(--withdrawal)"
+                  />
+                )}
+              </>
+            )}
 
-          {/* Axis frame */}
-          <line
-            x1={W - padR}
-            x2={W - padR}
-            y1={padT}
-            y2={padT + innerH}
-            stroke="var(--ink)"
-            strokeWidth="1"
-          />
-          <line
-            x1={padL}
-            x2={W - padR}
-            y1={padT + innerH}
-            y2={padT + innerH}
-            stroke="var(--ink)"
-            strokeWidth="1"
-          />
+            {/* Axis frame */}
+            <line
+              x1={W - padR}
+              x2={W - padR}
+              y1={padT}
+              y2={padT + innerH}
+              stroke="var(--ink)"
+              strokeWidth="1"
+            />
+            <line
+              x1={padL}
+              x2={W - padR}
+              y1={padT + innerH}
+              y2={padT + innerH}
+              stroke="var(--ink)"
+              strokeWidth="1"
+            />
 
-          {/* Axis labels */}
-          <text
-            x={padL}
-            y={padT - 12}
-            fontFamily="JetBrains Mono"
-            fontSize="9"
-            letterSpacing="0.15em"
-            fill="var(--withdrawal)"
-          >
-            WITHDRAWAL ($)
-          </text>
-          <text
-            x={W - padR}
-            y={padT - 12}
-            textAnchor="end"
-            fontFamily="JetBrains Mono"
-            fontSize="9"
-            letterSpacing="0.15em"
-            fill="var(--ink-2)"
-          >
-            PORTFOLIO VALUE ($)
-          </text>
-        </svg>
+            {/* Axis labels */}
+            <text
+              x={padL}
+              y={padT - 12}
+              fontFamily="JetBrains Mono"
+              fontSize="9"
+              letterSpacing="0.15em"
+              fill="var(--withdrawal)"
+            >
+              WITHDRAWAL ($)
+            </text>
+            <text
+              x={W - padR}
+              y={padT - 12}
+              textAnchor="end"
+              fontFamily="JetBrains Mono"
+              fontSize="9"
+              letterSpacing="0.15em"
+              fill="var(--ink-2)"
+            >
+              PORTFOLIO VALUE ($)
+            </text>
+          </svg>
 
-        {hoverBalance && hoverBalance.p90 > 0 && (
-          <div
-            className="tooltip"
-            style={{
-              left: `${(x(hover) / W) * 100}%`,
-              top: `${(yScale(hoverBalance.p50) / H) * 100}%`,
-            }}
-          >
-            <div className="tooltip-year">
-              {useAges && `AGE ${currentAge + hover} | `}
-              {hover < retirementDelay
-                ? `${calendarStartYear + hover} · ${retirementDelay - hover} YEARS UNTIL RETIREMENT`
-                : hover === simYears
-                  ? `RETIREMENT YEAR ${simYears - retirementDelay} END`
-                  : `RETIREMENT YEAR ${upcomingYear.year - retirementDelay} START`}
-            </div>
-            {(() => {
-              const post = (key) => upcomingYear.afterWithdrawal[key];
-              if (hover === 0 && retirementDelay === 0) {
-                // Tick 0: only the median balance is meaningful (all paths
-                // start with the same retirement balance), and year 1's
-                // first draw comes next.
+          {hoverBalance && hoverBalance.p90 > 0 && (
+            <div
+              className="tooltip"
+              style={{
+                left: `${(x(hover) / W) * 100}%`,
+                top: `${(yScale(hoverBalance.p50) / H) * 100}%`,
+              }}
+            >
+              <div className="tooltip-year">
+                {useAges && `AGE ${currentAge + hover} | `}
+                {hover < retirementDelay
+                  ? `${calendarStartYear + hover} · ${retirementDelay - hover} YEARS UNTIL RETIREMENT`
+                  : hover === simYears
+                    ? `RETIREMENT YEAR ${simYears - retirementDelay} END`
+                    : `RETIREMENT YEAR ${upcomingYear.year - retirementDelay} START`}
+              </div>
+              {(() => {
+                const post = (key) => upcomingYear.afterWithdrawal[key];
+                if (hover === 0 && retirementDelay === 0) {
+                  // Tick 0: only the median balance is meaningful (all paths
+                  // start with the same retirement balance), and year 1's
+                  // first draw comes next.
+                  return (
+                    <>
+                      <div className="tooltip-row">
+                        <span>Withdrawal</span>
+                        <span>{fmtMoneyFull(hoverWithdrawal)}</span>
+                      </div>
+                      <div className="tooltip-section divided">
+                        BEFORE WITHDRAWAL
+                      </div>
+                      <div className="tooltip-row">
+                        <span>Balance</span>
+                        <span>{fmtMoneyFull(hoverBalance.p50)}</span>
+                      </div>
+                      <div className="tooltip-section divided">
+                        AFTER WITHDRAWAL
+                      </div>
+                      <div className="tooltip-row">
+                        <span>Balance</span>
+                        <span>{fmtMoneyFull(post("p50"))}</span>
+                      </div>
+                    </>
+                  );
+                }
+                if (hover === simYears || hover < retirementDelay) {
+                  // Final tick: the simulation has ended. Show year-end balance
+                  // percentiles only — no upcoming withdrawal exists, so we don't
+                  // project (the stat-cells don't either, and projecting here is
+                  // what made "Last Annual Withdrawal" appear off-by-one).
+                  return (
+                    <>
+                      <div className="tooltip-section">PORTFOLIO BALANCE</div>
+                      <div className="tooltip-row">
+                        <span>90th</span>
+                        <span>{fmtMoneyFull(hoverBalance.p90)}</span>
+                      </div>
+                      <div className="tooltip-row">
+                        <span>75th</span>
+                        <span>{fmtMoneyFull(hoverBalance.p75)}</span>
+                      </div>
+                      <div className="tooltip-row">
+                        <span>Median</span>
+                        <span>{fmtMoneyFull(hoverBalance.p50)}</span>
+                      </div>
+                      <div className="tooltip-row">
+                        <span>25th</span>
+                        <span>{fmtMoneyFull(hoverBalance.p25)}</span>
+                      </div>
+                      <div className="tooltip-row">
+                        <span>10th</span>
+                        <span>{fmtMoneyFull(hoverBalance.p10)}</span>
+                      </div>
+                    </>
+                  );
+                }
                 return (
                   <>
                     <div className="tooltip-row">
@@ -708,28 +766,6 @@ function PortfolioChart({
                     <div className="tooltip-section divided">
                       BEFORE WITHDRAWAL
                     </div>
-                    <div className="tooltip-row">
-                      <span>Balance</span>
-                      <span>{fmtMoneyFull(hoverBalance.p50)}</span>
-                    </div>
-                    <div className="tooltip-section divided">
-                      AFTER WITHDRAWAL
-                    </div>
-                    <div className="tooltip-row">
-                      <span>Balance</span>
-                      <span>{fmtMoneyFull(post("p50"))}</span>
-                    </div>
-                  </>
-                );
-              }
-              if (hover === simYears || hover < retirementDelay) {
-                // Final tick: the simulation has ended. Show year-end balance
-                // percentiles only — no upcoming withdrawal exists, so we don't
-                // project (the stat-cells don't either, and projecting here is
-                // what made "Last Annual Withdrawal" appear off-by-one).
-                return (
-                  <>
-                    <div className="tooltip-section">PORTFOLIO BALANCE</div>
                     <div className="tooltip-row">
                       <span>90th</span>
                       <span>{fmtMoneyFull(hoverBalance.p90)}</span>
@@ -750,125 +786,94 @@ function PortfolioChart({
                       <span>10th</span>
                       <span>{fmtMoneyFull(hoverBalance.p10)}</span>
                     </div>
+                    <div className="tooltip-section divided">
+                      AFTER WITHDRAWAL
+                    </div>
+                    <div className="tooltip-row">
+                      <span>90th</span>
+                      <span>{fmtMoneyFull(post("p90"))}</span>
+                    </div>
+                    <div className="tooltip-row">
+                      <span>75th</span>
+                      <span>{fmtMoneyFull(post("p75"))}</span>
+                    </div>
+                    <div className="tooltip-row">
+                      <span>Median</span>
+                      <span>{fmtMoneyFull(post("p50"))}</span>
+                    </div>
+                    <div className="tooltip-row">
+                      <span>25th</span>
+                      <span>{fmtMoneyFull(post("p25"))}</span>
+                    </div>
+                    <div className="tooltip-row">
+                      <span>10th</span>
+                      <span>{fmtMoneyFull(post("p10"))}</span>
+                    </div>
                   </>
                 );
-              }
-              return (
-                <>
-                  <div className="tooltip-row">
-                    <span>Withdrawal</span>
-                    <span>{fmtMoneyFull(hoverWithdrawal)}</span>
-                  </div>
-                  <div className="tooltip-section divided">
-                    BEFORE WITHDRAWAL
-                  </div>
-                  <div className="tooltip-row">
-                    <span>90th</span>
-                    <span>{fmtMoneyFull(hoverBalance.p90)}</span>
-                  </div>
-                  <div className="tooltip-row">
-                    <span>75th</span>
-                    <span>{fmtMoneyFull(hoverBalance.p75)}</span>
-                  </div>
-                  <div className="tooltip-row">
-                    <span>Median</span>
-                    <span>{fmtMoneyFull(hoverBalance.p50)}</span>
-                  </div>
-                  <div className="tooltip-row">
-                    <span>25th</span>
-                    <span>{fmtMoneyFull(hoverBalance.p25)}</span>
-                  </div>
-                  <div className="tooltip-row">
-                    <span>10th</span>
-                    <span>{fmtMoneyFull(hoverBalance.p10)}</span>
-                  </div>
-                  <div className="tooltip-section divided">
-                    AFTER WITHDRAWAL
-                  </div>
-                  <div className="tooltip-row">
-                    <span>90th</span>
-                    <span>{fmtMoneyFull(post("p90"))}</span>
-                  </div>
-                  <div className="tooltip-row">
-                    <span>75th</span>
-                    <span>{fmtMoneyFull(post("p75"))}</span>
-                  </div>
-                  <div className="tooltip-row">
-                    <span>Median</span>
-                    <span>{fmtMoneyFull(post("p50"))}</span>
-                  </div>
-                  <div className="tooltip-row">
-                    <span>25th</span>
-                    <span>{fmtMoneyFull(post("p25"))}</span>
-                  </div>
-                  <div className="tooltip-row">
-                    <span>10th</span>
-                    <span>{fmtMoneyFull(post("p10"))}</span>
-                  </div>
-                </>
-              );
-            })()}
+              })()}
+            </div>
+          )}
+        </div>
+
+        <div className="legend">
+          <div className="legend-item">
+            <span
+              className="legend-swatch"
+              style={{
+                background: "var(--accent-2)",
+                opacity: INNER_BAND_OPACITY,
+              }}
+            ></span>
+            25th–75th percentile
           </div>
-        )}
-      </div>
+          <div className="legend-item">
+            <span
+              className="legend-swatch"
+              style={{
+                background: "var(--accent-2)",
+                opacity: OUTER_BAND_OPACITY,
+              }}
+            ></span>
+            10th–90th percentile
+          </div>
+          <div className="legend-item">
+            <span
+              className="legend-swatch legend-swatch-line"
+              style={{ background: "var(--ink)" }}
+            ></span>
+            Median path
+          </div>
+          <div className="legend-item">
+            <svg width="16" height="12" style={{ overflow: "visible" }}>
+              <line
+                x1="8"
+                x2="8"
+                y1="11"
+                y2="3"
+                stroke="var(--withdrawal)"
+                strokeWidth="1"
+                opacity={WITHDRAWAL_MARKER_OPACITY}
+              />
+              <circle
+                cx="8"
+                cy="3"
+                r={WITHDRAWAL_MARKER_RADIUS}
+                fill="var(--withdrawal)"
+              />
+            </svg>
+            {SETTING_LABELS.withdrawal}
+          </div>
+        </div>
 
-      <div className="legend">
-        <div className="legend-item">
-          <span
-            className="legend-swatch"
-            style={{
-              background: "var(--accent-2)",
-              opacity: INNER_BAND_OPACITY,
-            }}
-          ></span>
-          25th–75th percentile
-        </div>
-        <div className="legend-item">
-          <span
-            className="legend-swatch"
-            style={{
-              background: "var(--accent-2)",
-              opacity: OUTER_BAND_OPACITY,
-            }}
-          ></span>
-          10th–90th percentile
-        </div>
-        <div className="legend-item">
-          <span
-            className="legend-swatch legend-swatch-line"
-            style={{ background: "var(--ink)" }}
-          ></span>
-          Median path
-        </div>
-        <div className="legend-item">
-          <svg width="16" height="12" style={{ overflow: "visible" }}>
-            <line
-              x1="8"
-              x2="8"
-              y1="11"
-              y2="3"
-              stroke="var(--withdrawal)"
-              strokeWidth="1"
-              opacity={WITHDRAWAL_MARKER_OPACITY}
-            />
-            <circle
-              cx="8"
-              cy="3"
-              r={WITHDRAWAL_MARKER_RADIUS}
-              fill="var(--withdrawal)"
-            />
-          </svg>
-          {SETTING_LABELS.withdrawal}
-        </div>
-      </div>
-
-      <p className="chart-footnote">
-        {retirementDelay > 0 &&
-          `The portfolio grows for ${retirementDelay} years before retirement, with no withdrawals or contributions. `}
-        Withdrawals are taken at the start of each retirement year. With a
-        multi-year cash bucket, the first withdrawal is the lump sum drawn at
-        retirement; the bucket-funded years that follow show no mark.
-      </p>
-    </section>
+        <p className="chart-footnote">
+          {retirementDelay > 0 &&
+            `The portfolio grows for ${retirementDelay} years before retirement, with no withdrawals or contributions. `}
+          Withdrawals are taken at the start of each retirement year. With a
+          multi-year cash bucket, the first withdrawal is the lump sum drawn at
+          retirement; the bucket-funded years that follow show no mark.
+        </p>
+      </section>
+    </>
   );
 }
