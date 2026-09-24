@@ -1,6 +1,4 @@
-/* exported startSolver, AMOUNT_LIMITS, RETIREMENT_DELAY_LIMIT */
-
-const RETIREMENT_DELAY_LIMIT = 50;
+/* exported startSolver, AMOUNT_LIMITS */
 
 // Shared by the solver, sidebar sliders, and explanatory text.
 const AMOUNT_LIMITS = {
@@ -11,7 +9,7 @@ const AMOUNT_LIMITS = {
 // Like startSimulation, a solver request exposes a promise and cancellation.
 // params contains the fixed simulation assumptions; solveFor selects the one
 // amount or retirement delay to vary. For delay searches, planThroughYears
-// optionally fixes the horizon from today. targetSuccessRate is a percentage.
+// fixes the horizon from today. targetSuccessRate is a percentage.
 function startSolver(
   params,
   solveFor,
@@ -49,10 +47,7 @@ function startSolver(
   // Probe endpoints to detect range limits, then bisect on the slider grid.
   const promise = (async () => {
     if (solveFor === "retirementDelay") {
-      const maxDelay =
-        params.planThroughYears !== undefined
-          ? params.planThroughYears - 1
-          : Math.max(RETIREMENT_DELAY_LIMIT, params.retirementDelay || 0);
+      const maxDelay = params.planThroughYears - 1;
       // Delay is not necessarily monotonic: inflation and investment risk can
       // outweigh growth. Check every whole year to find the earliest match.
       for (let delay = 0; delay <= maxDelay; delay++) {
@@ -60,10 +55,7 @@ function startSolver(
         request = startSimulation({
           ...baseParams,
           retirementDelay: delay,
-          years:
-            params.planThroughYears !== undefined
-              ? params.planThroughYears - delay
-              : params.years,
+          years: params.planThroughYears - delay,
         });
         const result = await request.promise;
         checkCancelled();

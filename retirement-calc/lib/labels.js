@@ -2,12 +2,9 @@
 
 // Shared names for controls and UI text that refers to those controls.
 const SETTING_LABELS = Object.freeze({
-  planningMode: "Planning Mode",
   currentAge: "Current Age",
   retirementAge: "Retirement Age",
   planThroughAge: "Plan Through Age",
-  settingsYears: "Retirement Duration",
-  settingsDelay: "Retirement Start",
   balance: "Starting Balance",
   withdrawal: "Annual Withdrawal",
   upfrontYears: "Starting Cash Bucket",

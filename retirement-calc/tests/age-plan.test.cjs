@@ -32,14 +32,22 @@ test("incompatible saved settings are erased and ignored", () => {
   for (const saved of [
     { years: 40, retirementDelay: 7, balance: 123 },
     { retirementDelay: 0 },
+    {
+      planningMode: "settings",
+      settingsYears: 30,
+      settingsDelay: 5,
+      balance: 123,
+    },
+    { settingsYears: 30 },
+    { settingsDelay: 5 },
     { balance: "123" },
     [],
     null,
   ]) {
     const { api, storage } = settings(saved);
     assert.equal(api.get("balance"), api.defaults.balance);
-    assert.equal(api.get("settingsYears"), api.defaults.settingsYears);
-    assert.equal(api.get("settingsDelay"), api.defaults.settingsDelay);
+    assert.equal(api.get("currentAge"), api.defaults.currentAge);
+    assert.equal(api.get("retirementAge"), api.defaults.retirementAge);
     assert.equal(storage.value, null);
   }
 });
@@ -59,25 +67,20 @@ test("retired withdrawal frequency is removed without resetting the saved plan",
 test("malformed saved JSON is erased and ignored", () => {
   const { api, storage } = settings();
   storage.value = "{broken";
-  assert.equal(api.get("planningMode"), api.defaults.planningMode);
+  assert.equal(api.get("currentAge"), api.defaults.currentAge);
   assert.equal(storage.value, null);
 });
 
-test("age settings do not supply missing duration settings", () => {
-  const { api } = settings({ retirementAge: 55 });
-  assert.equal(api.get("retirementAge"), 55);
-  assert.equal(api.get("settingsYears"), api.defaults.settingsYears);
-  assert.equal(api.get("settingsDelay"), api.defaults.settingsDelay);
-});
-
-test("fresh settings use age-based planning and the default retirement horizon", () => {
+test("fresh settings use only ages and the default retirement horizon", () => {
   const { api } = settings();
-  assert.equal(api.get("planningMode"), "ages");
   assert.equal(api.get("currentAge"), 43);
   assert.equal(api.get("retirementAge"), 43);
   assert.equal(api.get("planThroughAge"), 90);
-  assert.equal(api.get("settingsYears"), 47);
-  assert.equal(api.get("settingsDelay"), 0);
+  for (const key of ["planningMode", "settingsYears", "settingsDelay"]) {
+    assert.equal(api.has(key), false);
+    api.set(key, 30);
+    assert.equal(api.get(key), undefined);
+  }
 });
 
 test("age plan and target survive persistence and reset", () => {
@@ -98,80 +101,53 @@ test("age plan and target survive persistence and reset", () => {
   assert.equal(restored.get("retirementAge"), restored.defaults.retirementAge);
 });
 
-for (const planningMode of ["ages", "settings"]) {
-  test(`${planningMode} mode uses its own simulation timeline`, () => {
-    const { api } = settings({
-      planningMode,
-      currentAge: 43,
-      retirementAge: 50,
-      planThroughAge: 90,
-      settingsYears: 30,
-      settingsDelay: 2,
-    });
-    const effects = [];
-    let message;
-    const context = vm.createContext({
-      UserSettings: api,
-      React: {
-        useRef: () => ({ current: null }),
-        useState: (v) => [typeof v === "function" ? v() : v, () => {}],
-        useEffect: (fn) => effects.push(fn),
-        createElement: () => null,
-      },
-      ReactDOM: { createRoot: () => ({ render() {} }) },
-      document: { getElementById() {} },
-      MARKET_PRESETS: { world: { historical: {} } },
-      Worker: class {
-        postMessage(m) {
-          message = m;
-        }
-      },
-      setTimeout: (fn) => {
-        fn();
-        return 1;
-      },
-      MONTE_CARLO_WORKER_URL: "worker",
-      SIM_RUNS: 100,
-      T_BILL_REAL_PREMIUM: 0.005,
-      cagrToArithmetic: () => 0,
-      fmtMoney() {},
-      fmtPct() {},
-      Slider() {},
-      PortfolioChart() {},
-    });
-    vm.runInContext(fs.readFileSync("lib/monte-carlo.js", "utf8"), context);
-    vm.runInContext(fs.readFileSync("lib/solver.js", "utf8"), context);
-    // Run the component's state/effect setup without requiring a JSX build dependency.
-    const source =
-      fs
-        .readFileSync("lib/index.jsx", "utf8")
-        .replace(/\r\n/g, "\n")
-        .split('  return (\n    <div className="sim-root">')[0] + "\n}";
-    vm.runInContext(source + "\nRetirementSimulator();", context);
-    effects.forEach((fn) => fn());
-    assert.equal(
-      message.params.retirementDelay,
-      planningMode === "ages" ? 7 : 2,
-    );
-    assert.equal(message.params.years, planningMode === "ages" ? 40 : 30);
-  });
-}
-
-test("settings mode and its timeline persist independently of ages", () => {
-  const { api, storage } = settings({
+test("saved ages supply the simulation timeline", () => {
+  const { api } = settings({
     currentAge: 43,
     retirementAge: 50,
     planThroughAge: 90,
   });
-  assert.equal(api.get("settingsYears"), api.defaults.settingsYears);
-  assert.equal(api.get("settingsDelay"), api.defaults.settingsDelay);
-  api.set("planningMode", "settings");
-  api.set("settingsYears", 30);
-  api.set("settingsDelay", 2);
-  const restored = settings(JSON.parse(storage.value)).api;
-  assert.equal(restored.get("planningMode"), "settings");
-  assert.equal(restored.get("settingsYears"), 30);
-  assert.equal(restored.get("settingsDelay"), 2);
-  assert.equal(restored.get("retirementAge"), 50);
-  assert.equal(restored.get("planThroughAge"), 90);
+  const effects = [];
+  let message;
+  const context = vm.createContext({
+    UserSettings: api,
+    React: {
+      useRef: () => ({ current: null }),
+      useState: (v) => [typeof v === "function" ? v() : v, () => {}],
+      useEffect: (fn) => effects.push(fn),
+      createElement: () => null,
+    },
+    ReactDOM: { createRoot: () => ({ render() {} }) },
+    document: { getElementById() {} },
+    MARKET_PRESETS: { world: { historical: {} } },
+    Worker: class {
+      postMessage(m) {
+        message = m;
+      }
+    },
+    setTimeout: (fn) => {
+      fn();
+      return 1;
+    },
+    MONTE_CARLO_WORKER_URL: "worker",
+    SIM_RUNS: 100,
+    T_BILL_REAL_PREMIUM: 0.005,
+    cagrToArithmetic: () => 0,
+    fmtMoney() {},
+    fmtPct() {},
+    Slider() {},
+    PortfolioChart() {},
+  });
+  vm.runInContext(fs.readFileSync("lib/monte-carlo.js", "utf8"), context);
+  vm.runInContext(fs.readFileSync("lib/solver.js", "utf8"), context);
+  // Run the component's state/effect setup without requiring a JSX build dependency.
+  const source =
+    fs
+      .readFileSync("lib/index.jsx", "utf8")
+      .replace(/\r\n/g, "\n")
+      .split('  return (\n    <div className="sim-root">')[0] + "\n}";
+  vm.runInContext(source + "\nRetirementSimulator();", context);
+  effects.forEach((fn) => fn());
+  assert.equal(message.params.retirementDelay, 7);
+  assert.equal(message.params.years, 40);
 });
