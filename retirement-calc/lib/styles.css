@@ -985,7 +985,7 @@ input[type="range"]::-moz-range-thumb {
 .depletion-heading {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
@@ -997,7 +997,6 @@ input[type="range"]::-moz-range-thumb {
     serif;
 }
 
-.depletion-heading > span,
 .depletion-milestones span {
   font-size: 11px;
   color: var(--ink-2);

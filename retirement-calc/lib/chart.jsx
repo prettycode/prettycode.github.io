@@ -175,7 +175,14 @@ function PortfolioChart({
       >
         <div className="depletion-heading">
           <h3 id="depletion-title">Will I run out of money?</h3>
-          <span>Cumulative simulation outcomes</span>
+          <label className="chart-calendar-toggle">
+            <input
+              type="checkbox"
+              checked={showCalendarYears}
+              onChange={(e) => onShowCalendarYearsChange(e.target.checked)}
+            />
+            Calendar years instead of age
+          </label>
         </div>
         <p className="depletion-summary">
           <strong>{riskPct(riskAt(simYears))}</strong>
@@ -331,13 +338,14 @@ function PortfolioChart({
               checked={showCalendarYears}
               onChange={(e) => onShowCalendarYearsChange(e.target.checked)}
             />
-            Show calendar years
+            Calendar years instead of age
           </label>
         </div>
         <p className="chart-subtitle">
-          Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo
-          paths. Outer band, 10th–90th percentile; inner band, 25th–75th. Vertical
-          marks show each year's median withdrawal, scaled to the left axis.
+          Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte
+          Carlo paths. Outer band, 10th–90th percentile; inner band, 25th–75th.
+          Vertical marks show each year's median withdrawal, scaled to the left
+          axis.
         </p>
 
         <div className="chart-wrap">
