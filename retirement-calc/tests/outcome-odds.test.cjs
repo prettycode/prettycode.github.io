@@ -48,7 +48,7 @@ const MIXED = {
 test("depletion rates are cumulative and agree with final survival", () => {
   const result = simulate({ ...MIXED, retirementDelay: 3 });
   let previous = 0;
-  for (const row of result.percentiles) {
+  for (const row of result.yearData) {
     assert.ok(row.depletionRate >= previous);
     assert.ok(row.depletionRate <= 1);
     previous = row.depletionRate;
@@ -66,7 +66,7 @@ test("depletion timing includes delayed retirement and exact exhaustion", () => 
     retirementDelay: 2,
   });
   assert.deepEqual(
-    Array.from(result.percentiles, (p) => p.depletionRate),
+    Array.from(result.yearData, (p) => p.depletionRate),
     [0, 0, 0, 0, 1, 1, 1],
   );
 });
@@ -78,8 +78,8 @@ test("positive sub-dollar balances are not counted as depleted", () => {
     returnRate: -0.5,
     years: 1,
   });
-  assert.equal(result.percentiles[1].p50, 0);
-  assert.equal(result.percentiles[1].depletionRate, 0);
+  assert.equal(result.yearData[1].endBalance.p50, 0);
+  assert.equal(result.yearData[1].depletionRate, 0);
   assert.equal(result.successRate, 1);
 });
 
@@ -93,8 +93,8 @@ test("a fully funded cash bucket delays exhaustion through its final year", () =
       years: 10,
       retirementDelay,
     });
-    assert.equal(result.percentiles[retirementDelay + 1].p50, 0);
-    for (const row of result.percentiles) {
+    assert.equal(result.yearData[retirementDelay + 1].endBalance.p50, 0);
+    for (const row of result.yearData) {
       assert.equal(row.depletionRate, row.year >= retirementDelay + 5 ? 1 : 0);
     }
   }
@@ -110,7 +110,7 @@ test("an underfunded cash bucket exhausts the actual available money", () => {
       years: 6,
     });
     const exhaustionYear = Math.ceil(balance / 40_000);
-    for (const row of result.percentiles) {
+    for (const row of result.yearData) {
       assert.equal(row.depletionRate, row.year >= exhaustionYear ? 1 : 0);
     }
   }
@@ -132,14 +132,14 @@ test("cash coverage respects bucket sizing under inflation", () => {
     balance: sizing.lumpSum + 1,
     returnRate: -1,
   });
-  assert.equal(result.percentiles[1].p50, 0);
+  assert.equal(result.yearData[1].endBalance.p50, 0);
   assert.deepEqual(
-    Array.from(result.percentiles, (row) => row.depletionRate),
+    Array.from(result.yearData, (row) => row.depletionRate),
     [0, 0, 0, 0, 0, 1, 1],
   );
 });
 
-function deriveOdds(yearData, options = {}) {
+function deriveOdds(simulation) {
   const source = fs
     .readFileSync(path.join(__dirname, "../lib/outcome-odds.jsx"), "utf8")
     .replace(/\r\n/g, "\n");
@@ -150,30 +150,32 @@ function deriveOdds(yearData, options = {}) {
     `${component}\nreturn { lifespanLadder, firstTenthGone, medianSurvives, successRate };\n}`,
     ui,
   );
-  return ui.OutcomeOdds({
-    yearData,
-    simYears: yearData.length - 1,
-    totalRuns: 100,
-    retirementDelay: 0,
-    inflation: 0,
-    ...options,
-  });
+  return ui.OutcomeOdds({ simulation });
 }
 
 test("lifespan rungs without depletion give failure bounds, not survival odds", () => {
-  const { lifespanLadder: rows } = deriveOdds([
-    null,
-    {
-      endBalance: {
-        p10: 0,
-        p25: 0,
-        p50: 0,
-        p75: 100,
-        p90: 200,
+  const { lifespanLadder: rows } = deriveOdds({
+    years: 1,
+    retirementDelay: 0,
+    summary: {
+      successRate: 0.45,
+      depletionYears: { 0.1: 1, 0.25: 1, 0.5: 1, 0.75: null, 0.9: null },
+    },
+    yearData: [
+      null,
+      {
+        totalEndBalance: {
+          p10: 0,
+          p25: 0,
+          p50: 0,
+          p75: 100,
+          p90: 200,
+        },
+        totalEndBalanceToday: {},
         depletionRate: 0.55,
       },
-    },
-  ]);
+    ],
+  });
   assert.equal(rows[2].odds, "1 in 2");
   assert.equal(rows[2].lead, "had run out by");
   assert.equal(rows[3].odds, "At most 3 in 4");
@@ -194,14 +196,9 @@ test("odds dates match depletion milestones for full and partial cash buckets", 
         upfrontYears: 5,
         years: 10,
         retirementDelay,
+        currentAge: 60,
       });
-      const yearData = [
-        null,
-        ...Array.from(result.percentiles.slice(1), (endBalance) => ({
-          endBalance,
-        })),
-      ];
-      const odds = deriveOdds(yearData, { retirementDelay, currentAge: 60 });
+      const odds = deriveOdds({ ...result, currentAge: 60 });
       const exhaustionYear = retirementDelay + Math.ceil(balance / 40_000);
       assert.equal(odds.firstTenthGone, exhaustionYear);
       assert.equal(odds.successRate, 0);
@@ -215,29 +212,44 @@ test("odds dates match depletion milestones for full and partial cash buckets", 
 
 test("odds use exact depletion thresholds even when portfolio bands disagree", () => {
   const rates = [0, 0.1, 0.25, 0.5, 0.75, 0.9];
-  const yearData = [
-    null,
-    ...rates.map((depletionRate) => ({
-      endBalance: { p10: 0, p25: 0, p50: 0, p75: 0, p90: 0, depletionRate },
-    })),
-  ];
-  const odds = deriveOdds(yearData);
+  const snapshot = (length) => ({
+    years: length,
+    retirementDelay: 0,
+    yearData: [
+      null,
+      ...rates.slice(0, length).map((depletionRate) => ({
+        totalEndBalance: { p10: 0, p25: 0, p50: 0, p75: 0, p90: 0 },
+        totalEndBalanceToday: {},
+        depletionRate,
+      })),
+    ],
+    summary: {
+      successRate: 1 - rates[length - 1],
+      depletionYears: Object.fromEntries(
+        [0.1, 0.25, 0.5, 0.75, 0.9].map((p, i) => [
+          p,
+          i + 2 <= length ? i + 2 : null,
+        ]),
+      ),
+    },
+  });
+  const odds = deriveOdds(snapshot(6));
   assert.equal(odds.firstTenthGone, 2);
   assert.deepEqual(
     Array.from(odds.lifespanLadder, (rung) => rung.primary),
     [2, 3, 4, 5, 6].map((y) => `year ${y} of retirement`),
   );
-  const beforeExhaustion = deriveOdds(yearData.slice(0, 2));
+  const beforeExhaustion = deriveOdds(snapshot(1));
   assert.equal(beforeExhaustion.firstTenthGone, null);
   assert.equal(beforeExhaustion.successRate, 1);
   assert.equal(beforeExhaustion.medianSurvives, true);
-  assert.equal(deriveOdds(yearData.slice(0, 5)).medianSurvives, false);
+  assert.equal(deriveOdds(snapshot(4)).medianSurvives, false);
 });
 
 // Portfolio-band crossings, distinct from cash-aware depletion milestones.
 const ranOutBy = (result, key) => {
-  for (let y = 1; y < result.percentiles.length; y++) {
-    if (result.percentiles[y][key] <= 0) {
+  for (let y = 1; y < result.yearData.length; y++) {
+    if (result.yearData[y].endBalance[key] <= 0) {
       return y;
     }
   }
@@ -251,7 +263,7 @@ test("a band sits at $0 exactly when that share of futures has failed", () => {
     failureRate > 0.1 && failureRate < 0.9,
     `expected a mixed population, got ${failureRate}`,
   );
-  const ending = result.percentiles[result.percentiles.length - 1];
+  const ending = result.yearData[result.yearData.length - 1].endBalance;
   for (const [key, share] of BANDS) {
     // Quantile indices are floor(runs * share), so skip the razor edge where
     // a single run decides it.
@@ -280,9 +292,9 @@ test("a band that reaches $0 never recovers, so the first crossing is the only o
     if (crossing === null) {
       continue;
     }
-    for (let y = crossing; y < result.percentiles.length; y++) {
+    for (let y = crossing; y < result.yearData.length; y++) {
       assert.equal(
-        result.percentiles[y][key],
+        result.yearData[y].endBalance[key],
         0,
         `${key} recovered after year ${crossing}`,
       );
@@ -328,7 +340,7 @@ test("crossings respect a retirement delay, landing after the growth-only years"
 
 test("bands cross in order — worse percentiles fail no later than better ones", () => {
   const result = simulate(MIXED);
-  const last = result.percentiles.length;
+  const last = result.yearData.length;
   const crossings = BANDS.map(([key]) => ranOutBy(result, key) ?? last);
   for (let i = 1; i < crossings.length; i++) {
     assert.ok(

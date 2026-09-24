@@ -163,6 +163,7 @@ function runSimulation({
   runs,
   upfrontYears,
   retirementDelay = 0,
+  currentAge,
 }) {
   // Only fund spending within the retirement horizon, excluding the delay.
   upfrontYears = Math.min(upfrontYears, years);
@@ -202,11 +203,15 @@ function runSimulation({
   }
   yearBalances[0].fill(balCents);
 
-  const withdrawalSumCents = new Float64Array(years + 1);
+  const intendedWithdrawals = new Float64Array(years + 1);
+  const bucketFunding = new Float64Array(runs);
+  const totalDrawn = new Float64Array(runs);
+  const totalDrawnToday = new Float64Array(runs);
+  const lastDraw = new Float64Array(runs);
+  const lastDrawToday = new Float64Array(runs);
   // The portfolio excludes cash transferred to the bucket. Record the year
   // that cash is spent separately so the risk chart counts both resources.
   const bucketExhaustionYears = new Uint32Array(runs);
-  let survived = 0;
   const reportEvery = Math.max(1, Math.floor(runs / 100));
 
   for (let r = 0; r < runs; r++) {
@@ -225,6 +230,7 @@ function runSimulation({
             // An underfunded bucket only lasts as long as the money actually
             // available. Allocate it to the earliest spending years first.
             const fundedCents = Math.min(bal, lumpSumCents);
+            bucketFunding[r] = fundedCents;
             const lastCashYear = Math.ceil(fundedCents / retirementWdCents);
             bucketExhaustionYears[r] = retirementDelay + lastCashYear;
           }
@@ -236,7 +242,15 @@ function runSimulation({
       } else {
         actualW = Math.floor((wdCents * inflPow[y - 1]) / MICRO);
       }
-      withdrawalSumCents[y] += actualW;
+      intendedWithdrawals[y] = actualW;
+      const drawn = Math.min(bal, actualW);
+      if (drawn > 0) {
+        const drawnToday = Math.floor((drawn * MICRO) / inflPow[y - 1]);
+        totalDrawn[r] += drawn;
+        totalDrawnToday[r] += drawnToday;
+        lastDraw[r] = drawn;
+        lastDrawToday[r] = drawnToday;
+      }
 
       if (depleted) {
         yearBalances[y][r] = 0;
@@ -263,12 +277,8 @@ function runSimulation({
       yearBalances[y][r] = bal;
     }
 
-    if (bal > 0) {
-      survived++;
-    }
-
     if (r % reportEvery === 0) {
-      self.postMessage({ type: "progress", pct: r / runs });
+      self.postMessage({ type: "progress", pct: (r / runs) * 0.85 });
     }
   }
 
@@ -288,45 +298,208 @@ function runSimulation({
   const k90 = Math.floor((runs * 90) / 100);
   const last = runs - 1;
 
-  const percentiles = [];
+  // Select on reusable scratch storage: keep each run's yearly balances
+  // aligned so total balances and gains are computed per run, before quantiles.
+  const scratch = new Float64Array(runs);
+  const quantiles = () => {
+    quickselect(scratch, k50, 0, last);
+    quickselect(scratch, k25, 0, k50 - 1);
+    quickselect(scratch, k10, 0, k25 - 1);
+    quickselect(scratch, k75, k50 + 1, last);
+    quickselect(scratch, k90, k75 + 1, last);
+    return Object.fromEntries(
+      [
+        ["p10", k10],
+        ["p25", k25],
+        ["p50", k50],
+        ["p75", k75],
+        ["p90", k90],
+      ].map(([key, index]) => [key, c2d(scratch[index])]),
+    );
+  };
+  const median = (values) => {
+    if (values) {
+      scratch.set(values);
+    }
+    quickselect(scratch, k50, 0, last);
+    return c2d(scratch[k50]);
+  };
+  const cashAt = (r, y) =>
+    y <= retirementDelay
+      ? 0
+      : Math.max(
+          0,
+          bucketFunding[r] -
+            retirementWdCents * Math.min(y - retirementDelay, upfrontYears),
+        );
+  const realBalances = (values, y) =>
+    Object.fromEntries(
+      Object.entries(values).map(([key, value]) => [
+        key,
+        (value * MICRO) / inflPow[y],
+      ]),
+    );
+  const depletionYears = Object.fromEntries(
+    [0.1, 0.25, 0.5, 0.75, 0.9].map((p) => [p, null]),
+  );
+  scratch.set(bucketFunding);
+  quickselect(scratch, k50, 0, last);
+  const medianBucketFunding = scratch[k50];
+  // One public record per year, including year 0 (today). start/endBalance
+  // and afterWithdrawal describe investments; total balances include cash.
+  // actual is the median portfolio draw, spending includes bucket payments,
+  // and growth is the median individual gain. Depletion always includes cash.
+  const yearData = [];
+  let previousInvestedCents;
+  let portfolioDepletion = null;
   for (let y = 0; y <= years; y++) {
-    const v = yearBalances[y];
-    // Count only after both the portfolio and the spending bucket are empty.
-    // The last bucket year's spending exhausts the cash by that year-end.
+    const balances = yearBalances[y];
     let depletedCount = 0;
+    let portfolioEmptyCount = 0;
     for (let r = 0; r < runs; r++) {
-      if (v[r] === 0 && y >= bucketExhaustionYears[r]) {
-        depletedCount++;
+      if (balances[r] === 0) {
+        portfolioEmptyCount++;
+        if (y >= bucketExhaustionYears[r]) {
+          depletedCount++;
+        }
       }
     }
-    quickselect(v, k50, 0, last);
-    quickselect(v, k25, 0, k50 - 1);
-    quickselect(v, k10, 0, k25 - 1);
-    quickselect(v, k75, k50 + 1, last);
-    quickselect(v, k90, k75 + 1, last);
-    percentiles.push({
+    scratch.set(balances);
+    const endBalance = quantiles();
+    const investedCents = Object.fromEntries(
+      [
+        ["p10", k10],
+        ["p25", k25],
+        ["p50", k50],
+        ["p75", k75],
+        ["p90", k90],
+      ].map(([key, index]) => [key, scratch[index]]),
+    );
+    const intendedCents = intendedWithdrawals[y];
+    const previous = yearData[y - 1];
+    const startBalance = previous ? previous.endBalance : endBalance;
+    const afterWithdrawal = Object.fromEntries(
+      Object.keys(endBalance).map((key) => [
+        key,
+        c2d(
+          Math.max(
+            0,
+            (previousInvestedCents ?? investedCents)[key] - intendedCents,
+          ),
+        ),
+      ]),
+    );
+    const retirementYear = y - retirementDelay;
+    let totalEndBalance = endBalance;
+    if (isLumpSum && retirementYear > 0 && retirementYear < upfrontYears) {
+      for (let r = 0; r < runs; r++) {
+        scratch[r] = balances[r] + cashAt(r, y);
+      }
+      totalEndBalance = quantiles();
+    }
+    const depletionRate = depletedCount / runs;
+    for (const threshold of Object.keys(depletionYears)) {
+      if (
+        depletionYears[threshold] === null &&
+        depletionRate >= Number(threshold)
+      ) {
+        depletionYears[threshold] = y;
+      }
+    }
+    // Portfolio line termination is distinct from cash-aware plan depletion.
+    const startDepleted = y > 0 && previousInvestedCents.p50 <= intendedCents;
+    if (
+      !portfolioDepletion &&
+      y > 0 &&
+      (startDepleted || portfolioEmptyCount / runs > 0.5)
+    ) {
+      portfolioDepletion = { year: y, startDepleted };
+    }
+    const actualCents =
+      y > 0 ? Math.min(previousInvestedCents.p50, intendedCents) : 0;
+    // Fixed spending is monotone in funded cash, so its median can be
+    // transformed directly without allocating another per-year run array.
+    const cashBalance =
+      retirementYear <= 0
+        ? 0
+        : c2d(
+            Math.max(
+              0,
+              medianBucketFunding -
+                retirementWdCents * Math.min(retirementYear, upfrontYears),
+            ),
+          );
+    const spending =
+      y === 0 || retirementYear <= 0
+        ? 0
+        : isLumpSum && retirementYear <= upfrontYears
+          ? c2d(
+              Math.min(
+                retirementWdCents,
+                Math.max(
+                  0,
+                  medianBucketFunding -
+                    retirementWdCents * (retirementYear - 1),
+                ),
+              ),
+            )
+          : c2d(actualCents);
+    for (let r = 0; r < runs; r++) {
+      scratch[r] =
+        y === 0
+          ? 0
+          : balances[r] - Math.max(0, yearBalances[y - 1][r] - intendedCents);
+    }
+    const growth = median();
+    yearData.push({
       year: y,
-      depletionRate: depletedCount / runs,
-      p10: c2d(v[k10]),
-      p25: c2d(v[k25]),
-      p50: c2d(v[k50]),
-      p75: c2d(v[k75]),
-      p90: c2d(v[k90]),
-      withdrawal: c2d(Math.floor(withdrawalSumCents[y] / runs)),
+      startAge:
+        currentAge === undefined ? null : currentAge + Math.max(0, y - 1),
+      endAge: currentAge === undefined ? null : currentAge + y,
+      startBalance,
+      endBalance,
+      afterWithdrawal,
+      totalStartBalance: previous ? previous.totalEndBalance : totalEndBalance,
+      totalEndBalance,
+      totalEndBalanceToday: realBalances(totalEndBalance, y),
+      cashBalance,
+      spending,
+      growth,
+      intended: c2d(intendedCents),
+      actual: c2d(actualCents),
+      depletionRate,
     });
+    previousInvestedCents = investedCents;
+    self.postMessage({ type: "progress", pct: 0.85 + (0.15 * y) / years });
   }
-
-  const successRate = survived / runs;
-  // yearBalances[years] is no longer fully sorted, but k50 holds the median.
-  const medianEnding = percentiles[years].p50;
-
+  const ending = yearData[years];
+  const summary = {
+    successRate: 1 - ending.depletionRate,
+    medianEnding: ending.totalEndBalance.p50,
+    medianEndingToday: ending.totalEndBalanceToday.p50,
+    medianDepletionYear: depletionYears[0.5],
+    medianDepletionAge:
+      currentAge === undefined || depletionYears[0.5] === null
+        ? null
+        : currentAge + depletionYears[0.5],
+    endingAge: ending.endAge,
+    lastWithdrawal: median(lastDraw),
+    lastWithdrawalToday: median(lastDrawToday),
+    totalDrawn: median(totalDrawn),
+    totalDrawnToday: median(totalDrawnToday),
+    depletionYears,
+  };
   return {
-    percentiles,
-    successRate,
-    medianEnding,
+    yearData,
+    summary,
+    portfolioDepletion,
+    years,
+    currentAge,
+    retirementDelay,
     runs,
     lumpSum: c2d(lumpSumCents),
-    retirementDelay,
+    // Solver probes use the same cash-aware success calculation.
+    successRate: summary.successRate,
   };
 }
 

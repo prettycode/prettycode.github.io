@@ -1001,7 +1001,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .depletion-panel {
-  margin-top: 24px;
+  margin-bottom: 24px;
   padding: 20px 0;
   box-shadow:
     inset 0 0 0 1px var(--rule),
@@ -1065,6 +1065,10 @@ input[type="range"]::-moz-range-thumb {
   display: grid;
   gap: 5px;
   font-size: 12px;
+}
+
+.depletion-milestones > .depletion-milestone-inactive {
+  opacity: 0.45;
 }
 
 .depletion-chart text {

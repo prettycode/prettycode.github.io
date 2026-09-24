@@ -10,25 +10,25 @@
 // from `yearData`, so this section cannot drift from the chart it interprets.
 // Failure timing and survival use depletionRate, just like the depletion
 // chart: both the invested portfolio and upfront cash bucket must be empty.
-// Dollar percentiles describe only the invested portfolio.
+// Dollar percentiles include investments and remaining bucket cash.
 
-function OutcomeOdds({
-  yearData,
-  simYears,
-  totalRuns,
-  retirementDelay,
-  currentAge,
-  inflation,
-}) {
+function OutcomeOdds({ simulation }) {
+  const {
+    yearData,
+    summary,
+    years: simYears,
+    runs: totalRuns,
+    retirementDelay,
+    currentAge,
+  } = simulation;
   const useAges = currentAge !== undefined;
-  const ending = yearData[simYears].endBalance;
-  const failureRate = ending.depletionRate;
-  const successRate = 1 - failureRate;
-  const realFactor = Math.pow(1 + inflation, simYears);
-  const today = (v) => fmtMoney(v / realFactor);
+  const ending = yearData[simYears].totalEndBalance;
+  const endingToday = yearData[simYears].totalEndBalanceToday;
+  const successRate = summary.successRate;
+  const failureRate = yearData[simYears].depletionRate;
 
   const horizon = useAges
-    ? `age ${currentAge + simYears}`
+    ? `age ${summary.endingAge}`
     : `the end of year ${simYears - retirementDelay}`;
 
   // Whole-number odds read better in prose than two-decimal percentages.
@@ -39,21 +39,14 @@ function OutcomeOdds({
   // Depletion is measured at year-end, matching the chart's x-axis.
   const byLabel = (y) =>
     useAges
-      ? `age ${currentAge + y}`
+      ? `age ${yearData[y].endAge}`
       : y > retirementDelay
         ? `year ${y - retirementDelay} of retirement`
         : `year ${y}, before retirement began`;
 
   // First year the cumulative depletion rate reaches the requested share.
   // An empty portfolio alone does not count while bucket cash remains.
-  const ranOutBy = (threshold) => {
-    for (let y = 1; y <= simYears; y++) {
-      if (yearData[y].endBalance.depletionRate >= threshold) {
-        return y;
-      }
-    }
-    return null;
-  };
+  const ranOutBy = (threshold) => summary.depletionYears[threshold];
 
   // Where a plan's own median already fails, a ladder of ending balances
   // degenerates into a column of $0 and states nothing true — a 90th
@@ -67,11 +60,37 @@ function OutcomeOdds({
   // just the 1-in-2 rung rather than a favoured value. A lower rung sitting
   // at $0 is a rounded portfolio balance, not proof of total depletion.
   const balanceLadder = [
-    { odds: "1 in 10", dir: "above", value: ending.p90 },
-    { odds: "1 in 4", dir: "above", value: ending.p75 },
-    { odds: "1 in 2", dir: "above", value: ending.p50, median: true },
-    { odds: "1 in 4", dir: "below", value: ending.p25 },
-    { odds: "1 in 10", dir: "below", value: ending.p10 },
+    {
+      odds: "1 in 10",
+      dir: "above",
+      value: ending.p90,
+      todayValue: endingToday.p90,
+    },
+    {
+      odds: "1 in 4",
+      dir: "above",
+      value: ending.p75,
+      todayValue: endingToday.p75,
+    },
+    {
+      odds: "1 in 2",
+      dir: "above",
+      value: ending.p50,
+      todayValue: endingToday.p50,
+      median: true,
+    },
+    {
+      odds: "1 in 4",
+      dir: "below",
+      value: ending.p25,
+      todayValue: endingToday.p25,
+    },
+    {
+      odds: "1 in 10",
+      dir: "below",
+      value: ending.p10,
+      todayValue: endingToday.p10,
+    },
   ].map((r) =>
     r.dir === "below" && r.value <= 0
       ? {
@@ -83,7 +102,7 @@ function OutcomeOdds({
           odds: r.odds,
           lead: `ends ${r.dir}`,
           primary: fmtMoney(r.value),
-          secondary: `${today(r.value)} today`,
+          secondary: `${fmtMoney(r.todayValue)} today`,
           median: r.median,
         },
   );
@@ -169,8 +188,7 @@ function OutcomeOdds({
           {ending.p10 > 0
             ? `between ${fmtMoney(ending.p10)} and ${fmtMoney(ending.p90)}`
             : `below ${fmtMoney(ending.p90)}, with the bottom tenth at a rounded portfolio balance of $0`}
-          . Dollar figures describe the invested portfolio and exclude bucket
-          cash.
+          . Dollar figures include investments and remaining bucket cash.
         </p>
       ) : (
         <p className="odds-ladder-note">

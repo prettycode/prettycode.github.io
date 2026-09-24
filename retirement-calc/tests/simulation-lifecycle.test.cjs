@@ -83,7 +83,7 @@ function harness(saved = {}) {
   vm.runInContext(
     source +
       `
-    return {sim, simInputs, simCurrentAge, running, solving, simulationError, solverError,
+    return {sim, simInputs: sim?.inputs, simCurrentAge: sim?.currentAge, running, solving, simulationError, solverError,
       currentSolverResult, balance, withdrawal, setWithdrawal, setTargetSuccessRate, setSolveFor,
       upfrontYears, maxUpfrontYears, startingBucketSize, setUpfrontYears,
       solveForTarget, setInflation, setBalance,
@@ -106,7 +106,11 @@ function harness(saved = {}) {
   };
 }
 const result = {
-  percentiles: [{ p50: 1000 }, { p50: 900, withdrawal: 100 }],
+  yearData: [
+    { endBalance: { p50: 1000 } },
+    { endBalance: { p50: 900 }, actual: 100 },
+  ],
+  summary: { successRate: 0.9 },
   retirementDelay: 0,
   successRate: 0.9,
 };
@@ -152,6 +156,50 @@ test("cash bucket is sized as the retirement withdrawal times funded years", () 
   assert.equal(state.upfrontYears, 2);
   assert.equal(state.startingBucketSize(2), 2_000_000);
   assert.equal(state.startingBucketSize(3), 3_000_000);
+});
+
+test("cash bucket selection is capped to the retirement horizon and follows age changes", () => {
+  const h = harness({
+    currentAge: 60,
+    retirementAge: 65,
+    planThroughAge: 70,
+    upfrontYears: 10,
+  });
+  let state = h.render();
+  assert.equal(state.maxUpfrontYears, 5);
+  assert.equal(state.upfrontYears, 5);
+  assert.equal(h.workers.at(-1).message.params.upfrontYears, 5);
+  h.render();
+  assert.equal(vm.runInContext('UserSettings.get("upfrontYears")', h.context), 5);
+
+  state.setPlanThroughAge(68);
+  state = h.render();
+  assert.equal(state.maxUpfrontYears, 3);
+  assert.equal(state.upfrontYears, 3);
+  state.setRetirementAge(67);
+  state = h.render();
+  assert.equal(state.maxUpfrontYears, 1);
+  assert.equal(state.upfrontYears, 1);
+  assert.equal(h.workers.at(-1).message.params.upfrontYears, 1);
+});
+
+test("cash bucket dollars keep increasing beyond five years when the plan allows it", () => {
+  const h = harness({
+    currentAge: 60,
+    retirementAge: 60,
+    planThroughAge: 80,
+    balance: 3_500_000,
+    withdrawal: 150_000,
+  });
+  let state = h.render();
+  assert.equal(state.maxUpfrontYears, 10);
+  for (let years = 4; years <= 10; years++) {
+    state.setUpfrontYears(years);
+    state = h.render();
+    assert.equal(state.upfrontYears, years);
+    assert.equal(state.startingBucketSize(state.upfrontYears), 150_000 * years);
+    assert.equal(h.workers.at(-1).message.params.upfrontYears, years);
+  }
 });
 
 test("increasing current age advances retirement and the plan horizon as needed", () => {

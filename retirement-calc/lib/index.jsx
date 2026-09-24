@@ -57,7 +57,7 @@ function RetirementSimulator() {
     withdrawal * Math.pow(1 + inflation, retirementDelay);
   const startingBucketSize = (bucketYears) =>
     retirementWithdrawal * Math.min(bucketYears, years);
-  let maxUpfrontYears = 10;
+  let maxUpfrontYears = Math.min(10, years);
   while (maxUpfrontYears > 1 && startingBucketSize(maxUpfrontYears) > balance) {
     maxUpfrontYears--;
   }
@@ -223,6 +223,7 @@ function RetirementSimulator() {
           retirementDelay,
           runs: SIM_RUNS,
           upfrontYears,
+          currentAge,
         },
         (pct) => {
           if (active) {
@@ -325,67 +326,15 @@ function RetirementSimulator() {
     }
   };
 
-  // Render against the sim we have, not the input slider. A slider change
-  // updates `years` synchronously but the worker takes a tick to return new
-  // percentiles — using `years` as the loop bound during that gap reads past
-  // the end of `sim.percentiles` and crashes with `undefined.p50`.
-  const simYears = sim ? sim.percentiles.length - 1 : years;
-  const simRetirementDelay = sim ? sim.retirementDelay : retirementDelay;
-  const simCurrentAge = sim ? sim.currentAge : currentAge;
-
-  const simInputs = sim ? sim.inputs : { inflation, balance };
-
-  // Derived stats
+  // Completed results own every displayed calculation, including the ages,
+  // inflation adjustments, and cash-aware depletion milestones.
+  const summary = sim?.summary;
   const successColor =
-    sim && sim.successRate >= 0.9
+    summary?.successRate >= 0.9
       ? "#3a7d44"
-      : sim && sim.successRate >= 0.7
+      : summary?.successRate >= 0.7
         ? "#c89a3a"
         : "#a83232";
-
-  // ─── Canonical per-year dataset ─────────────────────────────────────────
-  // Single source of truth for every UI element — stat-cells, chart lines,
-  // lollipops, hover tooltip. Direct sim.percentiles access in renderers is
-  // how the chart and stat-cells drifted out of sync (the prior bug had
-  // medianDepletion computed one way and the chart's synthetic step-line
-  // another). yearData[y] is the year-y record, 1-indexed; year 0 is unused.
-  // The chart renders year y's lollipop at x(y-1) and labels that column
-  // "Year y" in its tooltip, so any "Year y" we display in a stat-cell
-  // points at the same chart column the user is looking at.
-  const yearData = (() => {
-    if (!sim) {
-      return null;
-    }
-    const data = [null];
-    for (let y = 1; y <= simYears; y++) {
-      const startBalance = sim.percentiles[y - 1]; // entering year y's draw
-      const endBalance = sim.percentiles[y]; // after year y's growth
-      const intended = sim.percentiles[y].withdrawal;
-      // Two ways the synthetic median path hits $0 in year y:
-      //   (a) intended draw exceeds the prior median balance — capped;
-      //   (b) post-withdrawal balance positive but growth shock takes the
-      //       per-year median to $0 by year-end.
-      const startDepleted = startBalance.p50 <= intended;
-      const endDepleted = endBalance.p50 <= 0;
-      data.push({
-        year: y,
-        startBalance,
-        endBalance,
-        intended,
-        actual: startDepleted ? Math.max(0, startBalance.p50) : intended,
-        startDepleted,
-        endDepleted,
-        depleted: startDepleted || endDepleted,
-      });
-    }
-    return data;
-  })();
-
-  // First year the synthetic median path hits $0 — returns the matching
-  // yearData record (or null) so callers stay coupled to the same row.
-  const medianDepletion = yearData
-    ? (yearData.slice(1).find((d) => d.depleted) ?? null)
-    : null;
 
   return (
     <div className="sim-root">
@@ -452,11 +401,7 @@ function RetirementSimulator() {
 
             <Slider
               label={SETTING_LABELS.balance}
-              sublabel={
-                retirementDelay > 0
-                  ? "Portfolio value today"
-                  : "Portfolio value at retirement"
-              }
+              sublabel="Portfolio value today"
               value={balance}
               min={AMOUNT_LIMITS.balance.min}
               max={AMOUNT_LIMITS.balance.max}
@@ -666,32 +611,27 @@ function RetirementSimulator() {
                 <div className="stats-row fade">
                   <div className="stat-cell">
                     <div className="stat-label">
-                      {`Success through age ${simCurrentAge + simYears}`}
+                      {`Success through age ${summary.endingAge}`}
                     </div>
                     <div
                       className="stat-value success"
                       style={{ color: successColor }}
                     >
-                      {`${(sim.successRate * 100).toFixed(2)}%`}
+                      {`${(summary.successRate * 100).toFixed(2)}%`}
                     </div>
                     <div className="stat-sub">
-                      ≈ {formatSuccessChance(sim.successRate)} chance
+                      ≈ {formatSuccessChance(summary.successRate)} chance
                     </div>
                   </div>
                   <div className="stat-cell">
                     <div className="stat-label">
-                      {`Balance at age ${simCurrentAge + simYears} (Median)`}
+                      {`Balance at age ${summary.endingAge} (Median)`}
                     </div>
                     <div className="stat-value">
-                      {fmtMoney(sim.medianEnding)}
+                      {fmtMoney(summary.medianEnding)}
                     </div>
                     <div className="stat-sub">
-                      ≈{" "}
-                      {fmtMoney(
-                        sim.medianEnding /
-                          Math.pow(1 + simInputs.inflation, simYears),
-                      )}{" "}
-                      today
+                      ≈ {fmtMoney(summary.medianEndingToday)} today
                     </div>
                   </div>
                   <div className="stat-cell">
@@ -699,75 +639,38 @@ function RetirementSimulator() {
                       Last {SETTING_LABELS.withdrawal} (Median)
                     </div>
                     <div className="stat-value">
-                      {fmtMoney((medianDepletion ?? yearData[simYears]).actual)}
+                      {fmtMoney(summary.lastWithdrawal)}
                     </div>
                     <div className="stat-sub">
-                      ≈{" "}
-                      {fmtMoney(
-                        (medianDepletion ?? yearData[simYears]).actual /
-                          Math.pow(
-                            1 + simInputs.inflation,
-                            (medianDepletion ?? yearData[simYears]).year - 1,
-                          ),
-                      )}{" "}
-                      today
+                      ≈ {fmtMoney(summary.lastWithdrawalToday)} today
                     </div>
                   </div>
                   <div className="stat-cell">
                     <div className="stat-label">Depletion Age (Median)</div>
                     <div className="stat-value">
-                      {medianDepletion
-                        ? `Age ${simCurrentAge + medianDepletion.year - (medianDepletion.startDepleted ? 1 : 0)}`
+                      {summary.medianDepletionAge !== null
+                        ? `Age ${summary.medianDepletionAge}`
                         : "None"}
                     </div>
                   </div>
                   <div className="stat-cell">
-                    <div className="stat-label">Total Drawn</div>
+                    <div className="stat-label">Total Drawn (Median)</div>
                     <div className="stat-value">
-                      {fmtMoney(
-                        yearData.slice(1).reduce((sum, d) => sum + d.actual, 0),
-                      )}
+                      {fmtMoney(summary.totalDrawn)}
                     </div>
                     <div className="stat-sub">
-                      ≈{" "}
-                      {fmtMoney(
-                        yearData
-                          .slice(1)
-                          .reduce(
-                            (sum, d) =>
-                              sum +
-                              d.actual /
-                                Math.pow(1 + simInputs.inflation, d.year - 1),
-                            0,
-                          ),
-                      )}{" "}
-                      today
+                      ≈ {fmtMoney(summary.totalDrawnToday)} today
                     </div>
                   </div>
                 </div>
 
                 {/* CHART */}
                 <PortfolioChart
-                  yearData={yearData}
-                  retirementBalance={sim.percentiles[0]}
+                  simulation={sim}
                   running={running}
                   progress={progress}
-                  balance={simInputs.balance}
-                  medianDepletion={medianDepletion}
-                  simYears={simYears}
                   showCalendarYears={showCalendarYears}
                   onShowCalendarYearsChange={setShowCalendarYears}
-                  retirementDelay={simRetirementDelay}
-                  currentAge={simCurrentAge}
-                />
-
-                <OutcomeOdds
-                  yearData={yearData}
-                  simYears={simYears}
-                  totalRuns={sim.runs}
-                  retirementDelay={simRetirementDelay}
-                  currentAge={simCurrentAge}
-                  inflation={simInputs.inflation}
                 />
 
                 {/* SOLVER */}
@@ -992,12 +895,9 @@ function RetirementSimulator() {
                   )}
                 </section>
 
-                <PlanSchedule
-                  yearData={yearData}
-                  medianDepletion={medianDepletion}
-                  retirementDelay={simRetirementDelay}
-                  currentAge={simCurrentAge}
-                />
+                <OutcomeOdds simulation={sim} />
+
+                <PlanSchedule simulation={sim} />
 
                 <div className="footer-note">
                   <p>

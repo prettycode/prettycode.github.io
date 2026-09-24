@@ -10,11 +10,8 @@ const WITHDRAWAL_MARKER_RADIUS = 2.5;
 // Renders the percentile-band SVG, hover tooltip, legend, and footnote.
 // Hover state is local; everything else is driven by props.
 //
-// Source-of-truth contract: this component never reads sim.percentiles. All
-// numeric data comes from `yearData` (the canonical per-year dataset built in
-// index.jsx) plus `retirementBalance` (tick 0, before any year). The same
-// records back the stat-cells, so what the user sees in the chart and what
-// the stat-cells report can't drift apart.
+// All financial values come from the worker's canonical yearData and summary.
+// Portfolio geometry uses invested balances; risk uses total-money depletion.
 //
 // Year/tick convention used everywhere below:
 //   • Tick t is X-axis position t, t = 0..simYears.
@@ -26,18 +23,22 @@ const WITHDRAWAL_MARKER_RADIUS = 2.5;
 //     hover tooltip names the upcoming year so the labels match.
 
 function PortfolioChart({
-  yearData,
-  retirementBalance,
+  simulation,
   running,
   progress,
-  balance,
-  medianDepletion,
-  simYears,
   showCalendarYears = false,
   onShowCalendarYearsChange,
-  retirementDelay = 0,
-  currentAge,
 }) {
+  const {
+    yearData,
+    summary,
+    portfolioDepletion,
+    years: simYears,
+    retirementDelay,
+    currentAge,
+  } = simulation;
+  const retirementBalance = yearData[0].endBalance;
+  const balance = retirementBalance.p50;
   const [hover, setHover] = React.useState(null);
   const [riskYear, setRiskYear] = React.useState(null);
   const useAges = currentAge !== undefined;
@@ -56,12 +57,12 @@ function PortfolioChart({
     ...yearData.slice(1).map((d) => d.endBalance),
   ];
   const allWithdrawals = yearData.slice(1).map((d) => d.intended);
-  const riskAt = (t) => balanceAt(t).depletionRate;
+  const riskAt = (t) => yearData[t].depletionRate;
   const riskLabel = (t) =>
     showCalendarYears
       ? `${calendarStartYear + t}`
       : useAges
-        ? `age ${currentAge + t}`
+        ? `age ${yearData[t].endAge}`
         : t < retirementDelay
           ? `year ${t} before retirement`
           : `retirement year ${t - retirementDelay}`;
@@ -99,8 +100,7 @@ function PortfolioChart({
   // endBalance). Clamp at 0 for the depleting year so the line stays above
   // the axis. Step-down uses the *intended* draw; clamping handles the
   // "intended exceeds prior balance" case automatically.
-  const stepDown = (key, y) =>
-    Math.max(0, yearData[y].startBalance[key] - yearData[y].intended);
+  const stepDown = (key, y) => yearData[y].afterWithdrawal[key];
 
   const buildArea = (kHigh, kLow) => {
     let top = `M ${x(0)} ${yScale(retirementBalance[kHigh])}`;
@@ -159,7 +159,9 @@ function PortfolioChart({
   const upcomingYear =
     hover !== null && hover < simYears ? yearData[hover + 1] : null;
   const beyondDepletion =
-    medianDepletion && upcomingYear && upcomingYear.year > medianDepletion.year;
+    portfolioDepletion &&
+    upcomingYear &&
+    upcomingYear.year > portfolioDepletion.year;
   const hoverWithdrawal =
     upcomingYear && !beyondDepletion ? upcomingYear.actual : 0;
 
@@ -167,9 +169,157 @@ function PortfolioChart({
 
   return (
     <section className="chart-section fade" aria-labelledby="chart-title">
+      <section className="depletion-panel" aria-labelledby="depletion-title">
+        <div className="depletion-heading">
+          <h3 id="depletion-title">Will I run out of money?</h3>
+          <span>Cumulative simulation outcomes</span>
+        </div>
+        <p className="depletion-summary">
+          <strong>{riskPct(riskAt(simYears))}</strong>
+          <span>of simulations ran out of money by {riskLabel(simYears)}.</span>
+        </p>
+        <div className="depletion-milestones">
+          {[
+            [0.1, "1 in 10"],
+            [0.25, "1 in 4"],
+            [0.5, "1 in 2"],
+            [0.75, "3 in 4"],
+            [0.9, "9 in 10"],
+          ].map(([threshold, label]) => {
+            const first = summary.depletionYears[threshold];
+            return (
+              <div
+                key={threshold}
+                className={
+                  first === null ? "depletion-milestone-inactive" : undefined
+                }
+              >
+                <strong>{label} chance</strong>
+                <span>
+                  {first === null
+                    ? `Not by ${riskLabel(simYears)}`
+                    : `by ${riskLabel(first)}`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="depletion-readout-track">
+          <p
+            className="depletion-readout"
+            style={{ "--risk-x": `${(x(selectedRiskYear) / W) * 100}cqw` }}
+          >
+            <strong className="depletion-readout-value">
+              {riskPct(riskAt(selectedRiskYear))}
+            </strong>
+            <span>
+              run out of money <strong>by {riskLabel(selectedRiskYear)}</strong>
+            </span>
+          </p>
+        </div>
+        <svg
+          className="chart depletion-chart"
+          viewBox={`0 0 ${W} 160`}
+          role="img"
+          aria-label={`${riskReadout}. Use arrow keys to inspect other years.`}
+          tabIndex="0"
+          onPointerMove={onMove}
+          onPointerLeave={() => setHover(null)}
+          onKeyDown={(e) => {
+            const year =
+              e.key === "ArrowLeft"
+                ? selectedRiskYear - 1
+                : e.key === "ArrowRight"
+                  ? selectedRiskYear + 1
+                  : e.key === "Home"
+                    ? 0
+                    : e.key === "End"
+                      ? simYears
+                      : null;
+            if (year !== null) {
+              e.preventDefault();
+              setHover(null);
+              setRiskYear(Math.max(0, Math.min(simYears, year)));
+            }
+          }}
+        >
+          <g>
+            {[0, 0.5, 1].map((p) => (
+              <g key={p}>
+                <line
+                  x1={padL}
+                  x2={W - padR}
+                  y1={116 - p * 100}
+                  y2={116 - p * 100}
+                  stroke="var(--rule)"
+                  strokeDasharray="2 3"
+                />
+                <text x={padL - 8} y={120 - p * 100} textAnchor="end">
+                  {fmtPct(p, 0)}
+                </text>
+              </g>
+            ))}
+            <path
+              d={`M ${x(0)} 116 ${yearData.map((p, t) => `L ${x(t)} ${116 - p.depletionRate * 100}`).join(" ")} L ${x(simYears)} 116 Z`}
+              fill="var(--accent)"
+              opacity="0.12"
+            />
+            <path
+              d={yearData
+                .map(
+                  (p, t) =>
+                    `${t === 0 ? "M" : "L"} ${x(t)} ${116 - p.depletionRate * 100}`,
+                )
+                .join(" ")}
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="2"
+            />
+            <line
+              x1={x(selectedRiskYear)}
+              x2={x(selectedRiskYear)}
+              y1="16"
+              y2="116"
+              stroke="var(--accent)"
+              strokeDasharray="3 3"
+            />
+            <circle
+              cx={x(selectedRiskYear)}
+              cy={116 - riskAt(selectedRiskYear) * 100}
+              r="4"
+              fill="var(--accent)"
+            />
+            {xTicks.map((t) => (
+              <text key={t} x={x(t)} y="136" textAnchor="middle">
+                {showCalendarYears
+                  ? calendarStartYear + t
+                  : useAges
+                    ? currentAge + t
+                    : t - retirementDelay}
+              </text>
+            ))}
+            <text x={padL + innerW / 2} y="156" textAnchor="middle">
+              {showCalendarYears
+                ? "CALENDAR YEAR"
+                : useAges
+                  ? "AGE"
+                  : "YEARS SINCE RETIREMENT"}
+            </text>
+          </g>
+        </svg>
+        <p className="chart-footnote">
+          Each point counts simulations whose invested portfolio and upfront
+          cash bucket were both exhausted by that year-end, including earlier
+          exhaustion. A fully funded bucket covers spending through its final
+          year; if no investments remain, money runs out at that year-end. These
+          are modeled frequencies, not guarantees; 0% means no simulation ran
+          out of money by that point.
+        </p>
+      </section>
+
       <div className="chart-title-row">
         <h2 className="chart-title" id="chart-title">
-          Portfolio Trajectory
+          How will my investments do?
         </h2>
         <label className="chart-calendar-toggle">
           <input
@@ -180,11 +330,6 @@ function PortfolioChart({
           Show calendar years
         </label>
       </div>
-      <p className="chart-subtitle">
-        This chart is meant to answer the question: how might my *invested*
-        portfolio perform over my retirement years, given my withdrawal strategy
-        and market assumptions?
-      </p>
       <p className="chart-subtitle">
         Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo
         paths. Outer band, 10th–90th percentile; inner band, 25th–75th. Vertical
@@ -390,11 +535,11 @@ function PortfolioChart({
               with a diagonal to x(y). */}
           <path
             d={(() => {
-              const lastYear = medianDepletion
-                ? medianDepletion.year
+              const lastYear = portfolioDepletion
+                ? portfolioDepletion.year
                 : simYears;
               const endsAtWithdrawal =
-                medianDepletion && medianDepletion.startDepleted;
+                portfolioDepletion && portfolioDepletion.startDepleted;
               const fullYears = endsAtWithdrawal ? lastYear - 1 : lastYear;
               let d = `M ${x(0)} ${yScale(retirementBalance.p50)}`;
               for (let y = 1; y <= fullYears; y++) {
@@ -420,7 +565,9 @@ function PortfolioChart({
               prior median balance, so the mark height matches what could
               actually be drawn rather than the still-inflating intended. */}
           {(() => {
-            const lastYear = medianDepletion ? medianDepletion.year : simYears;
+            const lastYear = portfolioDepletion
+              ? portfolioDepletion.year
+              : simYears;
             const marks = [];
             for (let y = 1; y <= lastYear; y++) {
               const w = yearData[y].actual;
@@ -547,7 +694,7 @@ function PortfolioChart({
                   : `RETIREMENT YEAR ${upcomingYear.year - retirementDelay} START`}
             </div>
             {(() => {
-              const post = (v) => Math.max(0, v - hoverWithdrawal);
+              const post = (key) => upcomingYear.afterWithdrawal[key];
               if (hover === 0 && retirementDelay === 0) {
                 // Tick 0: only the median balance is meaningful (all paths
                 // start with the same retirement balance), and year 1's
@@ -570,7 +717,7 @@ function PortfolioChart({
                     </div>
                     <div className="tooltip-row">
                       <span>Balance</span>
-                      <span>{fmtMoneyFull(post(hoverBalance.p50))}</span>
+                      <span>{fmtMoneyFull(post("p50"))}</span>
                     </div>
                   </>
                 );
@@ -640,23 +787,23 @@ function PortfolioChart({
                   </div>
                   <div className="tooltip-row">
                     <span>90th</span>
-                    <span>{fmtMoneyFull(post(hoverBalance.p90))}</span>
+                    <span>{fmtMoneyFull(post("p90"))}</span>
                   </div>
                   <div className="tooltip-row">
                     <span>75th</span>
-                    <span>{fmtMoneyFull(post(hoverBalance.p75))}</span>
+                    <span>{fmtMoneyFull(post("p75"))}</span>
                   </div>
                   <div className="tooltip-row">
                     <span>Median</span>
-                    <span>{fmtMoneyFull(post(hoverBalance.p50))}</span>
+                    <span>{fmtMoneyFull(post("p50"))}</span>
                   </div>
                   <div className="tooltip-row">
                     <span>25th</span>
-                    <span>{fmtMoneyFull(post(hoverBalance.p25))}</span>
+                    <span>{fmtMoneyFull(post("p25"))}</span>
                   </div>
                   <div className="tooltip-row">
                     <span>10th</span>
-                    <span>{fmtMoneyFull(post(hoverBalance.p10))}</span>
+                    <span>{fmtMoneyFull(post("p10"))}</span>
                   </div>
                 </>
               );
@@ -722,147 +869,6 @@ function PortfolioChart({
         multi-year cash bucket, the first withdrawal is the lump sum drawn at
         retirement; the bucket-funded years that follow show no mark.
       </p>
-
-      <section className="depletion-panel" aria-labelledby="depletion-title">
-        <div className="depletion-heading">
-          <h3 id="depletion-title">
-            What are my chances of running out of money?
-          </h3>
-          <span>Cumulative simulation outcomes</span>
-        </div>
-        <p className="depletion-summary">
-          <strong>{riskPct(riskAt(simYears))}</strong>
-          <span>of simulations ran out of money by {riskLabel(simYears)}.</span>
-        </p>
-        <div className="depletion-milestones">
-          {[0.1, 0.25, 0.5].map((threshold) => {
-            const first = allBalances.findIndex(
-              (p) => p.depletionRate >= threshold,
-            );
-            return (
-              <div key={threshold}>
-                <strong>{fmtPct(threshold, 0)} ran out</strong>
-                <span>
-                  {first < 0
-                    ? "Not reached in this horizon"
-                    : `By ${riskLabel(first)}`}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="depletion-readout-track">
-          <p
-            className="depletion-readout"
-            style={{ "--risk-x": `${(x(selectedRiskYear) / W) * 100}cqw` }}
-          >
-            <strong className="depletion-readout-value">
-              {riskPct(riskAt(selectedRiskYear))}
-            </strong>
-            <span>
-              run out of money <strong>by {riskLabel(selectedRiskYear)}</strong>
-            </span>
-          </p>
-        </div>
-        <svg
-          className="chart depletion-chart"
-          viewBox={`0 0 ${W} 160`}
-          role="img"
-          aria-label={`${riskReadout}. Use arrow keys to inspect other years.`}
-          tabIndex="0"
-          onPointerMove={onMove}
-          onPointerLeave={() => setHover(null)}
-          onKeyDown={(e) => {
-            const year =
-              e.key === "ArrowLeft"
-                ? selectedRiskYear - 1
-                : e.key === "ArrowRight"
-                  ? selectedRiskYear + 1
-                  : e.key === "Home"
-                    ? 0
-                    : e.key === "End"
-                      ? simYears
-                      : null;
-            if (year !== null) {
-              e.preventDefault();
-              setHover(null);
-              setRiskYear(Math.max(0, Math.min(simYears, year)));
-            }
-          }}
-        >
-          <g>
-            {[0, 0.5, 1].map((p) => (
-              <g key={p}>
-                <line
-                  x1={padL}
-                  x2={W - padR}
-                  y1={116 - p * 100}
-                  y2={116 - p * 100}
-                  stroke="var(--rule)"
-                  strokeDasharray="2 3"
-                />
-                <text x={padL - 8} y={120 - p * 100} textAnchor="end">
-                  {fmtPct(p, 0)}
-                </text>
-              </g>
-            ))}
-            <path
-              d={`M ${x(0)} 116 ${allBalances.map((p, t) => `L ${x(t)} ${116 - p.depletionRate * 100}`).join(" ")} L ${x(simYears)} 116 Z`}
-              fill="var(--accent)"
-              opacity="0.12"
-            />
-            <path
-              d={allBalances
-                .map(
-                  (p, t) =>
-                    `${t === 0 ? "M" : "L"} ${x(t)} ${116 - p.depletionRate * 100}`,
-                )
-                .join(" ")}
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="2"
-            />
-            <line
-              x1={x(selectedRiskYear)}
-              x2={x(selectedRiskYear)}
-              y1="16"
-              y2="116"
-              stroke="var(--accent)"
-              strokeDasharray="3 3"
-            />
-            <circle
-              cx={x(selectedRiskYear)}
-              cy={116 - riskAt(selectedRiskYear) * 100}
-              r="4"
-              fill="var(--accent)"
-            />
-            {xTicks.map((t) => (
-              <text key={t} x={x(t)} y="136" textAnchor="middle">
-                {showCalendarYears
-                  ? calendarStartYear + t
-                  : useAges
-                    ? currentAge + t
-                    : t - retirementDelay}
-              </text>
-            ))}
-            <text x={padL + innerW / 2} y="156" textAnchor="middle">
-              {showCalendarYears
-                ? "CALENDAR YEAR"
-                : useAges
-                  ? "AGE"
-                  : "YEARS SINCE RETIREMENT"}
-            </text>
-          </g>
-        </svg>
-        <p className="chart-footnote">
-          Each point counts simulations whose invested portfolio and upfront
-          cash bucket were both exhausted by that year-end, including earlier
-          exhaustion. A fully funded bucket covers spending through its final
-          year; if no investments remain, money runs out at that year-end. These
-          are modeled frequencies, not guarantees; 0% means no simulation ran
-          out of money by that point.
-        </p>
-      </section>
     </section>
   );
 }
