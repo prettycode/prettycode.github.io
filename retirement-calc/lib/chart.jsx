@@ -181,6 +181,11 @@ function PortfolioChart({
         </label>
       </div>
       <p className="chart-subtitle">
+        This chart is meant to answer the question: how might my *invested*
+        portfolio perform over my retirement years, given my withdrawal strategy
+        and market assumptions?
+      </p>
+      <p className="chart-subtitle">
         Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte Carlo
         paths. Outer band, 10th–90th percentile; inner band, 25th–75th. Vertical
         marks show each year's median withdrawal, scaled to the left axis.

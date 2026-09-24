@@ -34,11 +34,6 @@ function RetirementSimulator() {
   );
   const [savedUpfrontYears, setUpfrontYears] =
     usePersistedState("upfrontYears");
-  const [inflationAdjustBucket, setInflationAdjustBucket] = usePersistedState(
-    "inflationAdjustBucket",
-  );
-  const [bucketEarnsTBills, setBucketEarnsTBills] =
-    usePersistedState("bucketEarnsTBills");
   const [cagr, setCagr] = usePersistedState("cagr");
   const [volatility, setVolatility] = usePersistedState("volatility");
   const [inflation, setInflation] = usePersistedState("inflation");
@@ -61,14 +56,7 @@ function RetirementSimulator() {
   const retirementWithdrawal =
     withdrawal * Math.pow(1 + inflation, retirementDelay);
   const startingBucketSize = (bucketYears) =>
-    bucketSize(
-      retirementWithdrawal,
-      Math.min(bucketYears, years),
-      inflationAdjustBucket ? inflation : 0,
-      bucketEarnsTBills && bucketYears > 1
-        ? inflation + T_BILL_REAL_PREMIUM
-        : 0,
-    );
+    retirementWithdrawal * Math.min(bucketYears, years);
   let maxUpfrontYears = 10;
   while (maxUpfrontYears > 1 && startingBucketSize(maxUpfrontYears) > balance) {
     maxUpfrontYears--;
@@ -80,7 +68,6 @@ function RetirementSimulator() {
   const [marketAssumptionsOpen, setMarketAssumptionsOpen] = usePersistedState(
     "marketAssumptionsOpen",
   );
-  const [advancedOpen, setAdvancedOpen] = usePersistedState("advancedOpen");
   const [showCalendarYears, setShowCalendarYears] =
     usePersistedState("showCalendarYears");
 
@@ -185,15 +172,6 @@ function RetirementSimulator() {
   const [targetSuccessRate, setTargetSuccessRate] =
     usePersistedState("targetSuccessRate");
 
-  // The bucket-* flags are no-ops when only one year is funded (no lump sum is
-  // taken). Depending on the *effective* values here keeps a checkbox toggle
-  // from triggering a fresh Monte Carlo run with new random samples, which
-  // would otherwise jiggle the success rate as pure simulation noise.
-  const effectiveInflationAdjustBucket =
-    inflationAdjustBucket && Math.min(upfrontYears, years) > 1;
-  const effectiveBucketEarnsTBills =
-    bucketEarnsTBills && Math.min(upfrontYears, years) > 1;
-
   // A solver outcome belongs to the assumptions and target it was calculated for.
   const solverSettingsKey = JSON.stringify([
     solveFor,
@@ -205,8 +183,6 @@ function RetirementSimulator() {
     years,
     retirementDelay,
     upfrontYears,
-    solvingDelay ? inflationAdjustBucket : effectiveInflationAdjustBucket,
-    solvingDelay ? bucketEarnsTBills : effectiveBucketEarnsTBills,
     currentAge,
     targetSuccessRate,
   ]);
@@ -231,8 +207,6 @@ function RetirementSimulator() {
       years,
       retirementDelay,
       upfrontYears,
-      inflationAdjustBucket,
-      bucketEarnsTBills,
       currentAge,
       retirementAge,
       planThroughAge,
@@ -249,9 +223,6 @@ function RetirementSimulator() {
           retirementDelay,
           runs: SIM_RUNS,
           upfrontYears,
-          inflationAdjustBucket: effectiveInflationAdjustBucket,
-          bucketEarnsTBills: effectiveBucketEarnsTBills,
-          tBillRealPremium: T_BILL_REAL_PREMIUM,
         },
         (pct) => {
           if (active) {
@@ -293,8 +264,6 @@ function RetirementSimulator() {
     years,
     retirementDelay,
     upfrontYears,
-    effectiveInflationAdjustBucket,
-    effectiveBucketEarnsTBills,
     currentAge,
     retryCount,
   ]);
@@ -333,13 +302,6 @@ function RetirementSimulator() {
       inflation,
       years,
       upfrontYears,
-      inflationAdjustBucket: solvingDelay
-        ? inflationAdjustBucket
-        : effectiveInflationAdjustBucket,
-      bucketEarnsTBills: solvingDelay
-        ? bucketEarnsTBills
-        : effectiveBucketEarnsTBills,
-      tBillRealPremium: T_BILL_REAL_PREMIUM,
     };
 
     try {
@@ -624,48 +586,6 @@ function RetirementSimulator() {
                     {PRESET_LABELS.worst}
                   </button>
                 </div>
-              </div>
-            </details>
-
-            <details
-              className="panel-section"
-              open={advancedOpen}
-              onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
-            >
-              <summary className="panel-heading">Advanced</summary>
-              <div className="advanced-body">
-                <label className="toggle-row">
-                  <input
-                    type="checkbox"
-                    checked={inflationAdjustBucket}
-                    onChange={(e) => setInflationAdjustBucket(e.target.checked)}
-                  />
-                  <div>
-                    <div className="toggle-label">
-                      {SETTING_LABELS.upfrontYears} is inflation-adjusted
-                    </div>
-                    <div className="toggle-sub">
-                      Increase cash bucket by inflation for years &gt; 1.
-                    </div>
-                  </div>
-                </label>
-                <label className="toggle-row" style={{ marginTop: 12 }}>
-                  <input
-                    type="checkbox"
-                    checked={bucketEarnsTBills}
-                    onChange={(e) => setBucketEarnsTBills(e.target.checked)}
-                  />
-                  <div>
-                    <div className="toggle-label">
-                      {SETTING_LABELS.upfrontYears} earns T-Bills
-                    </div>
-                    <div className="toggle-sub">
-                      Hold cash beyond 1 year in T-Bills earning{" "}
-                      {fmtPct(inflation + T_BILL_REAL_PREMIUM)} (inflation +{" "}
-                      {fmtPct(T_BILL_REAL_PREMIUM)} historical real return).
-                    </div>
-                  </div>
-                </label>
               </div>
             </details>
 

@@ -162,9 +162,6 @@ function runSimulation({
   years,
   runs,
   upfrontYears,
-  inflationAdjustBucket,
-  bucketEarnsTBills,
-  tBillRealPremium,
   retirementDelay = 0,
 }) {
   // Only fund spending within the retirement horizon, excluding the delay.
@@ -176,10 +173,6 @@ function runSimulation({
   const returnBp = Math.round(returnRate * BP);
   const volBp = Math.round(volatility * BP);
   const inflMicro = Math.round(inflation * MICRO);
-  // T-Bill nominal rate = inflation + historical real premium (~0.5%). Held in
-  // MICRO scale alongside inflMicro so bucket discounting compounds at the same
-  // precision as the inflation factor used to size withdrawals.
-  const tBillMicro = inflMicro + Math.round(tBillRealPremium * MICRO);
 
   // Cumulative inflation factor in MICRO scale, built iteratively — bounds
   // drift to ≤1 part per 10⁶ per compounding step (vs the bp-scale 1-in-10⁴
@@ -190,7 +183,7 @@ function runSimulation({
     inflPow[y] = Math.floor((inflPow[y - 1] * (MICRO + inflMicro)) / MICRO);
   }
   // The input is in today's dollars; the bucket starts at retirement's
-  // purchasing-power equivalent, even when later bucket inflation is off.
+  // purchasing-power equivalent and stays flat for later bucket years.
   const retirementWdCents = Math.floor(
     (wdCents * inflPow[retirementDelay]) / MICRO,
   );
@@ -198,46 +191,10 @@ function runSimulation({
   // Upfront cash bucket: if upfrontYears > 1, year 1 withdraws a lump sum that
   // funds years 1..upfrontYears, and no further withdrawals happen until year
   // upfrontYears+1. When upfrontYears === 1 this collapses to the normal flow.
-  // Sizing: year 1's withdrawal is plain cash (spent immediately). When
-  // bucketEarnsTBills is on, only the *excess* — funds for years 2..N — earns
-  // T-Bills, and only until one year before it's spent (a rolling 1-year cash
-  // buffer is kept idle). So year y's portion (y ≥ 2) grows in T-Bills for
-  // y-2 years. Withdrawals grow at inflation when inflationAdjustBucket is on.
-  // L = wd · (1 + (1+wGrow) · Σᵢ₌₀^{N-2} ((1+wGrow)/(1+disc))ⁱ)
-  // When disc = 0 this collapses to wd · Σᵢ₌₀^{N-1} (1+wGrow)ⁱ.
+  // The bucket is held as idle cash, and every bucket year withdraws the same
+  // retirement-year amount, so the lump sum is wd · N.
   const isLumpSum = upfrontYears > 1;
-  let lumpSumCents = 0;
-  if (isLumpSum) {
-    const wGrowMicro = inflationAdjustBucket ? inflMicro : 0;
-    const discMicro = bucketEarnsTBills ? tBillMicro : 0;
-    if (discMicro === 0) {
-      // No T-Bills earnings: sum the nominal (inflation-grown) withdrawals.
-      let pow = MICRO; // (1+wGrow)^0
-      let sumMicro = 0;
-      const num = MICRO + wGrowMicro;
-      for (let i = 0; i < upfrontYears; i++) {
-        sumMicro += pow;
-        pow = Math.floor((pow * num) / MICRO);
-      }
-      lumpSumCents = Math.floor((retirementWdCents * sumMicro) / MICRO);
-    } else {
-      // ratio = (MICRO + wGrowMicro) / (MICRO + discMicro), tracked in MICRO
-      // scale via iterative multiply to avoid pow() drift.
-      let ratioPow = MICRO; // ratio^0 = 1
-      let sumMicro = 0;
-      const num = MICRO + wGrowMicro;
-      const den = MICRO + discMicro;
-      for (let i = 0; i < upfrontYears - 1; i++) {
-        sumMicro += ratioPow;
-        ratioPow = Math.floor((ratioPow * num) / den);
-      }
-      // tBillsCents = retirementWdCents · (1+wGrow) · sumMicro / MICRO. Split into two
-      // divides so intermediates stay inside Number-safe int range.
-      const grownWdCents = Math.floor((retirementWdCents * num) / MICRO);
-      const tBillsCents = Math.floor((grownWdCents * sumMicro) / MICRO);
-      lumpSumCents = retirementWdCents + tBillsCents;
-    }
-  }
+  const lumpSumCents = isLumpSum ? retirementWdCents * upfrontYears : 0;
 
   const yearBalances = new Array(years + 1);
   for (let y = 0; y <= years; y++) {
@@ -249,23 +206,6 @@ function runSimulation({
   // The portfolio excludes cash transferred to the bucket. Record the year
   // that cash is spent separately so the risk chart counts both resources.
   const bucketExhaustionYears = new Uint32Array(runs);
-  const bucketCosts = [];
-  if (isLumpSum) {
-    const growth = inflationAdjustBucket ? 1 + inflMicro / MICRO : 1;
-    const discount = bucketEarnsTBills ? 1 + tBillMicro / MICRO : 1;
-    let cumulative = 0;
-    for (let y = 1; y <= upfrontYears; y++) {
-      cumulative +=
-        (retirementWdCents * Math.pow(growth, y - 1)) /
-        Math.pow(discount, Math.max(0, y - 2));
-      // Match the integer lump sum exactly at the final boundary.
-      bucketCosts.push(
-        y === upfrontYears
-          ? lumpSumCents
-          : Math.min(lumpSumCents, Math.floor(cumulative)),
-      );
-    }
-  }
   let survived = 0;
   const reportEvery = Math.max(1, Math.floor(runs / 100));
 
@@ -285,10 +225,7 @@ function runSimulation({
             // An underfunded bucket only lasts as long as the money actually
             // available. Allocate it to the earliest spending years first.
             const fundedCents = Math.min(bal, lumpSumCents);
-            const lastCashYear =
-              fundedCents === lumpSumCents
-                ? upfrontYears
-                : bucketCosts.findIndex((cost) => cost >= fundedCents) + 1;
+            const lastCashYear = Math.ceil(fundedCents / retirementWdCents);
             bucketExhaustionYears[r] = retirementDelay + lastCashYear;
           }
         } else if (retirementYear <= upfrontYears) {

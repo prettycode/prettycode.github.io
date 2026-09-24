@@ -90,7 +90,6 @@ function harness(saved = {}) {
       setCurrentAge, setPlanThroughAge,
       setRetirementAge, currentAge,
       retirementAge, planThroughAge, retirementDelay,
-      setInflationAdjustBucket, setBucketEarnsTBills,
       retry: () => setRetryCount(c => c + 1)};
   }`,
     context,
@@ -141,53 +140,19 @@ test("cash bucket is capped on load and when portfolio amounts change", () => {
   assert.equal(h.workers.at(-1).message.params.upfrontYears, 1);
 });
 
-test("cash bucket maximum accounts for inflation and T-Bill settings", () => {
+test("cash bucket is sized as the retirement withdrawal times funded years", () => {
   const h = harness({
-    balance: 3_000_000,
+    balance: 2_990_000,
     withdrawal: 1_000_000,
     upfrontYears: 3,
     inflation: 0.05,
   });
-  let state = h.render();
-  assert.equal(state.maxUpfrontYears, 3);
-  state.setInflationAdjustBucket(true);
-  state = h.render();
+  const state = h.render();
   assert.equal(state.maxUpfrontYears, 2);
   assert.equal(state.upfrontYears, 2);
-  assert.ok(state.startingBucketSize(state.maxUpfrontYears) <= state.balance);
-  assert.ok(
-    state.startingBucketSize(state.maxUpfrontYears + 1) > state.balance,
-  );
-  state.setInflationAdjustBucket(false);
-  state.setBucketEarnsTBills(true);
-  state = h.render();
-  assert.equal(state.maxUpfrontYears, 3);
-  assert.equal(state.upfrontYears, 2);
+  assert.equal(state.startingBucketSize(2), 2_000_000);
+  assert.equal(state.startingBucketSize(3), 3_000_000);
 });
-
-for (const setting of ["setInflationAdjustBucket", "setBucketEarnsTBills"]) {
-  test(`${setting} cancels a delay solve even when the current horizon funds only one year`, async () => {
-    const h = harness({
-      currentAge: 43,
-      retirementAge: 49,
-      planThroughAge: 50,
-      upfrontYears: 5,
-    });
-    h.render();
-    h.workers[0].done(result);
-    await flush();
-    h.render().setSolveFor("retirementDelay");
-    const state = h.render();
-    const solve = state.solveForTarget();
-    state[setting](true);
-    h.render();
-    assert.equal(h.workers[1].terminated, true);
-    await solve;
-    assert.equal(h.render().solving, false);
-    assert.equal(h.render().currentSolverResult, null);
-    assert.equal(h.workers.length, 2);
-  });
-}
 
 test("increasing current age advances retirement and the plan horizon as needed", () => {
   const h = harness({ currentAge: 43, retirementAge: 65, planThroughAge: 90 });
@@ -526,8 +491,6 @@ for (const match of [0, 3, null]) {
       planThroughAge: 53,
       withdrawal: 123000,
       upfrontYears: 10,
-      inflationAdjustBucket: true,
-      bucketEarnsTBills: true,
     });
     h.render();
     h.workers[0].done(result);
@@ -543,8 +506,6 @@ for (const match of [0, 3, null]) {
       assert.equal(params.balance, before.balance);
       assert.equal(params.withdrawal, before.withdrawal);
       assert.equal(params.years, 10 - params.retirementDelay);
-      assert.equal(params.inflationAdjustBucket, true);
-      assert.equal(params.bucketEarnsTBills, true);
       // A single passing year also covers a non-monotonic success curve.
       worker.done({
         ...result,

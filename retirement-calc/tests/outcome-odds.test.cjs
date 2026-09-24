@@ -21,9 +21,6 @@ const simulate = (overrides = {}) =>
     years: 2,
     runs: 100,
     upfrontYears: 1,
-    inflationAdjustBucket: false,
-    bucketEarnsTBills: false,
-    tBillRealPremium: 0.005,
 
     ...overrides,
   });
@@ -119,33 +116,27 @@ test("an underfunded cash bucket exhausts the actual available money", () => {
   }
 });
 
-test("cash coverage respects inflation and T-Bill sizing", () => {
-  for (const inflationAdjustBucket of [false, true]) {
-    for (const bucketEarnsTBills of [false, true]) {
-      const params = {
-        withdrawal: 40_000,
-        returnRate: 0,
-        inflation: 0.04,
-        upfrontYears: 5,
-        years: 6,
-        inflationAdjustBucket,
-        bucketEarnsTBills,
-      };
-      const sizing = simulate({ ...params, balance: 1_000_000 });
-      // The reported lump sum is floored to dollars; one extra dollar fully
-      // funds it, and a total investment loss then leaves only bucket cash.
-      const result = simulate({
-        ...params,
-        balance: sizing.lumpSum + 1,
-        returnRate: -1,
-      });
-      assert.equal(result.percentiles[1].p50, 0);
-      assert.deepEqual(
-        Array.from(result.percentiles, (row) => row.depletionRate),
-        [0, 0, 0, 0, 0, 1, 1],
-      );
-    }
-  }
+test("cash coverage respects bucket sizing under inflation", () => {
+  const params = {
+    withdrawal: 40_000,
+    returnRate: 0,
+    inflation: 0.04,
+    upfrontYears: 5,
+    years: 6,
+  };
+  const sizing = simulate({ ...params, balance: 1_000_000 });
+  // The reported lump sum is floored to dollars; one extra dollar fully
+  // funds it, and a total investment loss then leaves only bucket cash.
+  const result = simulate({
+    ...params,
+    balance: sizing.lumpSum + 1,
+    returnRate: -1,
+  });
+  assert.equal(result.percentiles[1].p50, 0);
+  assert.deepEqual(
+    Array.from(result.percentiles, (row) => row.depletionRate),
+    [0, 0, 0, 0, 0, 1, 1],
+  );
 });
 
 function deriveOdds(yearData, options = {}) {

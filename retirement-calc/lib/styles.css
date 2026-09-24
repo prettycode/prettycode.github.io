@@ -689,51 +689,23 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
-/* The closing rule belongs to Advanced, so it hides when Advanced collapses. */
-.advanced-body {
-  padding-bottom: 20px;
+/* An open section closes with a rule, like its heading does when collapsed. */
+.panel-section[open] {
   border-bottom: 1px solid var(--rule);
 }
 
-.toggle-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  cursor: pointer;
-}
-
-.toggle-row input[type="checkbox"] {
-  margin: 2px 0 0;
-  width: 12px;
-  height: 12px;
-  accent-color: var(--accent);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.toggle-label,
-.advanced-body .slider-label {
+.toggle-label {
   font-family: "Fraunces", serif;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.25;
 }
 
-.toggle-sub,
-.advanced-body .slider-sub {
+.toggle-sub {
   font-size: 10px;
   color: var(--ink-2);
   margin-top: 2px;
   line-height: 1.4;
-}
-
-.advanced-body .slider-sub {
-  letter-spacing: normal;
-  text-transform: none;
-}
-
-.advanced-body .slider-value {
-  font-size: 13px;
 }
 
 /* ─── Settings management (not a model parameter) ─── */

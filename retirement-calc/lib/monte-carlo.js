@@ -1,4 +1,4 @@
-/* exported SIM_RUNS, startSimulation, T_BILL_REAL_PREMIUM, MARKET_PRESETS, cagrToArithmetic, bucketSize */
+/* exported SIM_RUNS, startSimulation, MARKET_PRESETS, cagrToArithmetic */
 
 // ─── Monte Carlo Engine — main-thread side ─────────────────────────────────
 // The hot loop lives in monte-carlo-worker.js so the UI stays responsive
@@ -58,10 +58,6 @@ function startSimulation(params, onProgress = () => {}) {
   return { promise, cancel };
 }
 
-// Historical real return on 3-month T-Bills above CPI inflation, ~1928–2023.
-// Used so the T-Bill rate tracks the inflation slider (rate = inflation + this).
-const T_BILL_REAL_PREMIUM = 0.005;
-
 // Market-assumption presets sourced from Historical-Stock-Market-And-Inflation-Data.html.
 // Inflation comes from U.S. CPI in both regions — the source has no separate world-CPI series.
 const MARKET_PRESETS = {
@@ -86,32 +82,4 @@ function cagrToArithmetic(cagr, vol) {
     m = (1 + cagr) * Math.exp((vol * vol) / (2 * m * m));
   }
   return m - 1;
-}
-
-// Closed-form bucket size: year 1's withdrawal is plain cash, years 2..N grow
-// at `disc` for y-2 years (a 1-year cash buffer is held idle the year before
-// each spend). Mirrors the integer-scale loop in the worker so UI and
-// simulation agree.
-function bucketSize(wd, years, wGrow, disc) {
-  if (years <= 0) {
-    return 0;
-  }
-  if (disc === 0) {
-    // No T-Bills earnings: sum the nominal withdrawals.
-    if (wGrow === 0) {
-      return years * wd;
-    }
-    return (wd * (Math.pow(1 + wGrow, years) - 1)) / wGrow;
-  }
-  if (years === 1) {
-    return wd;
-  }
-  // L = wd + wd · (1 + wGrow) · Σⱼ₌₀^{N-2} ratio^j, ratio = (1+wGrow)/(1+disc).
-  const ratio = (1 + wGrow) / (1 + disc);
-  if (Math.abs(ratio - 1) < 1e-9) {
-    return wd + (1 + wGrow) * wd * (years - 1);
-  }
-  return (
-    wd + (wd * (1 + wGrow) * (1 - Math.pow(ratio, years - 1))) / (1 - ratio)
-  );
 }

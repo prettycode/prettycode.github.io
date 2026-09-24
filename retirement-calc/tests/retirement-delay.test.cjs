@@ -19,9 +19,6 @@ const simulate = (overrides = {}) =>
     years: 2,
     runs: 100,
     upfrontYears: 1,
-    inflationAdjustBucket: false,
-    bucketEarnsTBills: false,
-    tBillRealPremium: 0.005,
 
     ...overrides,
   });
@@ -43,22 +40,11 @@ test("delay adds growth-only years before the full retirement duration", () => {
 test("oversized cash buckets only fund the retirement horizon", () => {
   for (const years of [1, 3]) {
     for (const retirementDelay of [0, 5]) {
-      for (const inflationAdjustBucket of [false, true]) {
-        for (const bucketEarnsTBills of [false, true]) {
-          const params = {
-            years,
-            retirementDelay,
-
-            inflationAdjustBucket,
-            bucketEarnsTBills,
-            inflation: 0.03,
-          };
-          assert.deepEqual(
-            simulate({ ...params, upfrontYears: 10 }),
-            simulate({ ...params, upfrontYears: years }),
-          );
-        }
-      }
+      const params = { years, retirementDelay, inflation: 0.03 };
+      assert.deepEqual(
+        simulate({ ...params, upfrontYears: 10 }),
+        simulate({ ...params, upfrontYears: years }),
+      );
     }
   }
 });
@@ -136,39 +122,22 @@ test("five-year delay preserves the purchasing power of a $150K withdrawal", () 
   assert.equal(result.successRate, 1);
 });
 
-test("delayed buckets include pre-retirement inflation with every bucket option", () => {
-  for (const inflationAdjustBucket of [false, true]) {
-    for (const bucketEarnsTBills of [false, true]) {
-      const result = simulate({
-        balance: 10_000,
-        returnRate: 0,
-        retirementDelay: 2,
-        years: 4,
-        upfrontYears: 3,
-        inflation: 0.1,
-        tBillRealPremium: 0,
-
-        inflationAdjustBucket,
-        bucketEarnsTBills,
-      });
-      // $121 at retirement. Later bucket years either stay at $121 or
-      // grow to $133.10/$146.41; only the third year earns a year of T-Bills.
-      const bucket = inflationAdjustBucket
-        ? bucketEarnsTBills
-          ? 387
-          : 400
-        : bucketEarnsTBills
-          ? 352
-          : 363;
-      // T-Bill discount factors can truncate just below a whole dollar.
-      assert.ok(Math.abs(result.lumpSum - bucket) <= 1);
-      assert.deepEqual(
-        Array.from(result.percentiles, (p) => p.withdrawal),
-        [0, 0, 0, result.lumpSum, 0, 0, 161],
-      );
-      assert.equal(result.successRate, 1);
-    }
-  }
+test("delayed buckets include pre-retirement inflation", () => {
+  const result = simulate({
+    balance: 10_000,
+    returnRate: 0,
+    retirementDelay: 2,
+    years: 4,
+    upfrontYears: 3,
+    inflation: 0.1,
+  });
+  // $121 at retirement; later bucket years stay at $121.
+  assert.equal(result.lumpSum, 363);
+  assert.deepEqual(
+    Array.from(result.percentiles, (p) => p.withdrawal),
+    [0, 0, 0, 363, 0, 0, 161],
+  );
+  assert.equal(result.successRate, 1);
 });
 
 test("immediate retirement still inflates only subsequent years", () => {

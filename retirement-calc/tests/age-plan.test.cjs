@@ -52,18 +52,6 @@ test("incompatible saved settings are erased and ignored", () => {
   }
 });
 
-test("retired withdrawal frequency is removed without resetting the saved plan", () => {
-  for (const withdrawalFrequency of ["annual", "monthly"]) {
-    const { api, storage } = settings({
-      balance: 2_000_000,
-      withdrawalFrequency,
-    });
-    assert.equal(api.get("balance"), 2_000_000);
-    assert.equal(api.has("withdrawalFrequency"), false);
-    assert.deepEqual(JSON.parse(storage.value), { balance: 2_000_000 });
-  }
-});
-
 test("malformed saved JSON is erased and ignored", () => {
   const { api, storage } = settings();
   storage.value = "{broken";
@@ -131,7 +119,6 @@ test("saved ages supply the simulation timeline", () => {
     },
     MONTE_CARLO_WORKER_URL: "worker",
     SIM_RUNS: 100,
-    T_BILL_REAL_PREMIUM: 0.005,
     cagrToArithmetic: () => 0,
     fmtMoney() {},
     fmtPct() {},
