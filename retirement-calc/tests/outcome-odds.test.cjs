@@ -149,11 +149,75 @@ function deriveOdds(simulation) {
   const component = source.slice(0, source.indexOf("  return (\n    <section"));
   const ui = vm.createContext({ fmtMoney: String });
   vm.runInContext(
-    `${component}\nreturn { lifespanLadder, firstTenthGone, medianSurvives, successRate };\n}`,
+    `${component}\nreturn { balanceLadder, balanceRangeNote, ladderNote, lifespanLadder, firstTenthGone, medianSurvives, successRate };\n}`,
     ui,
   );
   return ui.OutcomeOdds({ simulation });
 }
+
+function endingOdds(balances, failureRate = 0) {
+  return deriveOdds({
+    years: 1,
+    retirementDelay: 0,
+    summary: {
+      successRate: 1 - failureRate,
+      depletionYears: {
+        0.1: null,
+        0.25: null,
+        0.5: null,
+        0.75: null,
+        0.9: null,
+      },
+    },
+    yearData: [
+      null,
+      {
+        totalEndBalance: balances,
+        totalEndBalanceToday: balances,
+        depletionRate: failureRate,
+      },
+    ],
+  });
+}
+
+test("zero-balance rungs give lower bounds instead of conflicting exact odds", () => {
+  const odds = endingOdds(
+    { p10: 0, p25: 0, p50: 100, p75: 200, p90: 300 },
+    0.2582,
+  );
+  assert.equal(odds.medianSurvives, true);
+  assert.equal(odds.balanceLadder[3].odds, "1 in 4");
+  assert.equal(odds.balanceLadder[4].odds, "1 in 10");
+  assert.match(odds.ladderNote, /Each row means “at least”/);
+  assert.match(odds.balanceRangeNote, /At least half.*inclusive/);
+  assert.match(
+    odds.balanceRangeNote,
+    /At least 9 in 10 finish ≤ 300/,
+  );
+  assert.doesNotMatch(odds.balanceRangeNote, /4 in 5/);
+});
+
+test("positive percentile ranges retain the central 80 percent bound", () => {
+  const odds = endingOdds({ p10: 10, p25: 25, p50: 50, p75: 75, p90: 90 });
+  assert.match(
+    odds.balanceRangeNote,
+    /At least 4 in 5 finish between 10 and 90, inclusive/,
+  );
+  assert.equal(odds.balanceLadder[0].lead, "ends ≥");
+  assert.equal(odds.balanceLadder[4].lead, "ends ≤");
+});
+
+test("tied and rounded-zero balances are not equated with depletion", () => {
+  const odds = endingOdds({ p10: 0, p25: 0, p50: 0, p75: 0, p90: 0 });
+  assert.equal(odds.successRate, 1);
+  assert.equal(odds.medianSurvives, true);
+  assert.equal(odds.balanceLadder[2].lead, "ends ≥");
+  assert.match(odds.balanceLadder[4].primary, /rounded/);
+  assert.match(
+    odds.balanceRangeNote,
+    /actual share that ran out is reported above/,
+  );
+});
 
 test("lifespan rungs without depletion give failure bounds, not survival odds", () => {
   const { lifespanLadder: rows } = deriveOdds({

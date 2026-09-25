@@ -55,10 +55,10 @@ function OutcomeOdds({ simulation }) {
   // from balances to depletion dates.
   const medianSurvives = failureRate < 0.5;
 
-  // Each rung states an exceedance probability, which is what a percentile
-  // actually is — the 90th percentile is the 1-in-10 line, and the median is
-  // just the 1-in-2 rung rather than a favoured value. A lower rung sitting
-  // at $0 is a rounded total balance, not proof of total depletion.
+  // Percentiles give inclusive bounds, not exact event probabilities when
+  // outcomes tie. This matters especially for the mass of outcomes at $0.
+  // A rounded $0 balance is not proof of depletion; the lead uses the
+  // measured depletion rate for that separate event.
   const balanceLadder = [
     {
       odds: "1 in 10",
@@ -100,7 +100,7 @@ function OutcomeOdds({ simulation }) {
         }
       : {
           odds: r.odds,
-          lead: `ends ${r.dir}`,
+          lead: `ends ${r.dir === "above" ? "≥" : "≤"}`,
           primary: fmtMoney(r.value),
           secondary: `${fmtMoney(r.todayValue)} today`,
           median: r.median,
@@ -138,8 +138,14 @@ function OutcomeOdds({ simulation }) {
   const firstTenthGone = ranOutBy(0.1);
 
   const ladder = medianSurvives ? balanceLadder : lifespanLadder;
-  const upsideRatio =
-    medianSurvives && ending.p50 > 0 ? ending.p90 / ending.p50 : null;
+  const ladderNote = medianSurvives
+    ? "Each row means “at least” the stated share of futures. Tied balances can make that share larger; dollar thresholds are approximate."
+    : "Each dated row means “at least” the stated share had run out by then. Rows marked “at most” have not reached that share within the plan.";
+  const balanceRangeNote =
+    `At least half of futures finish between ${fmtMoney(ending.p25)} and ${fmtMoney(ending.p75)}, inclusive. ` +
+    (ending.p10 > 0
+      ? `At least 4 in 5 finish between ${fmtMoney(ending.p10)} and ${fmtMoney(ending.p90)}, inclusive.`
+      : `At least 9 in 10 finish ≤ ${fmtMoney(ending.p90)}. At least 1 in 10 have a total balance of $0 rounded to whole dollars; the actual share that ran out is reported above.`);
 
   return (
     <section className="odds-section fade" aria-labelledby="odds-title">
@@ -163,7 +169,7 @@ function OutcomeOdds({ simulation }) {
         are exhausted.
       </p>
 
-      <dl className="odds-ladder">
+      <dl className="odds-ladder" aria-describedby="odds-ladder-note">
         {ladder.map((rung, i) => (
           <div className={`odds-rung${rung.median ? " median" : ""}`} key={i}>
             <dt>{rung.odds}</dt>
@@ -179,16 +185,14 @@ function OutcomeOdds({ simulation }) {
         ))}
       </dl>
 
+      <p className="odds-ladder-note" id="odds-ladder-note">
+        {ladderNote}
+      </p>
+
       {medianSurvives ? (
         <p className="odds-ladder-note">
-          Read a rung as the chance of clearing that figure — 1 in 4 futures
-          finish above {fmtMoney(ending.p75)}. Taken in pairs, the rungs give a
-          1-in-2 chance of finishing between {fmtMoney(ending.p25)} and{" "}
-          {fmtMoney(ending.p75)}, and a 4-in-5 chance of finishing{" "}
-          {ending.p10 > 0
-            ? `between ${fmtMoney(ending.p10)} and ${fmtMoney(ending.p90)}`
-            : `below ${fmtMoney(ending.p90)}, with the bottom tenth at a rounded total balance of $0`}
-          . Dollar figures include investments and remaining bucket cash.
+          {balanceRangeNote} Balances include investments and remaining bucket
+          cash.
         </p>
       ) : (
         <p className="odds-ladder-note">
@@ -200,11 +204,9 @@ function OutcomeOdds({ simulation }) {
       )}
 
       <p className="odds-caveat">
-        So the median is the middle outcome, not the most likely one — it is
-        simply the line with half the futures above it and half below.
-        {medianSurvives
-          ? ` No single dollar figure carries meaningful odds on its own.${upsideRatio >= 1.5 ? ` The spread is lopsided, too: the best tenth of futures finish above ${fmtMoney(ending.p90)}, roughly ${upsideRatio.toFixed(1)}× the median, while the worst tenth ${ending.p10 > 0 ? `finish below ${fmtMoney(ending.p10)}` : "finish with a rounded total balance of $0"}. That long upside tail drags the average well above the typical result, which is why every headline figure here is a median rather than an average.` : ""}`
-          : ` A median of $0 does not mean every future ends that way — ${inN(successRate)} still finish with money, some of it substantial. It means the middle of the range has fallen through the floor.`}
+        The median marks the middle of the outcomes, not the most likely
+        balance. Percentile bounds do not give the exact probability of any one
+        balance.
       </p>
     </section>
   );
