@@ -85,6 +85,58 @@ test("delay and inflation are included in the worker's ages and real amounts", (
   assert.equal(result.summary.totalDrawnToday, 60_000);
 });
 
+test("inflationAdjustedBucket: funded bucket years spend what a no-bucket plan intends", () => {
+  const plan = {
+    balance: 1_000_000,
+    years: 8,
+    upfrontYears: 4,
+    retirementDelay: 2,
+    inflation: 0.05,
+    featureFlags: { inflationAdjustedBucket: true },
+  };
+  const bucket = simulate(plan);
+  const noBucket = simulate({ ...plan, upfrontYears: 1 });
+  for (let y = 3; y <= 10; y++) {
+    assert.equal(bucket.yearData[y].spending, noBucket.yearData[y].intended);
+  }
+  const bucketYears = noBucket.yearData.slice(3, 7);
+  const lumpSum = bucketYears.reduce((sum, row) => sum + row.intended, 0);
+  // Row amounts are floored from cents to dollars, so sums can differ by $1 each.
+  assert.ok(Math.abs(bucket.lumpSum - lumpSum) <= 4);
+  const cashAfterTwoYears =
+    bucket.lumpSum - bucketYears[0].intended - bucketYears[1].intended;
+  assert.ok(Math.abs(bucket.yearData[4].cashBalance - cashAfterTwoYears) <= 2);
+});
+
+test("inflationAdjustedBucket: partial funding runs out on the inflated schedule", () => {
+  // Bucket years pay 20,000 / 24,000 / 28,800; 50,000 lasts into year 3.
+  const result = simulate({
+    balance: 50_000,
+    years: 5,
+    upfrontYears: 3,
+    inflation: 0.2,
+    featureFlags: { inflationAdjustedBucket: true },
+  });
+  assert.deepEqual(
+    Array.from(result.yearData.slice(1, 5), (row) => row.spending),
+    [20_000, 24_000, 6_000, 0],
+  );
+  assert.equal(result.summary.medianDepletionAge, 63);
+});
+
+test("without inflationAdjustedBucket, bucket years stay flat", () => {
+  const result = simulate({
+    balance: 1_000_000,
+    upfrontYears: 3,
+    inflation: 0.2,
+  });
+  assert.equal(result.lumpSum, 60_000);
+  assert.deepEqual(
+    Array.from(result.yearData.slice(1, 5), (row) => row.spending),
+    [20_000, 20_000, 20_000, 34_560],
+  );
+});
+
 test("an invested loss does not erase cash available for later spending", () => {
   const result = simulate({ balance: 110_000, returnRate: -1 });
   assert.equal(result.yearData[1].endBalance.p50, 0);

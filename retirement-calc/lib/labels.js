@@ -3,14 +3,15 @@
 // Shared names for controls and UI text that refers to those controls.
 const SETTING_LABELS = Object.freeze({
   currentAge: "Current Age",
-  retirementAge: "Retirement Age",
-  planThroughAge: "End Age",
-  balance: "Investment Portfolio",
+  retirementAge: "Retirement Start Age",
+  planThroughAge: "Retirement End Age",
+  balance: "Savings",
   withdrawal: "Annual Withdrawal",
   upfrontYears: "Starting Cash Bucket",
   cagr: "CAGR",
   volatility: "Annual Volatility",
   inflation: "Inflation Rate",
+  inflationAdjustedBucket: "Inflation-Adjusted Cash Bucket",
 });
 
 const PRESET_LABELS = Object.freeze({

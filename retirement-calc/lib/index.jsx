@@ -42,6 +42,9 @@ function RetirementSimulator() {
     usePersistedState("retirementAge");
   const [savedPlanThroughAge, setPlanThroughAge] =
     usePersistedState("planThroughAge");
+  const [inflationAdjustedBucket, setInflationAdjustedBucket] =
+    usePersistedState("inflationAdjustedBucket");
+  const featureFlags = { inflationAdjustedBucket };
   // Keep the timeline valid immediately, including when restoring saved ages.
   const retirementAge = Math.max(savedRetirementAge, currentAge);
   const planThroughAge = Math.max(savedPlanThroughAge, retirementAge + 1);
@@ -55,8 +58,18 @@ function RetirementSimulator() {
   const retirementDelay = retirementAge - currentAge;
   const retirementWithdrawal =
     withdrawal * Math.pow(1 + inflation, retirementDelay);
-  const startingBucketSize = (bucketYears) =>
-    retirementWithdrawal * Math.min(bucketYears, years);
+  // Mirrors the worker's lumpSum sizing, including the feature flag.
+  const startingBucketSize = (bucketYears) => {
+    const covered = Math.min(bucketYears, years);
+    if (!inflationAdjustedBucket) {
+      return retirementWithdrawal * covered;
+    }
+    let total = 0;
+    for (let i = 0; i < covered; i++) {
+      total += retirementWithdrawal * Math.pow(1 + inflation, i);
+    }
+    return total;
+  };
   let maxUpfrontYears = Math.min(10, years);
   while (maxUpfrontYears > 1 && startingBucketSize(maxUpfrontYears) > balance) {
     maxUpfrontYears--;
@@ -68,6 +81,7 @@ function RetirementSimulator() {
   const [marketAssumptionsOpen, setMarketAssumptionsOpen] = usePersistedState(
     "marketAssumptionsOpen",
   );
+  const [advancedOpen, setAdvancedOpen] = usePersistedState("advancedOpen");
   const [showCalendarYears, setShowCalendarYears] =
     usePersistedState("showCalendarYears");
 
@@ -185,6 +199,7 @@ function RetirementSimulator() {
     upfrontYears,
     currentAge,
     targetSuccessRate,
+    inflationAdjustedBucket,
   ]);
   const currentSolverResult =
     solverResult?.settingsKey === solverSettingsKey ? solverResult : null;
@@ -249,6 +264,7 @@ function RetirementSimulator() {
       currentAge,
       retirementAge,
       planThroughAge,
+      inflationAdjustedBucket,
     };
     const t = setTimeout(() => {
       request = startSimulation(
@@ -263,6 +279,7 @@ function RetirementSimulator() {
           runs: SIM_RUNS,
           upfrontYears,
           currentAge,
+          featureFlags,
         },
         (pct) => {
           if (active) {
@@ -305,6 +322,7 @@ function RetirementSimulator() {
     retirementDelay,
     upfrontYears,
     currentAge,
+    inflationAdjustedBucket,
     retryCount,
   ]);
 
@@ -343,6 +361,7 @@ function RetirementSimulator() {
       inflation,
       years,
       upfrontYears,
+      featureFlags,
     };
 
     try {
@@ -471,7 +490,11 @@ function RetirementSimulator() {
 
             <Slider
               label={SETTING_LABELS.upfrontYears}
-              sublabel="Lump-sum first withdrawal, in retirement-year dollars"
+              sublabel={
+                inflationAdjustedBucket
+                  ? "Lump-sum first withdrawal; covers each year's inflation-adjusted spending"
+                  : "Lump-sum first withdrawal, in retirement-year dollars"
+              }
               value={upfrontYears}
               min={1}
               max={maxUpfrontYears}
@@ -571,6 +594,33 @@ function RetirementSimulator() {
                   </button>
                 </div>
               </div>
+            </details>
+
+            <details
+              className="panel-section"
+              open={advancedOpen}
+              onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
+            >
+              <summary className="panel-heading">Advanced</summary>
+
+              <label className="setting-checkbox">
+                <input
+                  type="checkbox"
+                  checked={inflationAdjustedBucket}
+                  onChange={(e) => setInflationAdjustedBucket(e.target.checked)}
+                  disabled={solving}
+                />
+                <span>
+                  <span className="toggle-label">
+                    {SETTING_LABELS.inflationAdjustedBucket}
+                  </span>
+                  <span className="toggle-sub">
+                    Each {SETTING_LABELS.upfrontYears.toLowerCase()} year pays
+                    that year's inflation-adjusted spending, instead of the same
+                    retirement-year amount every year.
+                  </span>
+                </span>
+              </label>
             </details>
 
             <div className="settings-mgmt">

@@ -164,6 +164,7 @@ function runSimulation({
   upfrontYears,
   retirementDelay = 0,
   currentAge,
+  featureFlags = {},
 }) {
   // Only fund spending within the retirement horizon, excluding the delay.
   upfrontYears = Math.min(upfrontYears, years);
@@ -184,7 +185,7 @@ function runSimulation({
     inflPow[y] = Math.floor((inflPow[y - 1] * (MICRO + inflMicro)) / MICRO);
   }
   // The input is in today's dollars; the bucket starts at retirement's
-  // purchasing-power equivalent and stays flat for later bucket years.
+  // purchasing-power equivalent.
   const retirementWdCents = Math.floor(
     (wdCents * inflPow[retirementDelay]) / MICRO,
   );
@@ -192,10 +193,21 @@ function runSimulation({
   // Upfront cash bucket: if upfrontYears > 1, year 1 withdraws a lump sum that
   // funds years 1..upfrontYears, and no further withdrawals happen until year
   // upfrontYears+1. When upfrontYears === 1 this collapses to the normal flow.
-  // The bucket is held as idle cash, and every bucket year withdraws the same
-  // retirement-year amount, so the lump sum is wd · N.
+  // The bucket is held as idle cash. bucketYearCents[i] is what bucket year
+  // i+1 pays: the flat retirement-year amount, or with inflationAdjustedBucket
+  // the same inflated amount a no-bucket plan would draw that year.
+  // bucketPaidCents[k] is the total paid by the end of bucket year k, so the
+  // lump sum is bucketPaidCents[N].
   const isLumpSum = upfrontYears > 1;
-  const lumpSumCents = isLumpSum ? retirementWdCents * upfrontYears : 0;
+  const bucketYearCents = new Float64Array(upfrontYears);
+  const bucketPaidCents = new Float64Array(upfrontYears + 1);
+  for (let i = 0; i < upfrontYears; i++) {
+    bucketYearCents[i] = featureFlags.inflationAdjustedBucket
+      ? Math.floor((wdCents * inflPow[retirementDelay + i]) / MICRO)
+      : retirementWdCents;
+    bucketPaidCents[i + 1] = bucketPaidCents[i] + bucketYearCents[i];
+  }
+  const lumpSumCents = isLumpSum ? bucketPaidCents[upfrontYears] : 0;
 
   const yearBalances = new Array(years + 1);
   for (let y = 0; y <= years; y++) {
@@ -231,7 +243,10 @@ function runSimulation({
             // available. Allocate it to the earliest spending years first.
             const fundedCents = Math.min(bal, lumpSumCents);
             bucketFunding[r] = fundedCents;
-            const lastCashYear = Math.ceil(fundedCents / retirementWdCents);
+            let lastCashYear = 1;
+            while (bucketPaidCents[lastCashYear] < fundedCents) {
+              lastCashYear++;
+            }
             bucketExhaustionYears[r] = retirementDelay + lastCashYear;
           }
         } else if (retirementYear <= upfrontYears) {
@@ -330,7 +345,7 @@ function runSimulation({
       : Math.max(
           0,
           bucketFunding[r] -
-            retirementWdCents * Math.min(y - retirementDelay, upfrontYears),
+            bucketPaidCents[Math.min(y - retirementDelay, upfrontYears)],
         );
   const realBalances = (values, y) =>
     Object.fromEntries(
@@ -426,7 +441,7 @@ function runSimulation({
             Math.max(
               0,
               medianBucketFunding -
-                retirementWdCents * Math.min(retirementYear, upfrontYears),
+                bucketPaidCents[Math.min(retirementYear, upfrontYears)],
             ),
           );
     const spending =
@@ -435,11 +450,10 @@ function runSimulation({
         : isLumpSum && retirementYear <= upfrontYears
           ? c2d(
               Math.min(
-                retirementWdCents,
+                bucketYearCents[retirementYear - 1],
                 Math.max(
                   0,
-                  medianBucketFunding -
-                    retirementWdCents * (retirementYear - 1),
+                  medianBucketFunding - bucketPaidCents[retirementYear - 1],
                 ),
               ),
             )

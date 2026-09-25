@@ -30,6 +30,8 @@ const SETTINGS_DEFAULTS = (() => {
     volatility: initialMarket.volatility,
     inflation: initialMarket.inflation,
     marketAssumptionsOpen: false,
+    advancedOpen: false,
+    inflationAdjustedBucket: false,
     showCalendarYears: false,
   };
 })();

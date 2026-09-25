@@ -722,6 +722,30 @@ input[type="range"]::-moz-range-thumb {
   line-height: 1.4;
 }
 
+.setting-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 22px;
+  cursor: pointer;
+}
+
+.setting-checkbox .toggle-label,
+.setting-checkbox .toggle-sub {
+  display: block;
+}
+
+.setting-checkbox input {
+  margin: 2px 0 0;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+
+.setting-checkbox input:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 4px;
+}
+
 /* ─── Settings management (not a model parameter) ─── */
 .settings-mgmt {
   margin-top: 16px;

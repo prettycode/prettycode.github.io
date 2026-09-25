@@ -87,6 +87,7 @@ function harness(saved = {}) {
       currentSolverResult, balance, withdrawal, setWithdrawal, setTargetSuccessRate, setSolveFor,
       upfrontYears, maxUpfrontYears, startingBucketSize, setUpfrontYears,
       solveForTarget, setInflation, setBalance,
+      inflationAdjustedBucket, setInflationAdjustedBucket,
       setCurrentAge, setPlanThroughAge,
       setRetirementAge, currentAge,
       retirementAge, planThroughAge, retirementDelay,
@@ -156,6 +157,38 @@ test("cash bucket is sized as the retirement withdrawal times funded years", () 
   assert.equal(state.upfrontYears, 2);
   assert.equal(state.startingBucketSize(2), 2_000_000);
   assert.equal(state.startingBucketSize(3), 3_000_000);
+});
+
+test("inflation-adjusted bucket setting is saved, sizes the bucket, and reaches the worker", () => {
+  const h = harness({
+    balance: 5_000_000,
+    withdrawal: 1_000_000,
+    upfrontYears: 3,
+    inflation: 0.1,
+    inflationAdjustedBucket: true,
+  });
+  let state = h.render();
+  assert.equal(state.inflationAdjustedBucket, true);
+  assert.equal(Math.round(state.startingBucketSize(3)), 3_310_000);
+  assert.deepEqual(
+    { ...h.workers.at(-1).message.params.featureFlags },
+    { inflationAdjustedBucket: true },
+  );
+
+  const runs = h.workers.length;
+  state.setInflationAdjustedBucket(false);
+  state = h.render();
+  assert.equal(state.startingBucketSize(3), 3_000_000);
+  assert.equal(h.workers.length, runs + 1);
+  assert.equal(
+    h.workers.at(-1).message.params.featureFlags.inflationAdjustedBucket,
+    false,
+  );
+  h.render();
+  assert.equal(
+    vm.runInContext('UserSettings.get("inflationAdjustedBucket")', h.context),
+    false,
+  );
 });
 
 test("cash bucket selection is capped to the retirement horizon and follows age changes", () => {
