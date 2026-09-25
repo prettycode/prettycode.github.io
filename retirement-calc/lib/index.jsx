@@ -403,7 +403,7 @@ function RetirementSimulator() {
         {/* MASTHEAD */}
         <header className="masthead">
           <h1 className="masthead-title">
-            Retirement Simulator<span className="reg"></span>
+            Life on Your Terms<span className="reg"></span>
           </h1>
           <div className="masthead-meta">
             <div className="vol">VOL. I · MONTE CARLO EDITION</div>
@@ -417,7 +417,7 @@ function RetirementSimulator() {
         <div className="layout">
           {/* SIDEBAR */}
           <aside className="sidebar">
-            <div className="panel-heading">Your Retirement Plan</div>
+            <div className="panel-heading">Your Plan</div>
             <Slider
               label={SETTING_LABELS.currentAge}
               sublabel="What is your age today?"
@@ -431,8 +431,8 @@ function RetirementSimulator() {
             />
             <Slider
               label={SETTING_LABELS.retirementAge}
-              sublabel="At what age will you retire?"
-              description="When portfolio-funded spending begins. No additional savings are modeled before retirement."
+              sublabel="At what age will your portfolio start funding your life?"
+              description="When your portfolio starts funding your life. No additional savings are modeled before withdrawals begin."
               value={retirementAge}
               min={currentAge}
               max={MAX_PERSON_AGE}
@@ -448,7 +448,7 @@ function RetirementSimulator() {
             <Slider
               label={SETTING_LABELS.planThroughAge}
               sublabel="To what age should your money last?"
-              description={`${retirementDelay} years until retirement; ${years} years in retirement, ending at age ${planThroughAge}`}
+              description={`${retirementDelay} years until your Starting Age; ${years} years of portfolio-funded spending, ending at age ${planThroughAge}`}
               value={planThroughAge}
               min={retirementAge + 1}
               max={Math.max(MAX_PERSON_AGE, planThroughAge)}
@@ -461,7 +461,7 @@ function RetirementSimulator() {
             <Slider
               label={SETTING_LABELS.balance}
               sublabel="How much do you have invested today?"
-              description="Investments available today. Any upfront withdrawal comes from the portfolio at retirement; if retirement is delayed, its value can grow or shrink before then."
+              description="Investments available today. Any upfront withdrawal comes from the portfolio when withdrawals begin; if withdrawals are delayed, its value can grow or shrink before then."
               value={balance}
               min={AMOUNT_LIMITS.balance.min}
               max={AMOUNT_LIMITS.balance.max}
@@ -478,7 +478,7 @@ function RetirementSimulator() {
               sublabel="Withdraw how much each year?"
               description={
                 retirementDelay > 0
-                  ? `Annual amount this portfolio must fund, in today's dollars, limited to Invested Portfolio Today even when retirement is delayed. Starts at ${fmtMoney(retirementWithdrawal)} at retirement after inflation. Later inflation increases follow the cash bucket setting below.`
+                  ? `Annual amount this portfolio must fund, in today's dollars, limited to Invested Portfolio Today even when withdrawals are delayed. Starts at ${fmtMoney(retirementWithdrawal)} when withdrawals begin after inflation. Later inflation increases follow the cash bucket setting below.`
                   : "Annual amount this portfolio must fund, in today's dollars, limited to Invested Portfolio Today. Inflation increases follow the cash bucket setting below."
               }
               value={withdrawal}
@@ -496,7 +496,7 @@ function RetirementSimulator() {
               sublabel="Lump-sum years of annual withdrawals upfront?"
               description={
                 upfrontYears === 1
-                  ? "One year uses annual portfolio withdrawals, with no upfront bucket. The amount shown is the first retirement year's spending; it increases with inflation each year. With delayed retirement, inflation before retirement can make this amount exceed Invested Portfolio Today."
+                  ? "One year uses annual portfolio withdrawals, with no upfront bucket. The amount shown is the first year's spending; it increases with inflation each year. With a later Starting Age, inflation before withdrawals begin can make this amount exceed Invested Portfolio Today."
                   : inflationAdjustedBucket
                     ? "First portfolio draw funds the bucket; spending increases with inflation each year"
                     : "First portfolio draw funds the bucket; spending stays fixed during bucket years, then catches up with inflation"
@@ -514,16 +514,17 @@ function RetirementSimulator() {
 
             <p className="toggle-sub">
               A multi-year bucket withdraws the selected years of spending
-              upfront at retirement. This money earns no interest and is spent
-              each year. The bucket is not replenished; annual portfolio
-              withdrawals resume after the selected years.
+              upfront when withdrawals begin. This money earns no interest and
+              is spent each year. The bucket is not replenished; annual
+              portfolio withdrawals resume after the selected years.
             </p>
             <p className="toggle-sub">
               Multi-year buckets are limited to Invested Portfolio Today and the
-              years in retirement. The limit includes inflation before
-              retirement and, when enabled below, during bucket years. These
-              limits apply even when retirement is delayed. Changing your plan
-              may shorten the selected bucket to stay within them.
+              years of portfolio-funded spending. The limit includes inflation
+              before withdrawals begin and, when enabled below, during bucket
+              years. These limits apply even when withdrawals are delayed.
+              Changing your plan may shorten the selected bucket to stay within
+              them.
             </p>
             <label className="setting-checkbox">
               <input
@@ -802,8 +803,8 @@ function RetirementSimulator() {
                   <div className="solver-intro">
                     <h2 id="solver-title">What plan will work for me?</h2>
                     <p id="solver-description">
-                      You may need to spend less, save more, retire later, or
-                      accept more uncertainty.
+                      You may need to spend less, save more, start withdrawals
+                      later, or accept more uncertainty.
                     </p>
                   </div>
                   <fieldset
@@ -817,7 +818,7 @@ function RetirementSimulator() {
                           value: "withdrawal",
                           question: "How much can I spend?",
                           description: `Find the highest annual spending with a ${targetSuccessRate}% success rate.`,
-                          fixed: `Starting with ${fmtMoneyFull(balance)} ${retirementDelay > 0 ? "today" : "at retirement"}`,
+                          fixed: `Starting with ${fmtMoneyFull(balance)} ${retirementDelay > 0 ? "today" : "when withdrawals begin"}`,
                         },
                         {
                           value: "balance",
@@ -827,9 +828,9 @@ function RetirementSimulator() {
                         },
                         {
                           value: "retirementDelay",
-                          question: "When can I retire?",
-                          description: `Find the fewest years from today to retirement with a ${targetSuccessRate}% success rate.`,
-                          fixed: `Starting with ${fmtMoneyFull(balance)} today; annual spending: ${fmtMoneyFull(withdrawal)} / year in today's dollars at retirement`,
+                          question: "When can my portfolio fund my life?",
+                          description: `Find the fewest years from today until withdrawals begin with a ${targetSuccessRate}% success rate.`,
+                          fixed: `Starting with ${fmtMoneyFull(balance)} today; annual spending: ${fmtMoneyFull(withdrawal)} / year in today's dollars when withdrawals begin`,
                         },
                       ].map(({ value, question, description, fixed }) => (
                         <label key={value} className="solver-option">
@@ -915,17 +916,17 @@ function RetirementSimulator() {
                     Results are shown here and only change your plan when
                     applied.{" "}
                     {solvingDelay
-                      ? `Checks 0 to ${maxSolverDelay} years from today in one-year increments to estimate ${SETTING_LABELS.retirementAge}. While you wait, your portfolio can grow or shrink based on your selected market assumptions. No savings are added or withdrawals taken before retirement. ${SETTING_LABELS.planThroughAge} stays at ${planThroughAge}. Spending accounts for inflation while you wait.`
+                      ? `Checks 0 to ${maxSolverDelay} years from today in one-year increments to estimate ${SETTING_LABELS.retirementAge}. While you wait, your portfolio can grow or shrink based on your selected market assumptions. No savings are added or withdrawals taken before your Starting Age. ${SETTING_LABELS.planThroughAge} stays at ${planThroughAge}. Spending accounts for inflation while you wait.`
                       : solvingBalance
-                        ? `Estimates ${SETTING_LABELS.balance} ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(solverAmountLimits.min)}–${fmtMoneyFull(solverAmountLimits.max)}). ${SETTING_LABELS.withdrawal} stays fixed.`
+                        ? `Estimates ${SETTING_LABELS.balance} ${retirementDelay > 0 ? "today" : "when withdrawals begin"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(solverAmountLimits.min)}–${fmtMoneyFull(solverAmountLimits.max)}). ${SETTING_LABELS.withdrawal} stays fixed.`
                         : `Estimates ${SETTING_LABELS.withdrawal} in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(solverAmountLimits.min)}–${fmtMoneyFull(solverAmountLimits.max)}). ${SETTING_LABELS.balance} stays fixed.`}{" "}
                     The solver uses the same limits as the controls. For each
                     plan it evaluates, annual spending cannot exceed that plan's
                     Invested Portfolio Today. The selected cash bucket may be
-                    shortened to fit that value and the years in retirement.
-                    Each estimate includes any such bucket adjustment, which
-                    also takes effect when you apply it. One year uses annual
-                    withdrawals with no upfront bucket.
+                    shortened to fit that value and the years of
+                    portfolio-funded spending. Each estimate includes any such
+                    bucket adjustment, which also takes effect when you apply
+                    it. One year uses annual withdrawals with no upfront bucket.
                   </p>
                   {(solving ||
                     currentSolverResult ||
@@ -942,7 +943,7 @@ function RetirementSimulator() {
                             <span>
                               Finding{" "}
                               {solvingDelay
-                                ? "your retirement start"
+                                ? "your Starting Age"
                                 : solvingBalance
                                   ? SETTING_LABELS.balance.toLowerCase()
                                   : SETTING_LABELS.withdrawal.toLowerCase()}{" "}
@@ -951,7 +952,7 @@ function RetirementSimulator() {
                             <progress
                               aria-label={
                                 solvingDelay
-                                  ? "Retirement start calculation"
+                                  ? "Starting Age calculation"
                                   : solvingBalance
                                     ? `${SETTING_LABELS.balance} calculation`
                                     : `${SETTING_LABELS.withdrawal} calculation`
@@ -967,8 +968,8 @@ function RetirementSimulator() {
                                 ? !currentSolverResult.found
                                   ? "Target not reached"
                                   : currentSolverResult.retirementDelay === 0
-                                    ? "You can retire now"
-                                    : `Retire in ${currentSolverResult.retirementDelay} ${currentSolverResult.retirementDelay === 1 ? "year" : "years"}, at age ${currentAge + currentSolverResult.retirementDelay}`
+                                    ? "Your plan meets the target starting now"
+                                    : `Start in ${currentSolverResult.retirementDelay} ${currentSolverResult.retirementDelay === 1 ? "year" : "years"}, at age ${currentAge + currentSolverResult.retirementDelay}`
                                 : solvingBalance
                                   ? `${fmtMoneyFull(currentSolverResult.balance)} ${SETTING_LABELS.balance.toLowerCase()}`
                                   : `${fmtMoneyFull(currentSolverResult.withdrawal)} / year`}
@@ -986,8 +987,8 @@ function RetirementSimulator() {
                             <span>
                               {solvingDelay
                                 ? !currentSolverResult.found
-                                  ? `No retirement start within 0 to ${maxSolverDelay} years met your ${currentSolverResult.target}% target without further savings. Your retirement start is unchanged.`
-                                  : `Earliest whole-year retirement start from today meeting your ${currentSolverResult.target}% target without further savings. The simulated success rate may vary slightly.`
+                                  ? `No Starting Age within 0 to ${maxSolverDelay} years met your ${currentSolverResult.target}% target without further savings. Your Starting Age is unchanged.`
+                                  : `Earliest Starting Age, checked in whole years from today, meeting your ${currentSolverResult.target}% target without further savings. The simulated success rate may vary slightly.`
                                 : solvingBalance
                                   ? currentSolverResult.limit === "minimum"
                                     ? `The ${fmtMoneyFull(solverAmountLimits.min)} search minimum meets your ${currentSolverResult.target}% target. Lower balances have not been checked.`
@@ -1012,7 +1013,7 @@ function RetirementSimulator() {
                             <span>
                               Updating your plan before calculating{" "}
                               {solvingDelay
-                                ? "your retirement start"
+                                ? "your Starting Age"
                                 : solvingBalance
                                   ? `your ${SETTING_LABELS.balance.toLowerCase()}`
                                   : `your ${SETTING_LABELS.withdrawal.toLowerCase()}`}

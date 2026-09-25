@@ -1,7 +1,7 @@
 {
   "name": "retirement-calc",
   "version": "1.0.0",
-  "description": "Retirement simulator",
+  "description": "Life on Your Terms ? a portfolio spending simulator",
   "scripts": {
     "lint:ci": "eslint .",
     "lint:fix": "npm run lint:ci -- --fix",
@@ -12,7 +12,7 @@
     "test": "node --test tests/*.test.cjs"
   },
   "keywords": [
-    "retirement",
+    "portfolio-planning",
     "simulator",
     "calculator",
     "finance",

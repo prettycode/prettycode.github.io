@@ -64,8 +64,8 @@ function PortfolioChart({
       : useAges
         ? `age ${yearData[t].endAge}`
         : t < retirementDelay
-          ? `year ${t} before retirement`
-          : `retirement year ${t - retirementDelay}`;
+          ? `year ${t} before withdrawals begin`
+          : `withdrawal year ${t - retirementDelay}`;
   // Keep rare, nonzero risk visible without rounding it to 0% (or 100%).
   const riskPct = (p) =>
     p > 0 && p < 0.001 ? "<0.1%" : p < 1 && p > 0.999 ? ">99.9%" : fmtPct(p);
@@ -313,7 +313,7 @@ function PortfolioChart({
                 ? "CALENDAR YEAR"
                 : useAges
                   ? "AGE"
-                  : "YEARS SINCE RETIREMENT"}
+                  : "YEARS SINCE STARTING AGE"}
             </text>
           </g>
         </svg>
@@ -461,7 +461,7 @@ function PortfolioChart({
                 ? "CALENDAR YEAR"
                 : useAges
                   ? "AGE"
-                  : "YEARS SINCE RETIREMENT"}
+                  : "YEARS SINCE STARTING AGE"}
             </text>
 
             {/* Left axis (withdrawal) — own ticks + frame */}
@@ -532,8 +532,8 @@ function PortfolioChart({
                   fill="var(--ink-2)"
                 >
                   {useAges
-                    ? `Retire at age ${currentAge + retirementDelay}`
-                    : "Retirement starts"}
+                    ? `Withdrawals start at age ${currentAge + retirementDelay}`
+                    : "Withdrawals begin"}
                 </text>
               </g>
             )}
@@ -701,10 +701,10 @@ function PortfolioChart({
               <div className="tooltip-year">
                 {useAges && `AGE ${currentAge + hover} | `}
                 {hover < retirementDelay
-                  ? `${calendarStartYear + hover} · ${retirementDelay - hover} YEARS UNTIL RETIREMENT`
+                  ? `${calendarStartYear + hover} · ${retirementDelay - hover} YEARS UNTIL STARTING AGE`
                   : hover === simYears
-                    ? `RETIREMENT YEAR ${simYears - retirementDelay} END`
-                    : `RETIREMENT YEAR ${upcomingYear.year - retirementDelay} START`}
+                    ? `WITHDRAWAL YEAR ${simYears - retirementDelay} END`
+                    : `WITHDRAWAL YEAR ${upcomingYear.year - retirementDelay} START`}
               </div>
               {(() => {
                 const post = (key) => upcomingYear.afterWithdrawal[key];
@@ -878,9 +878,9 @@ function PortfolioChart({
 
         <p className="chart-footnote">
           {retirementDelay > 0 &&
-            `The portfolio grows for ${retirementDelay} years before retirement, with no withdrawals or contributions. `}
+            `The portfolio grows for ${retirementDelay} years before withdrawals begin, with no withdrawals or contributions. `}
           This chart shows investments only; cash held in the bucket is
-          excluded. Portfolio draws occur at the start of retirement years. With
+          excluded. Portfolio draws occur at the start of withdrawal years. With
           a multi-year cash bucket, the first draw transfers the full bucket
           amount out of investments. Later bucket payments fund spending without
           another portfolio draw, so those years show no mark. The Full Plan

@@ -41,8 +41,8 @@ function OutcomeOdds({ simulation }) {
     useAges
       ? `age ${yearData[y].endAge}`
       : y > retirementDelay
-        ? `year ${y - retirementDelay} of retirement`
-        : `year ${y}, before retirement began`;
+        ? `year ${y - retirementDelay} of portfolio-funded spending`
+        : `year ${y}, before withdrawals began`;
 
   // First year the cumulative depletion rate reaches the requested share.
   // An empty portfolio alone does not count while bucket cash remains.

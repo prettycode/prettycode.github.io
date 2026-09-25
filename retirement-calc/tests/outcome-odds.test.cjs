@@ -190,10 +190,7 @@ test("zero-balance rungs give lower bounds instead of conflicting exact odds", (
   assert.equal(odds.balanceLadder[4].odds, "1 in 10");
   assert.match(odds.ladderNote, /Each row means “at least”/);
   assert.match(odds.balanceRangeNote, /At least half.*inclusive/);
-  assert.match(
-    odds.balanceRangeNote,
-    /At least 9 in 10 finish ≤ 300/,
-  );
+  assert.match(odds.balanceRangeNote, /At least 9 in 10 finish ≤ 300/);
   assert.doesNotMatch(odds.balanceRangeNote, /4 in 5/);
 });
 
@@ -303,7 +300,7 @@ test("odds use exact depletion thresholds even when portfolio bands disagree", (
   assert.equal(odds.firstTenthGone, 2);
   assert.deepEqual(
     Array.from(odds.lifespanLadder, (rung) => rung.primary),
-    [2, 3, 4, 5, 6].map((y) => `year ${y} of retirement`),
+    [2, 3, 4, 5, 6].map((y) => `year ${y} of portfolio-funded spending`),
   );
   const beforeExhaustion = deriveOdds(snapshot(1));
   assert.equal(beforeExhaustion.firstTenthGone, null);

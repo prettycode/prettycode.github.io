@@ -138,8 +138,8 @@ function PlanSchedule({
                       {currentAge !== undefined && <td>{d.startAge}</td>}
                       <td className="plan-schedule-phase">
                         {d.year <= retirementDelay
-                          ? `Before retirement ${d.year}`
-                          : `Retirement ${d.year - retirementDelay}`}
+                          ? `Before withdrawals ${d.year}`
+                          : `Withdrawal year ${d.year - retirementDelay}`}
                         {summary.medianDepletionYear === d.year && (
                           <span className="plan-schedule-depletion">
                             {currentAge === undefined
