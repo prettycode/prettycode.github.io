@@ -678,10 +678,10 @@ function RetirementSimulator() {
                   aria-labelledby="solver-title"
                 >
                   <div className="solver-intro">
-                    <h2 id="solver-title">Find Your Numbers</h2>
+                    <h2 id="solver-title">What plan will work for me?</h2>
                     <p id="solver-description">
-                      Choose a question, then set the target success rate for
-                      your money lasting through retirement.
+                      You may need to withdrawal less, save more, retire later,
+                      or accept more uncertainty.
                     </p>
                   </div>
                   <fieldset
@@ -694,21 +694,19 @@ function RetirementSimulator() {
                         {
                           value: "withdrawal",
                           question: "How much can I withdraw?",
-                          description:
-                            "Find the highest annual withdrawal for my target success rate.",
+                          description: `Find the highest annual withdrawal with a ${targetSuccessRate}% success rate.`,
                           fixed: `Starting with ${fmtMoneyFull(balance)} ${retirementDelay > 0 ? "today" : "at retirement"}`,
                         },
                         {
                           value: "balance",
                           question: "How much do I need saved?",
-                          description: `Find the lowest balance ${retirementDelay > 0 ? "today" : "at retirement"} for my target success rate.`,
+                          description: `Find the lowest portfolio value today with a ${targetSuccessRate}% success rate.`,
                           fixed: `Withdrawing ${fmtMoneyFull(withdrawal)} / year in today's dollars`,
                         },
                         {
                           value: "retirementDelay",
                           question: "When can I retire?",
-                          description:
-                            "Find the fewest years from today to retirement for my target success rate if I stop saving.",
+                          description: `Find the fewest years from today to retirement with a ${targetSuccessRate}% success rate.`,
                           fixed: `Starting with ${fmtMoneyFull(balance)} today; withdrawing ${fmtMoneyFull(withdrawal)} / year in today's dollars at retirement`,
                         },
                       ].map(({ value, question, description, fixed }) => (
@@ -751,7 +749,7 @@ function RetirementSimulator() {
                     <div className="solver-target">
                       <div className="solver-target-heading">
                         <label htmlFor="solver-target">
-                          <strong>Target success</strong> rate of money lasting{" "}
+                          <strong>Target success rate</strong> of money lasting{" "}
                           {solvingDelay
                             ? `through age ${planThroughAge}`
                             : `from age ${retirementAge} through age ${planThroughAge}`}

@@ -330,7 +330,7 @@ function PortfolioChart({
       <section className="chart-section fade" aria-labelledby="chart-title">
         <div className="chart-title-row">
           <h2 className="chart-title" id="chart-title">
-            How might my investment portfolio do?
+            Will my investment portfolio last?
           </h2>
           <label className="chart-calendar-toggle">
             <input
