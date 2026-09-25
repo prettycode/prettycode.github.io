@@ -8,24 +8,24 @@ The review was run with this prompt:
 
 ## Priority
 
-| Level | Meaning |
-| --- | --- |
+| Level  | Meaning                                                                                            |
+| ------ | -------------------------------------------------------------------------------------------------- |
 | **P1** | Crashes the app, loses the user's input, or gives a wrong answer the user would act on. Fix first. |
-| **P2** | Misleading or inconsistent results, or a feature that doesn't work for some users. |
-| **P3** | Cosmetic, wording, or edge cases unlikely to affect a decision. |
+| **P2** | Misleading or inconsistent results, or a feature that doesn't work for some users.                 |
+| **P3** | Cosmetic, wording, or edge cases unlikely to affect a decision.                                    |
 
 Suggested order, highest first. Within a level, earlier items matter more.
 
-| # | Item | Priority | Why | Status |
-| --- | --- | --- | --- | --- |
-| 6 | Adjusted inputs overwrite the user's saved settings | P1 | Silently loses input, and an applied solve can run a different plan than the one checked. | open |
-| 2 | "Worst 30-Yr" preset isn't a real 30-year window | P2 | Presents a combined stress case as history, so users may over-save or under-spend. | open |
-| 7 | Success color ignores the user's target | P2 | The at-a-glance color says "fine" (green) when the result misses the user's own target. | open |
-| 13 | Sidebar recalculates values the worker already calculates | P2 | Two copies of the bucket sizing can drift; violates the single-source-of-truth rule. | open |
-| 11 | The main chart doesn't respond to touch | P2 | The main chart's tooltip is unusable on phones and tablets. | open |
-| 5 | "Last Annual Withdrawal" can show the lump sum | P3 | Wrong number, but only when the bucket covers the whole plan. | open |
-| 4 | "Total Drawn … today" overstates real spending with a bucket | P3 | Secondary summary stat; small error, bucket plans only. | open |
-| 12 | Small text problems | P3 | One visible typo plus comment and labeling consistency. | open |
+| #   | Item                                                         | Priority | Why                                                                                       | Status |
+| --- | ------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------- | ------ |
+| 6   | Adjusted inputs overwrite the user's saved settings          | P1       | Silently loses input, and an applied solve can run a different plan than the one checked. | open   |
+| 2   | "Worst 30-Yr" preset isn't a real 30-year window             | P2       | Presents a combined stress case as history, so users may over-save or under-spend.        | open   |
+| 7   | Success color ignores the user's target                      | P2       | The at-a-glance color says "fine" (green) when the result misses the user's own target.   | open   |
+| 13  | Sidebar recalculates values the worker already calculates    | P2       | Two copies of the bucket sizing can drift; violates the single-source-of-truth rule.      | open   |
+| 11  | The main chart doesn't respond to touch                      | P2       | The main chart's tooltip is unusable on phones and tablets.                               | open   |
+| 5   | "Last Annual Withdrawal" can show the lump sum               | P3       | Wrong number, but only when the bucket covers the whole plan.                             | open   |
+| 4   | "Total Drawn … today" overstates real spending with a bucket | P3       | Secondary summary stat; small error, bucket plans only.                                   | open   |
+| 12  | Small text problems                                          | P3       | One visible typo plus comment and labeling consistency.                                   | open   |
 
 When you change an item's status, update it both in this table and in the item itself.
 
@@ -45,10 +45,10 @@ Project rules that apply to every item:
 
 Items in the same group edit the same code. Run them one after another, not in parallel.
 
-| Group | Items | Shared code |
-| --- | --- | --- |
-| A — worker bucket logic | 4, 5 | `lib/monte-carlo-worker.js` withdrawal loop and `summary` |
-| B — sidebar state | 6, 13 | `lib/index.jsx` lines ~40–80 |
+| Group                   | Items | Shared code                                               |
+| ----------------------- | ----- | --------------------------------------------------------- |
+| A — worker bucket logic | 4, 5  | `lib/monte-carlo-worker.js` withdrawal loop and `summary` |
+| B — sidebar state       | 6, 13 | `lib/index.jsx` lines ~40–80                              |
 
 Everything else can run in parallel.
 
@@ -89,7 +89,7 @@ The whole lump sum is converted to today's dollars at retirement year 1 (`drawnT
 
 `maxUpfrontYears = Math.min(10, years)`, so the bucket can be as long as the whole plan (for example, ages 43→50 with a 7-year bucket). The only draw is then the lump sum, and `median(lastDraw)` reports 7 × the annual withdrawal as the "Last Annual Withdrawal."
 
-**Fix direction:** Record the last *annual spending* amount, meaning the last bucket year's payment if the bucket covers the final year, not the lump-sum transfer.
+**Fix direction:** Record the last _annual spending_ amount, meaning the last bucket year's payment if the bucket covers the final year, not the lump-sum transfer.
 
 **Done when:** When the bucket covers the whole horizon, `lastWithdrawal` equals one year's spending. A test covers this.
 

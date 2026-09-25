@@ -1,7 +1,11 @@
 /* exported PlanSchedule */
 
 // Presentation only: rows are the same canonical records passed to PortfolioChart.
-function PlanSchedule({ simulation }) {
+function PlanSchedule({
+  simulation,
+  showYearEndPercentiles,
+  onShowYearEndPercentilesChange,
+}) {
   const { yearData, summary, retirementDelay, currentAge } = simulation;
   const detailsRef = React.useRef(null);
   React.useEffect(() => {
@@ -22,6 +26,15 @@ function PlanSchedule({ simulation }) {
   }, []);
 
   const calendarStartYear = new Date().getFullYear();
+  const yearEndColumns = showYearEndPercentiles
+    ? [
+        ["p50", "Median"],
+        ["p10", "10th"],
+        ["p25", "25th"],
+        ["p75", "75th"],
+        ["p90", "90th"],
+      ]
+    : [["p50", "Median"]];
   return (
     <div className="plan-schedule-wrap">
       <details className="plan-schedule" ref={detailsRef}>
@@ -33,18 +46,31 @@ function PlanSchedule({ simulation }) {
               and remaining bucket cash. Portfolio draws match the chart's
               withdrawal marks; spending includes payments from the cash bucket.
               A transfer into the bucket does not reduce total money available.
-              Each column is a percentile of simulated outcomes, so medians in
-              different columns need not add up. Growth / loss is the median of
-              individual investment gains. Year and age identify the row's
-              start; depletion is measured at year-end.
+              Spending through year-end columns are medians of simulated
+              outcomes unless labeled with another percentile, so they need not
+              add up across columns. Growth / loss is the median of individual
+              investment gains. Year and age identify the row's start; depletion
+              is measured at year-end.
             </p>
-            <button
-              type="button"
-              className="solve-btn"
-              onClick={() => window.print()}
-            >
-              Print schedule
-            </button>
+            <div className="plan-schedule-actions">
+              <button
+                type="button"
+                className="solve-btn"
+                onClick={() => window.print()}
+              >
+                Print schedule
+              </button>
+              <label className="chart-calendar-toggle">
+                <input
+                  type="checkbox"
+                  checked={showYearEndPercentiles}
+                  onChange={(e) =>
+                    onShowYearEndPercentilesChange(e.target.checked)
+                  }
+                />
+                Show other year-end percentiles
+              </label>
+            </div>
           </div>
           <div
             className="plan-schedule-scroll"
@@ -63,52 +89,34 @@ function PlanSchedule({ simulation }) {
                   <th scope="col" className="plan-schedule-phase">
                     Plan year
                   </th>
-                  <th scope="col">Portfolio draw</th>
-                  <th scope="col">
-                    Spending
-                    <br />
-                    Median
-                  </th>
-                  <th scope="col">
-                    Bucket remaining
-                    <br />
-                    Median
-                  </th>
-                  <th scope="col">
-                    Starting balance
-                    <br />
-                    Median
-                  </th>
-                  <th scope="col">
-                    Growth / loss
-                    <br />
-                    Median
-                  </th>
-                  <th scope="col">
-                    Year-end
-                    <br />
-                    Median
-                  </th>
-                  <th scope="col">
-                    Year-end
-                    <br />
-                    10th
-                  </th>
-                  <th scope="col">
-                    Year-end
-                    <br />
-                    25th
-                  </th>
-                  <th scope="col">
-                    Year-end
-                    <br />
-                    75th
-                  </th>
-                  <th scope="col">
-                    Year-end
-                    <br />
-                    90th
-                  </th>
+                  <th scope="col">Portfolio Draw</th>
+                  {[
+                    "Spending",
+                    "Cash Bucket Balance",
+                    "Year-start Portfolio Value",
+                    "Portfolio Growth / Loss",
+                  ].map((title) => (
+                    <th scope="col" key={title}>
+                      {title}
+                      {showYearEndPercentiles && (
+                        <>
+                          <br />
+                          Median
+                        </>
+                      )}
+                    </th>
+                  ))}
+                  {yearEndColumns.map(([key, label]) => (
+                    <th scope="col" key={key}>
+                      Year-end Portfolio Value
+                      {showYearEndPercentiles && (
+                        <>
+                          <br />
+                          {label}
+                        </>
+                      )}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -134,7 +142,7 @@ function PlanSchedule({ simulation }) {
                       <td>{fmtMoneyFull(d.cashBalance)}</td>
                       <td>{fmtMoneyFull(d.totalStartBalance.p50)}</td>
                       <td>{fmtMoneyFull(d.growth)}</td>
-                      {["p50", "p10", "p25", "p75", "p90"].map((key) => (
+                      {yearEndColumns.map(([key]) => (
                         <td key={key}>
                           {fmtMoneyFull(d.totalEndBalance[key])}
                         </td>

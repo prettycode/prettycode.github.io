@@ -86,6 +86,9 @@ function RetirementSimulator() {
   const [advancedOpen, setAdvancedOpen] = usePersistedState("advancedOpen");
   const [showCalendarYears, setShowCalendarYears] =
     usePersistedState("showCalendarYears");
+  const [showYearEndPercentiles, setShowYearEndPercentiles] = usePersistedState(
+    "showYearEndPercentiles",
+  );
 
   // Reverse-lookup (cagr, volatility, inflation) → preset cell. Used both
   // for the active-toggle highlight and for seeding lastRegion/lastScenario
@@ -1012,7 +1015,11 @@ function RetirementSimulator() {
 
                 <OutcomeOdds simulation={sim} />
 
-                <PlanSchedule simulation={sim} />
+                <PlanSchedule
+                  simulation={sim}
+                  showYearEndPercentiles={showYearEndPercentiles}
+                  onShowYearEndPercentilesChange={setShowYearEndPercentiles}
+                />
 
                 <div className="footer-note">
                   <p>

@@ -203,7 +203,10 @@ test("cash bucket selection is capped to the retirement horizon and follows age 
   assert.equal(state.upfrontYears, 5);
   assert.equal(h.workers.at(-1).message.params.upfrontYears, 5);
   h.render();
-  assert.equal(vm.runInContext('UserSettings.get("upfrontYears")', h.context), 5);
+  assert.equal(
+    vm.runInContext('UserSettings.get("upfrontYears")', h.context),
+    5,
+  );
 
   state.setPlanThroughAge(68);
   state = h.render();

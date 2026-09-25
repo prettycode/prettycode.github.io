@@ -33,6 +33,7 @@ const SETTINGS_DEFAULTS = (() => {
     advancedOpen: false,
     inflationAdjustedBucket: false,
     showCalendarYears: false,
+    showYearEndPercentiles: false,
   };
 })();
 

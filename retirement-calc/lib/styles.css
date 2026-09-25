@@ -839,6 +839,14 @@ input[type="range"]::-moz-range-thumb {
   font-size: 12px;
   line-height: 1.5;
 }
+.plan-schedule-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-bottom: 16px;
+}
 .plan-schedule-scroll {
   overflow-x: auto;
 }
@@ -894,7 +902,7 @@ input[type="range"]::-moz-range-thumb {
   .main-area > :not(.results-content),
   .results-content > :not(.plan-schedule-wrap),
   .plan-schedule > summary,
-  .plan-schedule-toolbar button {
+  .plan-schedule-actions {
     display: none !important;
   }
   .sim-inner {
