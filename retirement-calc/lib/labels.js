@@ -5,7 +5,7 @@ const SETTING_LABELS = Object.freeze({
   currentAge: "Current Age",
   retirementAge: "Retirement Start Age",
   planThroughAge: "Retirement End Age",
-  balance: "Savings",
+  balance: "Savings Portfolio",
   withdrawal: "Annual Withdrawal",
   upfrontYears: "Starting Cash Bucket",
   cagr: "CAGR",
@@ -18,5 +18,5 @@ const PRESET_LABELS = Object.freeze({
   us: "U.S.",
   world: "World",
   historical: "Historical",
-  worst: "Worst 30-Yr",
+  worst: "Apocalypse",
 });

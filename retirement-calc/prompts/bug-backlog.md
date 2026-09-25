@@ -19,7 +19,7 @@ Suggested order, highest first. Within a level, earlier items matter more.
 | #   | Item                                                         | Priority | Why                                                                                       | Status |
 | --- | ------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------- | ------ |
 | 6   | Adjusted inputs overwrite the user's saved settings          | P1       | Silently loses input, and an applied solve can run a different plan than the one checked. | open   |
-| 2   | "Worst 30-Yr" preset isn't a real 30-year window             | P2       | Presents a combined stress case as history, so users may over-save or under-spend.        | open   |
+| 2   | "Apocalypse" preset isn't a real 30-year window              | P2       | Presents a combined stress case as history, so users may over-save or under-spend.        | open   |
 | 7   | Success color ignores the user's target                      | P2       | The at-a-glance color says "fine" (green) when the result misses the user's own target.   | open   |
 | 11  | The main chart doesn't respond to touch                      | P2       | The main chart's tooltip is unusable on phones and tablets.                               | open   |
 | 5   | "Last Annual Withdrawal" can show the lump sum               | P3       | Wrong number, but only when the bucket covers the whole plan.                             | open   |
@@ -52,7 +52,7 @@ Everything else can run in parallel.
 
 ---
 
-## 2. "Worst 30-Yr" preset isn't a real 30-year window
+## 2. "Apocalypse" preset isn't a real 30-year window
 
 - **Type:** Conceptual
 - **Priority:** P2
