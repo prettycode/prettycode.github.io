@@ -426,7 +426,7 @@ function RetirementSimulator() {
               label={SETTING_LABELS.currentAge}
               sublabel="What is your age today?"
               value={currentAge}
-              min={18}
+              min={0}
               max={MAX_PERSON_AGE - 1}
               step={1}
               onChange={setCurrentAge}
