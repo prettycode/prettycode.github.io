@@ -16,9 +16,18 @@ const GS = 10000000; // Gaussian sample scale (~7-digit per-sample resolution)
 
 // xorshift32 — integer PRNG, 2³²-1 period. Replaces Math.random() so the
 // hot loop stays in int32 land.
-let rngState = (Date.now() ^ 0x9e3779b9) | 0;
-if (rngState === 0) {
-  rngState = 1;
+let rngState = 1;
+// Each run gets its own stream derived from (seed, run index), so run r sees
+// the same returns in every simulation with the same seed, however many draws
+// earlier runs consumed. The solver relies on this: probes that differ only in
+// the searched amount compare the same market paths. Murmur3's finalizer
+// spreads consecutive run indices across the state space.
+function seedRun(seed, r) {
+  let h = (seed ^ Math.imul(r + 1, 0x9e3779b9)) | 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  h ^= h >>> 16;
+  rngState = h === 0 ? 1 : h;
 }
 function nextU32() {
   rngState ^= rngState << 13;
@@ -165,6 +174,7 @@ function runSimulation({
   retirementDelay = 0,
   currentAge,
   featureFlags = {},
+  seed = Date.now(),
 }) {
   // Only fund spending within the retirement horizon, excluding the delay.
   upfrontYears = Math.min(upfrontYears, years);
@@ -227,6 +237,7 @@ function runSimulation({
   const reportEvery = Math.max(1, Math.floor(runs / 100));
 
   for (let r = 0; r < runs; r++) {
+    seedRun(seed, r);
     let bal = balCents;
     let depleted = false;
 

@@ -2,12 +2,14 @@
 
 // ─── Formatting helpers ─────────────────────────────────────────────────────
 
+// Pick the unit from the rounded value so 999,600 shows "$1.00M", not "$1000K".
 const fmtMoney = (n) => {
-  if (n >= 1_000_000) {
+  const thousands = Math.round(n / 1_000);
+  if (thousands >= 1_000) {
     return `$${(n / 1_000_000).toFixed(2)}M`;
   }
-  if (n >= 1_000) {
-    return `$${(n / 1_000).toFixed(0)}K`;
+  if (Math.round(n) >= 1_000) {
+    return `$${thousands}K`;
   }
   return `$${Math.round(n)}`;
 };

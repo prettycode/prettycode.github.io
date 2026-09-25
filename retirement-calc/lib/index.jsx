@@ -2,8 +2,10 @@ const TARGET_SUCCESS_LIMITS = { min: 50, max: 99 };
 const RATE_STEP = 0.001;
 const MAX_PERSON_AGE = 120;
 
+// Extremes (including exactly 0 and 1) use fmtOdds so they read "0 in 100" /
+// "100 in 100" like their neighbors, not "0 in 1" / "1 in 1".
 function formatSuccessChance(rate) {
-  if (rate > 0 && rate < 1 && (rate < 0.1 || rate > 0.9)) {
+  if (rate < 0.1 || rate > 0.9) {
     return fmtOdds(rate);
   }
   const numerator = Math.round(rate * 10);
@@ -277,6 +279,7 @@ function RetirementSimulator() {
           years,
           retirementDelay,
           runs: SIM_RUNS,
+          seed: SIM_SEED,
           upfrontYears,
           currentAge,
           featureFlags,

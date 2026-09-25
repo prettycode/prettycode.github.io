@@ -24,7 +24,9 @@ function startSolver(
     step: STEP,
   } = AMOUNT_LIMITS[solvingBalance ? "balance" : "withdrawal"];
   const MAX_ITER = 10;
-  const baseParams = { ...params, runs: 100_000 };
+  // One seed for every probe: the success rate then moves in one direction
+  // as the amount changes, so bisection can't be misled by sampling noise.
+  const baseParams = { ...params, runs: 100_000, seed: SIM_SEED };
   let request;
   let cancelled = false;
   let step = 0;

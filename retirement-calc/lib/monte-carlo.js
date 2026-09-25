@@ -1,4 +1,4 @@
-/* exported SIM_RUNS, startSimulation, MARKET_PRESETS, cagrToArithmetic */
+/* exported SIM_RUNS, SIM_SEED, startSimulation, MARKET_PRESETS, cagrToArithmetic */
 
 // ─── Monte Carlo Engine — main-thread side ─────────────────────────────────
 // The hot loop lives in monte-carlo-worker.js so the UI stays responsive
@@ -9,6 +9,12 @@
 const MONTE_CARLO_WORKER_URL = "lib/monte-carlo-worker.js";
 
 const SIM_RUNS = 1_000_000;
+
+// Every simulation and solver probe uses the same market paths, so results
+// repeat across reloads and the solver's probes differ only in the searched
+// input. The worker seeds each run from (seed, run index), so a 100k-run probe
+// sees exactly the first 100k paths of the full 1M-run simulation.
+const SIM_SEED = 0x5eed;
 
 // One request owns its worker, including startup failures and cancellation.
 function startSimulation(params, onProgress = () => {}) {

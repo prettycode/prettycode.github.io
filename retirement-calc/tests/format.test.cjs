@@ -21,3 +21,17 @@ test("nonzero odds never round to impossible or certain", () => {
   assert.equal(context.formatSuccessChance(0.04), "4 in 100");
   assert.equal(context.formatSuccessChance(0.9), "9 in 10");
 });
+
+test("success chance of exactly 0 or 1 reads sensibly", () => {
+  assert.equal(context.formatSuccessChance(0), "0 in 100");
+  assert.equal(context.formatSuccessChance(1), "100 in 100");
+  assert.equal(context.formatSuccessChance(0.5), "1 in 2");
+});
+
+test("fmtMoney picks the unit from the rounded value", () => {
+  assert.equal(vm.runInContext("fmtMoney(999_600)", context), "$1.00M");
+  assert.equal(vm.runInContext("fmtMoney(999_499)", context), "$999K");
+  assert.equal(vm.runInContext("fmtMoney(999.6)", context), "$1K");
+  assert.equal(vm.runInContext("fmtMoney(999.4)", context), "$999");
+  assert.equal(vm.runInContext("fmtMoney(1_500_000)", context), "$1.50M");
+});
