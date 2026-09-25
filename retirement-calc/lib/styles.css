@@ -475,8 +475,8 @@ input[type="range"]::-moz-range-thumb {
 
 .solver-feedback {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 16px;
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--rule);
@@ -500,6 +500,37 @@ input[type="range"]::-moz-range-thumb {
   height: 4px;
   margin-top: 8px;
   accent-color: var(--accent-2);
+}
+
+.solver-status {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.solver-action-btn {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--ink);
+  font:
+    500 13px "Fraunces",
+    serif;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.solver-action-btn:hover {
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.solver-action-btn:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 4px;
 }
 
 .solver-error {
