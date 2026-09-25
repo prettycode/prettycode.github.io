@@ -403,13 +403,15 @@ function RetirementSimulator() {
         {/* MASTHEAD */}
         <header className="masthead">
           <h1 className="masthead-title">
-            Life on Your Terms<span className="reg"></span>
+            Life on <span className="masthead-accent">Your Terms</span>
           </h1>
           <div className="masthead-meta">
             <div className="vol">VOL. I · MONTE CARLO EDITION</div>
             <div>
-              {SIM_RUNS.toLocaleString()} SIMULATIONS{" "}
-              {`| AGES ${currentAge}-${planThroughAge}`}
+              <b>{SIM_RUNS.toLocaleString()}</b> SIMULATIONS · AGES{" "}
+              <b>
+                {currentAge}–{planThroughAge}
+              </b>
             </div>
           </div>
         </header>

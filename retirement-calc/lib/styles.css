@@ -44,12 +44,14 @@
 }
 
 .masthead {
-  border-bottom: 2px solid var(--ink);
-  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 16px;
   margin-bottom: 28px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  gap: 16px 24px;
+  flex-wrap: wrap;
 }
 
 .masthead-title {
@@ -58,28 +60,42 @@
   font-size: 44px;
   line-height: 0.95;
   letter-spacing: -0.03em;
-  font-style: italic;
   margin-bottom: 0;
 }
 
-.masthead-title .reg {
-  font-style: normal;
-  font-weight: 400;
+.masthead-accent {
+  color: var(--accent-2);
+  font-style: italic;
 }
 
 .masthead-meta {
   font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--ink-2);
   text-align: right;
-  line-height: 1.5;
+  line-height: 1.7;
 }
 
 .masthead-meta .vol {
-  font-weight: 700;
   color: var(--ink);
+  font-weight: 700;
+}
+
+.masthead-meta b {
+  color: var(--accent-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 720px) {
+  .masthead-title {
+    font-size: 36px;
+  }
+  .masthead-meta {
+    text-align: left;
+  }
 }
 
 .layout {
