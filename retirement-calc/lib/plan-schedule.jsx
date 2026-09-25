@@ -44,13 +44,13 @@ function PlanSchedule({
             <p id="plan-schedule-note">
               Annual amounts in nominal dollars. Balances include investments
               and remaining bucket cash. Portfolio draws match the chart's
-              withdrawal marks; spending includes payments from the cash bucket.
-              A transfer into the bucket does not reduce total money available.
-              Spending through year-end columns are medians of simulated
-              outcomes unless labeled with another percentile, so they need not
-              add up across columns. Growth / loss is the median of individual
-              investment gains. Year and age identify the row's start; depletion
-              is measured at year-end.
+              portfolio draw marks; spending includes payments from the cash
+              bucket. A transfer into the bucket does not reduce total money
+              available. Spending through year-end columns are medians of
+              simulated outcomes unless labeled with another percentile, so they
+              need not add up across columns. Growth / loss is the median of
+              individual investment gains. Year and age identify the row's
+              start; depletion is measured at year-end.
             </p>
             <div className="plan-schedule-actions">
               <button
@@ -91,30 +91,29 @@ function PlanSchedule({
                   </th>
                   <th scope="col">Portfolio Draw</th>
                   {[
-                    "Spending",
-                    "Cash Bucket Balance",
-                    "Year-start Portfolio Value",
-                    "Portfolio Growth / Loss",
-                  ].map((title) => (
+                    ["Spending", null],
+                    ["Year-end", "Cash Bucket Balance"],
+                    ["Year-start Total Balance", "(Investments + Cash)"],
+                    ["Portfolio", "Growth / Loss"],
+                  ].map(([title, secondLine]) => (
                     <th scope="col" key={title}>
                       {title}
-                      {showYearEndPercentiles && (
+                      {(secondLine || showYearEndPercentiles) && (
                         <>
                           <br />
-                          Median
+                          {secondLine}
+                          {showYearEndPercentiles &&
+                            (secondLine ? " · Median" : "Median")}
                         </>
                       )}
                     </th>
                   ))}
                   {yearEndColumns.map(([key, label]) => (
                     <th scope="col" key={key}>
-                      Year-end Portfolio Value
-                      {showYearEndPercentiles && (
-                        <>
-                          <br />
-                          {label}
-                        </>
-                      )}
+                      Year-end Total Balance
+                      <br />
+                      (Investments + Cash)
+                      {showYearEndPercentiles && ` · ${label}`}
                     </th>
                   ))}
                 </tr>

@@ -481,8 +481,8 @@ function RetirementSimulator() {
               label={SETTING_LABELS.withdrawal}
               sublabel={
                 retirementDelay > 0
-                  ? `Today's dollars; starts at ${fmtMoney(retirementWithdrawal)} at retirement, then increases with inflation`
-                  : "Today's dollars; increased by rate of inflation each year"
+                  ? `Today's dollars; starts at ${fmtMoney(retirementWithdrawal)} at retirement. Inflation increases follow the cash bucket setting below.`
+                  : "Today's dollars; inflation increases follow the cash bucket setting below"
               }
               value={withdrawal}
               min={AMOUNT_LIMITS.withdrawal.min}
@@ -497,9 +497,11 @@ function RetirementSimulator() {
             <Slider
               label={SETTING_LABELS.upfrontYears}
               sublabel={
-                inflationAdjustedBucket
-                  ? "Lump-sum first withdrawal; covers each year's inflation-adjusted spending"
-                  : "Lump-sum first withdrawal, in retirement-year dollars"
+                upfrontYears === 1
+                  ? "One year uses annual portfolio draws; spending increases with inflation each year"
+                  : inflationAdjustedBucket
+                    ? "First portfolio draw funds the bucket; spending increases with inflation each year"
+                    : "First portfolio draw funds the bucket; spending stays fixed during bucket years, then catches up with inflation"
               }
               value={upfrontYears}
               min={1}
@@ -720,7 +722,7 @@ function RetirementSimulator() {
                   </div>
                   <div className="stat-cell">
                     <div className="stat-label">
-                      {`Balance at age ${summary.endingAge} (Median)`}
+                      {`Total Balance at age ${summary.endingAge} (Median)`}
                     </div>
                     <div className="stat-value">
                       {fmtMoney(summary.medianEnding)}
@@ -731,7 +733,7 @@ function RetirementSimulator() {
                   </div>
                   <div className="stat-cell">
                     <div className="stat-label">
-                      Last {SETTING_LABELS.withdrawal} (Median)
+                      Last Portfolio Draw (Median)
                     </div>
                     <div className="stat-value">
                       {fmtMoney(summary.lastWithdrawal)}
@@ -749,7 +751,9 @@ function RetirementSimulator() {
                     </div>
                   </div>
                   <div className="stat-cell">
-                    <div className="stat-label">Total Drawn (Median)</div>
+                    <div className="stat-label">
+                      Total Portfolio Draws (Median)
+                    </div>
                     <div className="stat-value">
                       {fmtMoney(summary.totalDrawn)}
                     </div>
@@ -758,6 +762,17 @@ function RetirementSimulator() {
                     </div>
                   </div>
                 </div>
+
+                <p className="chart-footnote">
+                  Portfolio draws are money taken from investments, including
+                  transfers into the cash bucket. Last draw is each simulation's
+                  last nonzero draw, which may occur before the final plan year;
+                  the statistic shows the median of those amounts. Draws in
+                  today's dollars use inflation at each draw's date. Spending
+                  occurs when that money is used, including later bucket
+                  payments. Total balance, success, and depletion include
+                  investments and remaining cash.
+                </p>
 
                 {/* CHART */}
                 <PortfolioChart
@@ -776,8 +791,8 @@ function RetirementSimulator() {
                   <div className="solver-intro">
                     <h2 id="solver-title">What plan will work for me?</h2>
                     <p id="solver-description">
-                      You may need to withdrawal less, save more, retire later,
-                      or accept more uncertainty.
+                      You may need to spend less, save more, retire later, or
+                      accept more uncertainty.
                     </p>
                   </div>
                   <fieldset
@@ -789,21 +804,21 @@ function RetirementSimulator() {
                       {[
                         {
                           value: "withdrawal",
-                          question: "How much can I withdraw?",
-                          description: `Find the highest annual withdrawal with a ${targetSuccessRate}% success rate.`,
+                          question: "How much can I spend?",
+                          description: `Find the highest annual spending with a ${targetSuccessRate}% success rate.`,
                           fixed: `Starting with ${fmtMoneyFull(balance)} ${retirementDelay > 0 ? "today" : "at retirement"}`,
                         },
                         {
                           value: "balance",
                           question: "How much do I need saved?",
                           description: `Find the lowest portfolio value today with a ${targetSuccessRate}% success rate.`,
-                          fixed: `Withdrawing ${fmtMoneyFull(withdrawal)} / year in today's dollars`,
+                          fixed: `Annual spending: ${fmtMoneyFull(withdrawal)} / year in today's dollars`,
                         },
                         {
                           value: "retirementDelay",
                           question: "When can I retire?",
                           description: `Find the fewest years from today to retirement with a ${targetSuccessRate}% success rate.`,
-                          fixed: `Starting with ${fmtMoneyFull(balance)} today; withdrawing ${fmtMoneyFull(withdrawal)} / year in today's dollars at retirement`,
+                          fixed: `Starting with ${fmtMoneyFull(balance)} today; annual spending: ${fmtMoneyFull(withdrawal)} / year in today's dollars at retirement`,
                         },
                       ].map(({ value, question, description, fixed }) => (
                         <label key={value} className="solver-option">
@@ -891,7 +906,7 @@ function RetirementSimulator() {
                     Results are shown here and only change your plan when
                     applied.{" "}
                     {solvingDelay
-                      ? `Checks 0 to ${maxSolverDelay} years from today in one-year increments to estimate ${SETTING_LABELS.retirementAge}. While you wait, your portfolio can grow or shrink based on your selected market assumptions. No savings are added or withdrawals taken before retirement. ${SETTING_LABELS.planThroughAge} stays at ${planThroughAge}. Withdrawals account for inflation while you wait.`
+                      ? `Checks 0 to ${maxSolverDelay} years from today in one-year increments to estimate ${SETTING_LABELS.retirementAge}. While you wait, your portfolio can grow or shrink based on your selected market assumptions. No savings are added or withdrawals taken before retirement. ${SETTING_LABELS.planThroughAge} stays at ${planThroughAge}. Spending accounts for inflation while you wait.`
                       : solvingBalance
                         ? `Estimates ${SETTING_LABELS.balance} ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.balance.min)}–${fmtMoneyFull(AMOUNT_LIMITS.balance.max)}). ${SETTING_LABELS.withdrawal} stays fixed.`
                         : `Estimates ${SETTING_LABELS.withdrawal} in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)}–${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)}). ${SETTING_LABELS.balance} stays fixed.`}
@@ -946,7 +961,7 @@ function RetirementSimulator() {
                                   {" "}
                                   <span className="solver-result-context">
                                     {solvingBalance
-                                      ? `(~${Math.round(currentSolverResult.balance / currentSolverResult.withdrawal)}x annual withdrawal)`
+                                      ? `(~${Math.round(currentSolverResult.balance / currentSolverResult.withdrawal)}x annual spending)`
                                       : `(~1/${Math.round(currentSolverResult.balance / currentSolverResult.withdrawal)} of starting balance)`}
                                   </span>
                                 </>
@@ -964,9 +979,9 @@ function RetirementSimulator() {
                                       ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.balance.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.balance.max)} range. The maximum balance is shown.`
                                       : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`
                                   : currentSolverResult.limit === "minimum"
-                                    ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} range. The minimum withdrawal is shown.`
+                                    ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} range. The minimum annual spending is shown.`
                                     : currentSolverResult.limit === "maximum"
-                                      ? `The ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} search limit meets your ${currentSolverResult.target}% target. Higher withdrawals have not been checked.`
+                                      ? `The ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} search limit meets your ${currentSolverResult.target}% target. Higher spending amounts have not been checked.`
                                       : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`}
                               {running && " Updating your results..."}
                             </span>

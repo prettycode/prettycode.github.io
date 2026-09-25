@@ -15,12 +15,12 @@ const WITHDRAWAL_MARKER_RADIUS = 2.5;
 //
 // Year/tick convention used everywhere below:
 //   • Tick t is X-axis position t, t = 0..simYears.
-//   • Tick 0 is retirement (balance = retirementBalance, no withdrawal yet).
+//   • Tick 0 is today (balance = retirementBalance, no portfolio draw yet).
 //   • Tick y (1..simYears) is the END of year y (after year y's growth).
 //   • Year y's withdrawal is taken at the START of year y, so its lollipop
 //     sits at x(y-1) — between tick y-1 and tick y on the time axis.
-//   • Stat-cells label depletion as `Year y` using the same y; the chart's
-//     hover tooltip names the upcoming year so the labels match.
+//   • Stat-cells label depletion by age at year-end; the hover tooltip
+//     names the upcoming year except at the final tick.
 
 function PortfolioChart({
   simulation,
@@ -330,7 +330,7 @@ function PortfolioChart({
       <section className="chart-section fade" aria-labelledby="chart-title">
         <div className="chart-title-row">
           <h2 className="chart-title" id="chart-title">
-            How will the value of my portfolio change?
+            How will my invested portfolio value change?
           </h2>
           <label className="chart-calendar-toggle">
             <input
@@ -344,8 +344,8 @@ function PortfolioChart({
         <p className="chart-subtitle">
           Shaded bands show the spread of {SIM_RUNS.toLocaleString()} Monte
           Carlo paths. Outer band, 10th–90th percentile; inner band, 25th–75th.
-          Vertical marks show each year's median withdrawal, scaled to the left
-          axis.
+          Vertical marks show each year's median portfolio draw, scaled to the
+          left axis.
         </p>
 
         <div className="chart-wrap">
@@ -714,21 +714,21 @@ function PortfolioChart({
                   return (
                     <>
                       <div className="tooltip-row">
-                        <span>Withdrawal</span>
+                        <span>Portfolio Draw</span>
                         <span>{fmtMoneyFull(hoverWithdrawal)}</span>
                       </div>
                       <div className="tooltip-section divided">
-                        BEFORE WITHDRAWAL
+                        BEFORE PORTFOLIO DRAW
                       </div>
                       <div className="tooltip-row">
-                        <span>Balance</span>
+                        <span>Invested value</span>
                         <span>{fmtMoneyFull(hoverBalance.p50)}</span>
                       </div>
                       <div className="tooltip-section divided">
-                        AFTER WITHDRAWAL
+                        AFTER PORTFOLIO DRAW
                       </div>
                       <div className="tooltip-row">
-                        <span>Balance</span>
+                        <span>Invested value</span>
                         <span>{fmtMoneyFull(post("p50"))}</span>
                       </div>
                     </>
@@ -737,11 +737,12 @@ function PortfolioChart({
                 if (hover === simYears || hover < retirementDelay) {
                   // Final tick: the simulation has ended. Show year-end balance
                   // percentiles only — no upcoming withdrawal exists, so we don't
-                  // project (the stat-cells don't either, and projecting here is
-                  // what made "Last Annual Withdrawal" appear off-by-one).
+                  // project another portfolio draw beyond the plan.
                   return (
                     <>
-                      <div className="tooltip-section">PORTFOLIO BALANCE</div>
+                      <div className="tooltip-section">
+                        INVESTED PORTFOLIO VALUE
+                      </div>
                       <div className="tooltip-row">
                         <span>90th</span>
                         <span>{fmtMoneyFull(hoverBalance.p90)}</span>
@@ -768,11 +769,11 @@ function PortfolioChart({
                 return (
                   <>
                     <div className="tooltip-row">
-                      <span>Withdrawal</span>
+                      <span>Portfolio Draw</span>
                       <span>{fmtMoneyFull(hoverWithdrawal)}</span>
                     </div>
                     <div className="tooltip-section divided">
-                      BEFORE WITHDRAWAL
+                      BEFORE PORTFOLIO DRAW
                     </div>
                     <div className="tooltip-row">
                       <span>90th</span>
@@ -795,7 +796,7 @@ function PortfolioChart({
                       <span>{fmtMoneyFull(hoverBalance.p10)}</span>
                     </div>
                     <div className="tooltip-section divided">
-                      AFTER WITHDRAWAL
+                      AFTER PORTFOLIO DRAW
                     </div>
                     <div className="tooltip-row">
                       <span>90th</span>
@@ -870,16 +871,19 @@ function PortfolioChart({
                 fill="var(--withdrawal)"
               />
             </svg>
-            {SETTING_LABELS.withdrawal}
+            Portfolio Draw
           </div>
         </div>
 
         <p className="chart-footnote">
           {retirementDelay > 0 &&
             `The portfolio grows for ${retirementDelay} years before retirement, with no withdrawals or contributions. `}
-          Withdrawals are taken at the start of each retirement year. With a
-          multi-year cash bucket, the first withdrawal is the lump sum drawn at
-          retirement; the bucket-funded years that follow show no mark.
+          This chart shows investments only; cash held in the bucket is
+          excluded. Portfolio draws occur at the start of retirement years. With
+          a multi-year cash bucket, the first draw transfers the full bucket
+          amount out of investments. Later bucket payments fund spending without
+          another portfolio draw, so those years show no mark. The Full Plan
+          Schedule shows spending and total balances including cash.
         </p>
       </section>
     </>

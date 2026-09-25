@@ -6,7 +6,7 @@ const SETTING_LABELS = Object.freeze({
   retirementAge: "Retirement Start Age",
   planThroughAge: "Retirement End Age",
   balance: "Savings Portfolio",
-  withdrawal: "Annual Withdrawal",
+  withdrawal: "Annual Spending",
   upfrontYears: "Starting Cash Bucket",
   cagr: "CAGR",
   volatility: "Annual Volatility",
