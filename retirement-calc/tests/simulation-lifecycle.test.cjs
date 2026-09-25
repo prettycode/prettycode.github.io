@@ -47,8 +47,12 @@ function harness(saved = {}) {
       getItem() {
         return JSON.stringify(saved);
       },
-      setItem() {},
-      removeItem() {},
+      setItem(key, value) {
+        saved = JSON.parse(value);
+      },
+      removeItem() {
+        saved = {};
+      },
     },
     Worker: class {
       constructor() {
@@ -89,7 +93,7 @@ function harness(saved = {}) {
     return {successColor, sim, simInputs: sim?.inputs, simCurrentAge: sim?.currentAge, running, solving, simulationError, solverError,
       currentSolverResult, balance, withdrawal, setWithdrawal, setTargetSuccessRate, setSolveFor,
       upfrontYears, maxUpfrontYears, startingBucketSize, setUpfrontYears,
-      solveForTarget, setInflation, setBalance,
+      solveForTarget, applySolverResult, undoSolverResult, setInflation, setBalance,
       inflationAdjustedBucket, setInflationAdjustedBucket,
       setCurrentAge, setPlanThroughAge,
       setRetirementAge, currentAge,
@@ -101,6 +105,7 @@ function harness(saved = {}) {
   return {
     context,
     workers,
+    savedSettings: () => ({ ...saved }),
     render() {
       cursor = 0;
       const state = context.RetirementSimulator();
@@ -406,7 +411,7 @@ test("solver failure clears solving and permits another attempt", async () => {
   assert.equal(state.solving, false);
   assert.ok(state.solverError);
   const retry = state.solveForTarget();
-  h.workers[2].done({ ...result, successRate: 0 });
+  h.workers[2].done({ ...result, successRate: 1 });
   await retry;
   state = h.render();
   assert.equal(state.solving, false);
@@ -503,7 +508,7 @@ for (const limit of ["minimum", "maximum", null]) {
     await solve;
     let state = h.render();
     const expected =
-      limit === "minimum" ? 100000 : limit === "maximum" ? 10000000 : 3050000;
+      limit === "minimum" ? 150000 : limit === "maximum" ? 10000000 : 3050000;
     assert.equal(state.balance, before.balance);
     assert.equal(state.sim, before.sim);
     assert.equal(state.running, false);
@@ -723,6 +728,114 @@ test("sidebar allows exact bucket funding and rejects one cent short", () => {
     assert.equal(state.upfrontYears, expectedYears);
   }
 });
+
+for (const inflationAdjustedBucket of [false, true]) {
+  for (const scenario of [
+    {
+      name: "spending capped at today's balance",
+      mode: "withdrawal",
+      saved: {
+        balance: 100000,
+        withdrawal: 10000,
+        retirementAge: 83,
+        planThroughAge: 84,
+        upfrontYears: 1,
+      },
+      passes: () => true,
+    },
+    {
+      name: "savings bounded by annual spending",
+      mode: "balance",
+      saved: {
+        balance: 2000000,
+        withdrawal: 300000,
+        retirementAge: 63,
+        planThroughAge: 66,
+        upfrontYears: 2,
+      },
+      passes: () => true,
+    },
+    ...[20, 25].map((delay) => ({
+      name: `retirement delayed ${delay} years`,
+      mode: "retirementDelay",
+      saved: {
+        balance: 100000,
+        withdrawal: 10000,
+        currentAge: 43,
+        retirementAge: 43,
+        planThroughAge: 73,
+        upfrontYears: 10,
+      },
+      passes: (params) => params.retirementDelay === delay,
+    })),
+  ]) {
+    test(`Apply, reload and Undo preserve ${scenario.name} (bucket inflation: ${inflationAdjustedBucket})`, async () => {
+      const h = harness({ ...scenario.saved, inflationAdjustedBucket });
+      const before = h.render();
+      h.workers[0].done(result);
+      await flush();
+      h.render().setSolveFor(scenario.mode);
+      const solve = h.render().solveForTarget();
+      let index = 1;
+      let passingProbe;
+      while (h.workers[index]) {
+        const worker = h.workers[index++];
+        const params = worker.message.params;
+        const passes = scenario.passes(params);
+        if (passes) {
+          passingProbe = params;
+        }
+        worker.done({ ...result, successRate: passes ? 1 : 0 });
+        await flush();
+      }
+      await solve;
+      assert.ok(passingProbe);
+      h.render().applySolverResult();
+      h.render();
+      h.render(); // Persist any horizon-based bucket adjustment.
+
+      const expected = {
+        ...passingProbe,
+        upfrontYears: Math.min(passingProbe.upfrontYears, passingProbe.years),
+      };
+      const checkPlan = (params) => {
+        for (const key of [
+          "balance",
+          "withdrawal",
+          "retirementDelay",
+          "years",
+          "upfrontYears",
+          "returnRate",
+          "volatility",
+          "inflation",
+          "seed",
+        ]) {
+          assert.equal(params[key], expected[key], key);
+        }
+        assert.equal(
+          params.featureFlags.inflationAdjustedBucket,
+          inflationAdjustedBucket,
+        );
+      };
+      checkPlan(h.workers.at(-1).message.params);
+      const reloaded = harness(h.savedSettings());
+      reloaded.render();
+      checkPlan(reloaded.workers.at(-1).message.params);
+
+      h.render().undoSolverResult();
+      const undone = h.render();
+      for (const key of [
+        "balance",
+        "withdrawal",
+        "retirementAge",
+        "planThroughAge",
+        "upfrontYears",
+      ]) {
+        assert.equal(undone[key], before[key], key);
+      }
+    });
+  }
+}
 
 test("success color follows the target without rerunning the simulation", async () => {
   const h = harness({ targetSuccessRate: 90 });

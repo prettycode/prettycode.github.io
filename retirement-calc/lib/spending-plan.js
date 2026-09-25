@@ -1,4 +1,14 @@
-/* exported calculateSpendingPlan */
+/* exported calculateSpendingPlan, maxAffordableBucketYears */
+
+// One year means annual draws, not an upfront bucket.
+function maxAffordableBucketYears(balance, spendingPlan) {
+  let years = spendingPlan.bucketPaidCents.length - 1;
+  const cents = Math.round(balance * 100);
+  while (years > 1 && spendingPlan.bucketPaidCents[years] > cents) {
+    years--;
+  }
+  return years;
+}
 
 // Shared by the sidebar and worker. Money is integer cents; cumulative
 // inflation factors use micro-units, floored at each compounding step.

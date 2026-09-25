@@ -68,14 +68,7 @@ function RetirementSimulator() {
   const retirementWithdrawal = spendingPlan.retirementWdCents / 100;
   const startingBucketSize = (bucketYears) =>
     spendingPlan.bucketPaidCents[Math.min(bucketYears, years)] / 100;
-  const balanceCents = Math.round(balance * 100);
-  let maxUpfrontYears = years;
-  while (
-    maxUpfrontYears > 1 &&
-    spendingPlan.bucketPaidCents[maxUpfrontYears] > balanceCents
-  ) {
-    maxUpfrontYears--;
-  }
+  const maxUpfrontYears = maxAffordableBucketYears(balance, spendingPlan);
   const upfrontYears = Math.min(savedUpfrontYears, maxUpfrontYears);
   useEffect(() => {
     setUpfrontYears(upfrontYears);
@@ -185,6 +178,10 @@ function RetirementSimulator() {
   const [solveProgress, setSolveProgress] = useState(0);
   const [solveFor, setSolveFor] = useState("withdrawal");
   const solvingBalance = solveFor === "balance";
+  const solverAmountLimits = solverAmountRange(
+    { balance, withdrawal },
+    solveFor,
+  );
   const solvingDelay = solveFor === "retirementDelay";
   const maxSolverDelay = planThroughAge - currentAge - 1;
   const [targetSuccessRate, setTargetSuccessRate] =
@@ -223,10 +220,7 @@ function RetirementSimulator() {
   const applySolverResult = () => {
     const applied = {
       balance: currentSolverResult.balance,
-      withdrawal: Math.min(
-        currentSolverResult.withdrawal,
-        currentSolverResult.balance,
-      ),
+      withdrawal: currentSolverResult.withdrawal,
       retirementAge: currentAge + currentSolverResult.retirementDelay,
     };
     setAppliedSolution({
@@ -437,7 +431,8 @@ function RetirementSimulator() {
             />
             <Slider
               label={SETTING_LABELS.retirementAge}
-              sublabel="When portfolio-funded spending begins. No additional savings are modeled before retirement."
+              sublabel="At what age will you retire?"
+              description="When portfolio-funded spending begins. No additional savings are modeled before retirement."
               value={retirementAge}
               min={currentAge}
               max={MAX_PERSON_AGE}
@@ -452,7 +447,8 @@ function RetirementSimulator() {
             />
             <Slider
               label={SETTING_LABELS.planThroughAge}
-              sublabel={`${retirementDelay} years until retirement; ${years} years in retirement, ending at age ${planThroughAge}`}
+              sublabel="To what age should your money last?"
+              description={`${retirementDelay} years until retirement; ${years} years in retirement, ending at age ${planThroughAge}`}
               value={planThroughAge}
               min={retirementAge + 1}
               max={Math.max(MAX_PERSON_AGE, planThroughAge)}
@@ -464,7 +460,8 @@ function RetirementSimulator() {
 
             <Slider
               label={SETTING_LABELS.balance}
-              sublabel="Investments available today; the starting cash bucket comes out of this balance at retirement"
+              sublabel="How much do you have invested today?"
+              description="Investments available today. Any upfront withdrawal comes from the portfolio at retirement; if retirement is delayed, its value can grow or shrink before then."
               value={balance}
               min={AMOUNT_LIMITS.balance.min}
               max={AMOUNT_LIMITS.balance.max}
@@ -478,10 +475,11 @@ function RetirementSimulator() {
 
             <Slider
               label={SETTING_LABELS.withdrawal}
-              sublabel={
+              sublabel="Withdraw how much each year?"
+              description={
                 retirementDelay > 0
-                  ? `Annual amount this portfolio must fund, in today's dollars; starts at ${fmtMoney(retirementWithdrawal)} at retirement. Inflation increases follow the cash bucket setting below.`
-                  : "Annual amount this portfolio must fund, in today's dollars. Inflation increases follow the cash bucket setting below."
+                  ? `Annual amount this portfolio must fund, in today's dollars, limited to Invested Portfolio Today even when retirement is delayed. Starts at ${fmtMoney(retirementWithdrawal)} at retirement after inflation. Later inflation increases follow the cash bucket setting below.`
+                  : "Annual amount this portfolio must fund, in today's dollars, limited to Invested Portfolio Today. Inflation increases follow the cash bucket setting below."
               }
               value={withdrawal}
               min={AMOUNT_LIMITS.withdrawal.min}
@@ -495,9 +493,10 @@ function RetirementSimulator() {
 
             <Slider
               label={SETTING_LABELS.upfrontYears}
-              sublabel={
+              sublabel="Lump-sum years of annual withdrawals upfront?"
+              description={
                 upfrontYears === 1
-                  ? "One year uses annual portfolio draws; spending increases with inflation each year"
+                  ? "One year uses annual portfolio withdrawals, with no upfront bucket. The amount shown is the first retirement year's spending; it increases with inflation each year. With delayed retirement, inflation before retirement can make this amount exceed Invested Portfolio Today."
                   : inflationAdjustedBucket
                     ? "First portfolio draw funds the bucket; spending increases with inflation each year"
                     : "First portfolio draw funds the bucket; spending stays fixed during bucket years, then catches up with inflation"
@@ -514,9 +513,17 @@ function RetirementSimulator() {
             />
 
             <p className="toggle-sub">
-              A multi-year bucket is a one-time cash reserve. It earns no
-              interest and is not replenished. Annual portfolio draws resume
-              after it ends.
+              A multi-year bucket withdraws the selected years of spending
+              upfront at retirement. This money earns no interest and is spent
+              each year. The bucket is not replenished; annual portfolio
+              withdrawals resume after the selected years.
+            </p>
+            <p className="toggle-sub">
+              Multi-year buckets are limited to Invested Portfolio Today and the
+              years in retirement. The limit includes inflation before
+              retirement and, when enabled below, during bucket years. These
+              limits apply even when retirement is delayed. Changing your plan
+              may shorten the selected bucket to stay within them.
             </p>
             <label className="setting-checkbox">
               <input
@@ -546,7 +553,8 @@ function RetirementSimulator() {
 
               <Slider
                 label={SETTING_LABELS.cagr}
-                sublabel="Assumed compounded investment return (CAGR) before inflation and spending; individual years vary"
+                sublabel="What annual investment growth do you expect?"
+                description="Assumed compounded investment return (CAGR) before inflation and spending; individual years vary"
                 value={cagr}
                 min={0.01}
                 max={0.12}
@@ -557,7 +565,8 @@ function RetirementSimulator() {
 
               <Slider
                 label={SETTING_LABELS.volatility}
-                sublabel="How widely annual investment returns vary (standard deviation). Higher values produce larger swings."
+                sublabel="How much will returns vary from year to year?"
+                description="How widely annual investment returns vary (standard deviation). Higher values produce larger swings."
                 value={volatility}
                 min={0.02}
                 max={0.3}
@@ -568,7 +577,8 @@ function RetirementSimulator() {
 
               <Slider
                 label={SETTING_LABELS.inflation}
-                sublabel="Annual cost-of-living increase; affects spending requirements and today's-dollar equivalents"
+                sublabel="How much will living costs rise each year?"
+                description="Annual cost-of-living increase; affects spending requirements and today's-dollar equivalents"
                 value={inflation}
                 min={0}
                 max={0.08}
@@ -907,8 +917,15 @@ function RetirementSimulator() {
                     {solvingDelay
                       ? `Checks 0 to ${maxSolverDelay} years from today in one-year increments to estimate ${SETTING_LABELS.retirementAge}. While you wait, your portfolio can grow or shrink based on your selected market assumptions. No savings are added or withdrawals taken before retirement. ${SETTING_LABELS.planThroughAge} stays at ${planThroughAge}. Spending accounts for inflation while you wait.`
                       : solvingBalance
-                        ? `Estimates ${SETTING_LABELS.balance} ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.balance.min)}–${fmtMoneyFull(AMOUNT_LIMITS.balance.max)}). ${SETTING_LABELS.withdrawal} stays fixed.`
-                        : `Estimates ${SETTING_LABELS.withdrawal} in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)}–${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)}). ${SETTING_LABELS.balance} stays fixed.`}
+                        ? `Estimates ${SETTING_LABELS.balance} ${retirementDelay > 0 ? "today" : "at retirement"} in ${fmtMoneyFull(AMOUNT_LIMITS.balance.step)} increments (${fmtMoneyFull(solverAmountLimits.min)}–${fmtMoneyFull(solverAmountLimits.max)}). ${SETTING_LABELS.withdrawal} stays fixed.`
+                        : `Estimates ${SETTING_LABELS.withdrawal} in ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.step)} increments (${fmtMoneyFull(solverAmountLimits.min)}–${fmtMoneyFull(solverAmountLimits.max)}). ${SETTING_LABELS.balance} stays fixed.`}{" "}
+                    The solver uses the same limits as the controls. For each
+                    plan it evaluates, annual spending cannot exceed that plan's
+                    Invested Portfolio Today. The selected cash bucket may be
+                    shortened to fit that value and the years in retirement.
+                    Each estimate includes any such bucket adjustment, which
+                    also takes effect when you apply it. One year uses annual
+                    withdrawals with no upfront bucket.
                   </p>
                   {(solving ||
                     currentSolverResult ||
@@ -961,7 +978,7 @@ function RetirementSimulator() {
                                   <span className="solver-result-context">
                                     {solvingBalance
                                       ? `(~${Math.round(currentSolverResult.balance / currentSolverResult.withdrawal)}x annual spending)`
-                                      : `(~1/${Math.round(currentSolverResult.balance / currentSolverResult.withdrawal)} of starting balance)`}
+                                      : `(${((currentSolverResult.withdrawal / currentSolverResult.balance) * 100).toFixed(1)}% of today's balance)`}
                                   </span>
                                 </>
                               )}
@@ -973,14 +990,14 @@ function RetirementSimulator() {
                                   : `Earliest whole-year retirement start from today meeting your ${currentSolverResult.target}% target without further savings. The simulated success rate may vary slightly.`
                                 : solvingBalance
                                   ? currentSolverResult.limit === "minimum"
-                                    ? `The ${fmtMoneyFull(AMOUNT_LIMITS.balance.min)} search minimum meets your ${currentSolverResult.target}% target. Lower balances have not been checked.`
+                                    ? `The ${fmtMoneyFull(solverAmountLimits.min)} search minimum meets your ${currentSolverResult.target}% target. Lower balances have not been checked.`
                                     : currentSolverResult.limit === "maximum"
-                                      ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.balance.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.balance.max)} range. The maximum balance is shown.`
+                                      ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(solverAmountLimits.min)} to ${fmtMoneyFull(solverAmountLimits.max)} range. The maximum balance is shown.`
                                       : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`
                                   : currentSolverResult.limit === "minimum"
-                                    ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.min)} to ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} range. The minimum annual spending is shown.`
+                                    ? `Your ${currentSolverResult.target}% target could not be reached within the ${fmtMoneyFull(solverAmountLimits.min)} to ${fmtMoneyFull(solverAmountLimits.max)} range. The minimum annual spending is shown.`
                                     : currentSolverResult.limit === "maximum"
-                                      ? `The ${fmtMoneyFull(AMOUNT_LIMITS.withdrawal.max)} search limit meets your ${currentSolverResult.target}% target. Higher spending amounts have not been checked.`
+                                      ? `The ${fmtMoneyFull(solverAmountLimits.max)} search limit meets your ${currentSolverResult.target}% target. Higher spending amounts have not been checked.`
                                       : `Calculated for your ${currentSolverResult.target}% target. The simulated success rate may vary slightly.`}
                               {running && " Updating your results..."}
                             </span>

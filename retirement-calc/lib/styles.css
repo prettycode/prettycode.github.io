@@ -182,10 +182,14 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 2px;
 }
 
 .slider-label {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
   font-family: "Fraunces", serif;
   font-size: 16px;
   font-weight: 500;
@@ -197,7 +201,122 @@
   letter-spacing: 0.05em;
   color: var(--ink-2);
   text-transform: uppercase;
-  margin-top: 2px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* Info toggle that trails the title, centered on it by .slider-label's flex
+   row. Negative vertical margins keep its 22px hit area from stretching the
+   title's line height. */
+.slider-info {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: -4px 0 -4px 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.slider-info svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.slider-info-ring {
+  fill: transparent;
+  stroke: currentColor;
+  transition: fill 120ms ease;
+}
+
+.slider-info-stem {
+  fill: none;
+  stroke: currentColor;
+  transition: stroke 120ms ease;
+}
+
+.slider-info-dot {
+  fill: currentColor;
+  transition: fill 120ms ease;
+}
+
+.slider-info:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* Open: solid badge, so "showing" reads differently from "hovering". */
+.slider-info[aria-expanded="true"] {
+  color: var(--accent);
+  background: transparent;
+}
+
+.slider-info[aria-expanded="true"] .slider-info-ring {
+  fill: currentColor;
+}
+
+.slider-info[aria-expanded="true"] .slider-info-stem {
+  stroke: var(--cream);
+}
+
+.slider-info[aria-expanded="true"] .slider-info-dot {
+  fill: var(--cream);
+}
+
+.slider-info:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Collapsible details: animates height via grid rows so the text is never
+   measured in JS; "inert" on the closed state keeps it out of tab order. */
+.slider-details {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 200ms ease,
+    opacity 160ms ease;
+}
+
+.slider-details[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.slider-details-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.slider-description {
+  margin: 0 0 12px;
+  padding: 8px 10px 8px 12px;
+  border-left: 2px solid var(--accent);
+  background: var(--cream-2);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slider-details,
+  .slider-info,
+  .slider-info-ring,
+  .slider-info-stem,
+  .slider-info-dot {
+    transition: none;
+  }
 }
 
 .slider-value {
