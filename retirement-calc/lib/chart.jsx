@@ -207,7 +207,7 @@ function PortfolioChart({
                 <strong>{label} chance</strong>
                 <span>
                   {first === null
-                    ? `Not by ${riskLabel(simYears)}`
+                    ? `not by ${riskLabel(simYears)}`
                     : `by ${riskLabel(first)}`}
                 </span>
               </div>
