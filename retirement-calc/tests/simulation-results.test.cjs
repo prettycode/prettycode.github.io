@@ -5,6 +5,8 @@ const { test } = require("node:test");
 
 function engine() {
   const context = vm.createContext({ self: { postMessage() {} } });
+  context.importScripts = (name) =>
+    vm.runInContext(fs.readFileSync(`lib/${name}`, "utf8"), context);
   vm.runInContext(
     fs.readFileSync("lib/monte-carlo-worker.js", "utf8"),
     context,

@@ -1,3 +1,5 @@
+importScripts("spending-plan.js");
+
 // ─── Monte Carlo Engine (runs in a Web Worker) ──────────────────────────────
 // Integer arithmetic throughout the simulation: money in cents, rates in
 // basis points (×10⁴), cumulative growth factors in micro-units (×10⁶).
@@ -179,46 +181,26 @@ function runSimulation({
 }) {
   // Only fund spending within the retirement horizon, excluding the delay.
   upfrontYears = Math.min(upfrontYears, years);
+  const {
+    inflPow,
+    annualSpendingCents,
+    bucketYearCents,
+    bucketPaidCents,
+    lumpSumCents,
+  } = calculateSpendingPlan({
+    withdrawal,
+    inflation,
+    years,
+    retirementDelay,
+    upfrontYears,
+    inflationAdjustedBucket: featureFlags.inflationAdjustedBucket,
+  });
   years += retirementDelay;
   // Boundary: convert UI inputs to integer scales once on entry.
   const balCents = Math.round(balance * CENTS_PER_DOLLAR);
-  const wdCents = Math.round(withdrawal * CENTS_PER_DOLLAR);
   const returnBp = Math.round(returnRate * BP);
   const volBp = Math.round(volatility * BP);
-  const inflMicro = Math.round(inflation * MICRO);
-
-  // Cumulative inflation factor in MICRO scale, built iteratively — bounds
-  // drift to ≤1 part per 10⁶ per compounding step (vs the bp-scale 1-in-10⁴
-  // that would drift visibly over 50 years).
-  const inflPow = new Float64Array(years + 1);
-  inflPow[0] = MICRO;
-  for (let y = 1; y <= years; y++) {
-    inflPow[y] = Math.floor((inflPow[y - 1] * (MICRO + inflMicro)) / MICRO);
-  }
-  // The input is in today's dollars; the bucket starts at retirement's
-  // purchasing-power equivalent.
-  const retirementWdCents = Math.floor(
-    (wdCents * inflPow[retirementDelay]) / MICRO,
-  );
-
-  // Upfront cash bucket: if upfrontYears > 1, year 1 withdraws a lump sum that
-  // funds years 1..upfrontYears, and no further withdrawals happen until year
-  // upfrontYears+1. When upfrontYears === 1 this collapses to the normal flow.
-  // The bucket is held as idle cash. bucketYearCents[i] is what bucket year
-  // i+1 pays: the flat retirement-year amount, or with inflationAdjustedBucket
-  // the same inflated amount a no-bucket plan would draw that year.
-  // bucketPaidCents[k] is the total paid by the end of bucket year k, so the
-  // lump sum is bucketPaidCents[N].
   const isLumpSum = upfrontYears > 1;
-  const bucketYearCents = new Float64Array(upfrontYears);
-  const bucketPaidCents = new Float64Array(upfrontYears + 1);
-  for (let i = 0; i < upfrontYears; i++) {
-    bucketYearCents[i] = featureFlags.inflationAdjustedBucket
-      ? Math.floor((wdCents * inflPow[retirementDelay + i]) / MICRO)
-      : retirementWdCents;
-    bucketPaidCents[i + 1] = bucketPaidCents[i] + bucketYearCents[i];
-  }
-  const lumpSumCents = isLumpSum ? bucketPaidCents[upfrontYears] : 0;
 
   // Years run on the outside and runs on the inside, so only this year's and
   // last year's balances are alive at once and memory stays flat in the
@@ -323,7 +305,7 @@ function runSimulation({
       } else if (isLumpSum && retirementYear <= upfrontYears) {
         intendedCents = 0;
       } else {
-        intendedCents = Math.floor((wdCents * inflPow[y - 1]) / MICRO);
+        intendedCents = annualSpendingCents[y - 1];
       }
 
       for (let r = 0; r < runs; r++) {

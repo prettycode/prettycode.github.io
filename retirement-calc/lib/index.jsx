@@ -58,22 +58,22 @@ function RetirementSimulator() {
   }, [planThroughAge]);
   const years = planThroughAge - retirementAge;
   const retirementDelay = retirementAge - currentAge;
-  const retirementWithdrawal =
-    withdrawal * Math.pow(1 + inflation, retirementDelay);
-  // Mirrors the worker's lumpSum sizing, including the feature flag.
-  const startingBucketSize = (bucketYears) => {
-    const covered = Math.min(bucketYears, years);
-    if (!inflationAdjustedBucket) {
-      return retirementWithdrawal * covered;
-    }
-    let total = 0;
-    for (let i = 0; i < covered; i++) {
-      total += retirementWithdrawal * Math.pow(1 + inflation, i);
-    }
-    return total;
-  };
+  const spendingPlan = calculateSpendingPlan({
+    withdrawal,
+    inflation,
+    years,
+    retirementDelay,
+    inflationAdjustedBucket,
+  });
+  const retirementWithdrawal = spendingPlan.retirementWdCents / 100;
+  const startingBucketSize = (bucketYears) =>
+    spendingPlan.bucketPaidCents[Math.min(bucketYears, years)] / 100;
+  const balanceCents = Math.round(balance * 100);
   let maxUpfrontYears = years;
-  while (maxUpfrontYears > 1 && startingBucketSize(maxUpfrontYears) > balance) {
+  while (
+    maxUpfrontYears > 1 &&
+    spendingPlan.bucketPaidCents[maxUpfrontYears] > balanceCents
+  ) {
     maxUpfrontYears--;
   }
   const upfrontYears = Math.min(savedUpfrontYears, maxUpfrontYears);

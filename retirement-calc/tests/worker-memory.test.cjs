@@ -7,6 +7,8 @@ const { test } = require("node:test");
 // Load the worker with typed-array constructors that tally every byte
 // allocated, so the test can compare allocations across horizons.
 const context = vm.createContext({ self: { postMessage() {} } });
+context.importScripts = (name) =>
+  vm.runInContext(fs.readFileSync(`lib/${name}`, "utf8"), context);
 vm.runInContext(
   `var allocatedBytes = 0;
   for (const name of ["Float64Array", "Uint32Array", "Int32Array"]) {

@@ -21,7 +21,6 @@ Suggested order, highest first. Within a level, earlier items matter more.
 | 6   | Adjusted inputs overwrite the user's saved settings          | P1       | Silently loses input, and an applied solve can run a different plan than the one checked. | open   |
 | 2   | "Worst 30-Yr" preset isn't a real 30-year window             | P2       | Presents a combined stress case as history, so users may over-save or under-spend.        | open   |
 | 7   | Success color ignores the user's target                      | P2       | The at-a-glance color says "fine" (green) when the result misses the user's own target.   | open   |
-| 13  | Sidebar recalculates values the worker already calculates    | P2       | Two copies of the bucket sizing can drift; violates the single-source-of-truth rule.      | open   |
 | 11  | The main chart doesn't respond to touch                      | P2       | The main chart's tooltip is unusable on phones and tablets.                               | open   |
 | 5   | "Last Annual Withdrawal" can show the lump sum               | P3       | Wrong number, but only when the bucket covers the whole plan.                             | open   |
 | 4   | "Total Drawn … today" overstates real spending with a bucket | P3       | Secondary summary stat; small error, bucket plans only.                                   | open   |
@@ -48,7 +47,6 @@ Items in the same group edit the same code. Run them one after another, not in p
 | Group                   | Items | Shared code                                               |
 | ----------------------- | ----- | --------------------------------------------------------- |
 | A — worker bucket logic | 4, 5  | `lib/monte-carlo-worker.js` withdrawal loop and `summary` |
-| B — sidebar state       | 6, 13 | `lib/index.jsx` lines ~40–80                              |
 
 Everything else can run in parallel.
 
@@ -97,7 +95,7 @@ The whole lump sum is converted to today's dollars at retirement year 1 (`drawnT
 
 - **Type:** Logic
 - **Priority:** P1
-- **Status:** open (conflict group B)
+- **Status:** open
 - **Touches:** `lib/index.jsx` (clamping near L60–80, balance slider `onChange`, `applySolverResult`)
 
 The code keeps inputs valid by adjusting them, then writes the adjusted value back to saved state, so the user's original value is lost:
@@ -148,16 +146,3 @@ The portfolio chart uses `onMouseMove`/`onMouseLeave`, while the depletion chart
 - For the same depletion year, the chart labels the year by its end ("by 2027") and the schedule labels it by its start ("2026"). Pick one convention, or make the difference explicit in the labels.
 
 **Done when:** All three are resolved.
-
-## 13. Sidebar recalculates values the worker already calculates
-
-- **Type:** Single-source-of-truth violation
-- **Priority:** P2
-- **Status:** open (conflict group B)
-- **Touches:** `lib/index.jsx` (`startingBucketSize`, ~L55–80), `lib/monte-carlo-worker.js` (`bucketYearCents`, `lumpSum`)
-
-`index.jsx` recalculates the inflated retirement withdrawal and the bucket size with floating-point math (`withdrawal * Math.pow(1 + inflation, retirementDelay)`), including a second copy of the `inflationAdjustedBucket` sizing, while the worker calculates the same values in integer cents and returns `lumpSum`. The sidebar needs these values before any simulation has run, so this may be deliberate, but the two copies can drift apart.
-
-**Fix direction:** Move the bucket-size and inflation math into one shared module that both the worker (via `importScripts`) and the UI load, so there is only one implementation.
-
-**Done when:** One function calculates the bucket size, and both the sidebar and the worker call it.

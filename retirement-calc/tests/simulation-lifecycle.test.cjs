@@ -74,7 +74,10 @@ function harness(saved = {}) {
     clearTimeout() {},
   });
   vm.runInContext(
-    read("monte-carlo.js") + read("solver.js") + read("user-settings.js"),
+    read("spending-plan.js") +
+      read("monte-carlo.js") +
+      read("solver.js") +
+      read("user-settings.js"),
     context,
   );
   const source = read("index.jsx")
@@ -639,4 +642,84 @@ test("changing inputs cancels a delay solve without applying a stale retirement 
   assert.equal(next.retirementAge, state.retirementAge);
   assert.equal(next.currentSolverResult, null);
   assert.equal(next.solving, false);
+});
+
+test("sidebar bucket amounts match worker cents across bucket modes and delays", () => {
+  const worker = vm.createContext({ self: { postMessage() {} } });
+  worker.importScripts = (name) => vm.runInContext(read(name), worker);
+  vm.runInContext(read("monte-carlo-worker.js"), worker);
+  const calculate = worker.calculateSpendingPlan;
+  let workerPlan;
+  worker.calculateSpendingPlan = (params) => {
+    workerPlan = calculate(params);
+    return workerPlan;
+  };
+  for (const inflationAdjustedBucket of [false, true]) {
+    for (const retirementDelay of [0, 20]) {
+      for (const upfrontYears of [1, 3, 10, 30]) {
+        const state = harness({
+          balance: 10_000_000,
+          withdrawal: 10_000,
+          inflation: 0.03,
+          currentAge: 43,
+          retirementAge: 43 + retirementDelay,
+          planThroughAge: 73 + retirementDelay,
+          upfrontYears,
+          inflationAdjustedBucket,
+        }).render();
+        const result = worker.runSimulation({
+          balance: state.balance,
+          withdrawal: state.withdrawal,
+          inflation: 0.03,
+          years: 30,
+          retirementDelay,
+          upfrontYears,
+          runs: 1,
+          returnRate: 0,
+          volatility: 0,
+          seed: 1,
+          featureFlags: { inflationAdjustedBucket },
+        });
+        const amount = state.startingBucketSize(upfrontYears);
+        assert.equal(
+          Math.floor(amount),
+          upfrontYears === 1
+            ? result.yearData[retirementDelay + 1].intended
+            : result.lumpSum,
+        );
+        assert.equal(amount * 100, workerPlan.bucketPaidCents[upfrontYears]);
+        if (upfrontYears === 1) {
+          assert.equal(result.lumpSum, 0);
+          assert.ok(amount > 0);
+        }
+        if (
+          inflationAdjustedBucket &&
+          retirementDelay === 20 &&
+          upfrontYears === 10
+        ) {
+          assert.equal(amount, 207048.94);
+        }
+      }
+    }
+  }
+});
+
+test("sidebar allows exact bucket funding and rejects one cent short", () => {
+  for (const [balance, expectedYears] of [
+    [207048.94, 10],
+    [207048.93, 9],
+  ]) {
+    const state = harness({
+      balance,
+      withdrawal: 10000,
+      inflation: 0.03,
+      currentAge: 43,
+      retirementAge: 63,
+      planThroughAge: 93,
+      upfrontYears: 10,
+      inflationAdjustedBucket: true,
+    }).render();
+    assert.equal(state.maxUpfrontYears, expectedYears);
+    assert.equal(state.upfrontYears, expectedYears);
+  }
 });
