@@ -3,8 +3,9 @@
 // basis points (×10⁴), cumulative growth factors in micro-units (×10⁶).
 // JS Numbers are IEEE-754 doubles but exact for integers up to 2⁵³ ≈ 9×10¹⁵,
 // which covers cents-precision balances to ~$90T — enough headroom for any
-// pathological run. Float64Array per-year storage holds those integer cents
-// exactly and keeps the fast typed-array .sort() for percentile extraction.
+// pathological run. Float64Array per-run storage holds those integer cents
+// exactly. Only the current and previous year's balances are kept, so memory
+// depends on the run count, not the horizon.
 // The only float math in this worker is the one-time Gaussian LUT build at
 // init; the per-run hot loop is purely integer.
 
@@ -219,13 +220,18 @@ function runSimulation({
   }
   const lumpSumCents = isLumpSum ? bucketPaidCents[upfrontYears] : 0;
 
-  const yearBalances = new Array(years + 1);
-  for (let y = 0; y <= years; y++) {
-    yearBalances[y] = new Float64Array(runs);
+  // Years run on the outside and runs on the inside, so only this year's and
+  // last year's balances are alive at once and memory stays flat in the
+  // horizon. Each run keeps its RNG state between years, so it draws exactly
+  // the stream it would draw running all of its years back to back.
+  const rngStates = new Uint32Array(runs);
+  for (let r = 0; r < runs; r++) {
+    seedRun(seed, r);
+    rngStates[r] = rngState;
   }
-  yearBalances[0].fill(balCents);
+  let balances = new Float64Array(runs).fill(balCents);
+  let previousBalances = new Float64Array(runs);
 
-  const intendedWithdrawals = new Float64Array(years + 1);
   const bucketFunding = new Float64Array(runs);
   const totalDrawn = new Float64Array(runs);
   const totalDrawnToday = new Float64Array(runs);
@@ -234,79 +240,6 @@ function runSimulation({
   // The portfolio excludes cash transferred to the bucket. Record the year
   // that cash is spent separately so the risk chart counts both resources.
   const bucketExhaustionYears = new Uint32Array(runs);
-  const reportEvery = Math.max(1, Math.floor(runs / 100));
-
-  for (let r = 0; r < runs; r++) {
-    seedRun(seed, r);
-    let bal = balCents;
-    let depleted = false;
-
-    for (let y = 1; y <= years; y++) {
-      const retirementYear = y - retirementDelay;
-      let actualW;
-      if (retirementYear <= 0) {
-        actualW = 0;
-      } else if (isLumpSum) {
-        if (retirementYear === 1) {
-          actualW = lumpSumCents;
-          if (bal > 0 && lumpSumCents > 0) {
-            // An underfunded bucket only lasts as long as the money actually
-            // available. Allocate it to the earliest spending years first.
-            const fundedCents = Math.min(bal, lumpSumCents);
-            bucketFunding[r] = fundedCents;
-            let lastCashYear = 1;
-            while (bucketPaidCents[lastCashYear] < fundedCents) {
-              lastCashYear++;
-            }
-            bucketExhaustionYears[r] = retirementDelay + lastCashYear;
-          }
-        } else if (retirementYear <= upfrontYears) {
-          actualW = 0;
-        } else {
-          actualW = Math.floor((wdCents * inflPow[y - 1]) / MICRO);
-        }
-      } else {
-        actualW = Math.floor((wdCents * inflPow[y - 1]) / MICRO);
-      }
-      intendedWithdrawals[y] = actualW;
-      const drawn = Math.min(bal, actualW);
-      if (drawn > 0) {
-        const drawnToday = Math.floor((drawn * MICRO) / inflPow[y - 1]);
-        totalDrawn[r] += drawn;
-        totalDrawnToday[r] += drawnToday;
-        lastDraw[r] = drawn;
-        lastDrawToday[r] = drawnToday;
-      }
-
-      if (depleted) {
-        yearBalances[y][r] = 0;
-        continue;
-      }
-
-      bal -= actualW;
-      if (bal <= 0) {
-        bal = 0;
-        depleted = true;
-        yearBalances[y][r] = 0;
-        continue;
-      }
-
-      // Per-year growth factor in bp: BP + returnBp + volBp·gauss/GS.
-      // (volBp·gauss) ≤ 3000·5e7 ≈ 1.5e11, fits Number exactly; /GS lands
-      // back in bp range. | 0 truncates the small int32 result.
-      const shockBp = ((volBp * gaussInt()) / GS) | 0;
-      let factorBp = BP + returnBp + shockBp;
-      if (factorBp < 0) {
-        factorBp = 0;
-      } // a >100% loss can't push bal below 0
-      bal = Math.floor((bal * factorBp) / BP);
-      yearBalances[y][r] = bal;
-    }
-
-    if (r % reportEvery === 0) {
-      self.postMessage({ type: "progress", pct: (r / runs) * 0.85 });
-    }
-  }
 
   // Boundary: emit dollars (integer cents → integer dollars) so the React
   // side's fmtMoney/fmtPct keep their existing signatures.
@@ -343,13 +276,14 @@ function runSimulation({
       ].map(([key, index]) => [key, c2d(scratch[index])]),
     );
   };
-  const median = (values) => {
+  const medianCents = (values) => {
     if (values) {
       scratch.set(values);
     }
     quickselect(scratch, k50, 0, last);
-    return c2d(scratch[k50]);
+    return scratch[k50];
   };
+  const median = (values) => c2d(medianCents(values));
   const cashAt = (r, y) =>
     y <= retirementDelay
       ? 0
@@ -368,9 +302,8 @@ function runSimulation({
   const depletionYears = Object.fromEntries(
     [0.1, 0.25, 0.5, 0.75, 0.9].map((p) => [p, null]),
   );
-  scratch.set(bucketFunding);
-  quickselect(scratch, k50, 0, last);
-  const medianBucketFunding = scratch[k50];
+  // Set once every run has funded its bucket, in retirement year 1.
+  let medianBucketFunding = 0;
   // One public record per year, including year 0 (today). start/endBalance
   // and afterWithdrawal describe investments; total balances include cash.
   // actual is the median portfolio draw, spending includes bucket payments,
@@ -379,7 +312,67 @@ function runSimulation({
   let previousInvestedCents;
   let portfolioDepletion = null;
   for (let y = 0; y <= years; y++) {
-    const balances = yearBalances[y];
+    const retirementYear = y - retirementDelay;
+    let intendedCents = 0;
+    if (y > 0) {
+      [previousBalances, balances] = [balances, previousBalances];
+      if (retirementYear <= 0) {
+        intendedCents = 0;
+      } else if (isLumpSum && retirementYear === 1) {
+        intendedCents = lumpSumCents;
+      } else if (isLumpSum && retirementYear <= upfrontYears) {
+        intendedCents = 0;
+      } else {
+        intendedCents = Math.floor((wdCents * inflPow[y - 1]) / MICRO);
+      }
+
+      for (let r = 0; r < runs; r++) {
+        let bal = previousBalances[r];
+        if (isLumpSum && retirementYear === 1 && bal > 0 && lumpSumCents > 0) {
+          // An underfunded bucket only lasts as long as the money actually
+          // available. Allocate it to the earliest spending years first.
+          const fundedCents = Math.min(bal, lumpSumCents);
+          bucketFunding[r] = fundedCents;
+          let lastCashYear = 1;
+          while (bucketPaidCents[lastCashYear] < fundedCents) {
+            lastCashYear++;
+          }
+          bucketExhaustionYears[r] = retirementDelay + lastCashYear;
+        }
+        const drawn = Math.min(bal, intendedCents);
+        if (drawn > 0) {
+          const drawnToday = Math.floor((drawn * MICRO) / inflPow[y - 1]);
+          totalDrawn[r] += drawn;
+          totalDrawnToday[r] += drawnToday;
+          lastDraw[r] = drawn;
+          lastDrawToday[r] = drawnToday;
+        }
+
+        // An empty portfolio stays empty and draws no more returns.
+        bal -= intendedCents;
+        if (bal <= 0) {
+          balances[r] = 0;
+          continue;
+        }
+
+        // Per-year growth factor in bp: BP + returnBp + volBp·gauss/GS.
+        // (volBp·gauss) ≤ 3000·5e7 ≈ 1.5e11, fits Number exactly; /GS lands
+        // back in bp range. | 0 truncates the small int32 result.
+        rngState = rngStates[r];
+        const shockBp = ((volBp * gaussInt()) / GS) | 0;
+        rngStates[r] = rngState;
+        let factorBp = BP + returnBp + shockBp;
+        if (factorBp < 0) {
+          factorBp = 0;
+        } // a >100% loss can't push bal below 0
+        balances[r] = Math.floor((bal * factorBp) / BP);
+      }
+
+      if (retirementYear === 1) {
+        medianBucketFunding = medianCents(bucketFunding);
+      }
+    }
+
     let depletedCount = 0;
     let portfolioEmptyCount = 0;
     for (let r = 0; r < runs; r++) {
@@ -401,7 +394,6 @@ function runSimulation({
         ["p90", k90],
       ].map(([key, index]) => [key, scratch[index]]),
     );
-    const intendedCents = intendedWithdrawals[y];
     const previous = yearData[y - 1];
     const startBalance = previous ? previous.endBalance : endBalance;
     const afterWithdrawal = Object.fromEntries(
@@ -415,7 +407,6 @@ function runSimulation({
         ),
       ]),
     );
-    const retirementYear = y - retirementDelay;
     let totalEndBalance = endBalance;
     if (isLumpSum && retirementYear > 0 && retirementYear < upfrontYears) {
       for (let r = 0; r < runs; r++) {
@@ -473,7 +464,7 @@ function runSimulation({
       scratch[r] =
         y === 0
           ? 0
-          : balances[r] - Math.max(0, yearBalances[y - 1][r] - intendedCents);
+          : balances[r] - Math.max(0, previousBalances[r] - intendedCents);
     }
     const growth = median();
     yearData.push({
@@ -495,7 +486,7 @@ function runSimulation({
       depletionRate,
     });
     previousInvestedCents = investedCents;
-    self.postMessage({ type: "progress", pct: 0.85 + (0.15 * y) / years });
+    self.postMessage({ type: "progress", pct: y / years });
   }
   const ending = yearData[years];
   const summary = {

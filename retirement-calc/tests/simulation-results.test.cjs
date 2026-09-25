@@ -177,10 +177,14 @@ test("exact exhaustion and surviving plans use the same year-end convention", ()
 
 test("growth is the median of individual gains, not the change in median balances", () => {
   const controlled = engine();
-  let sample = 0;
+  // Samples are drawn year by year, each year across all runs in order.
   // Half grow by 100%, then lose 50%; half lose 50%, then grow by 100%.
-  controlled.gaussInt = () =>
-    [10_000_000, -5_000_000, -5_000_000, 10_000_000][sample++ % 4];
+  const samples = [
+    ...Array.from({ length: 50 }, () => [10_000_000, -5_000_000]).flat(),
+    ...Array.from({ length: 50 }, () => [-5_000_000, 10_000_000]).flat(),
+  ];
+  let sample = 0;
+  controlled.gaussInt = () => samples[sample++];
   const result = controlled.runSimulation({
     balance: 1000,
     withdrawal: 100,
@@ -223,9 +227,13 @@ test("trajectory and risk read the same worker snapshot with separate balance me
 
 test("a 50% depletion milestone includes partial buckets even while the portfolio median is positive", () => {
   const controlled = engine();
+  // Samples are drawn year by year, each year across the surviving runs in
+  // order. Year 1: half lose 50% and can't fund the bucket; half gain 50%.
+  // Years 2–6: only the second half still draws, with no change.
   const samples = [
     ...Array(50).fill(-5_000_000),
-    ...Array.from({ length: 50 }, () => [5_000_000, 0, 0, 0, 0, 0]).flat(),
+    ...Array(50).fill(5_000_000),
+    ...Array(250).fill(0),
   ];
   let sample = 0;
   controlled.gaussInt = () => samples[sample++];

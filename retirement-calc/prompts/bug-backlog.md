@@ -18,7 +18,6 @@ Suggested order, highest first. Within a level, earlier items matter more.
 
 | # | Item | Priority | Why | Status |
 | --- | --- | --- | --- | --- |
-| 8 | The worker uses too much memory | P1 | Default inputs allocate ~384 MB; long horizons can crash the tab, especially on mobile. | open |
 | 6 | Adjusted inputs overwrite the user's saved settings | P1 | Silently loses input, and an applied solve can run a different plan than the one checked. | open |
 | 2 | "Worst 30-Yr" preset isn't a real 30-year window | P2 | Presents a combined stress case as history, so users may over-save or under-spend. | open |
 | 7 | Success color ignores the user's target | P2 | The at-a-glance color says "fine" (green) when the result misses the user's own target. | open |
@@ -50,7 +49,6 @@ Items in the same group edit the same code. Run them one after another, not in p
 | --- | --- | --- |
 | A — worker bucket logic | 4, 5 | `lib/monte-carlo-worker.js` withdrawal loop and `summary` |
 | B — sidebar state | 6, 13 | `lib/index.jsx` lines ~40–80 |
-| C — worker memory layout | 8 | `lib/monte-carlo-worker.js` storage and quantile pass. Rebase onto group A if both are in flight. |
 
 Everything else can run in parallel.
 
@@ -124,24 +122,6 @@ The success color is hard-coded to green at ≥90% and amber at ≥70%. A 92% re
 **Fix direction:** Base the color on `targetSuccessRate`: green when at or above the target, amber within some margin below it, red otherwise.
 
 **Done when:** The color changes when the target slider crosses the current success rate.
-
-## 8. The worker uses too much memory
-
-- **Type:** Programmatic
-- **Priority:** P1
-- **Status:** open (conflict group C)
-- **Touches:** `lib/monte-carlo-worker.js` (`yearBalances` allocation ~L224, the per-year quantile pass)
-
-The worker keeps one `Float64Array(runs)` per year: 8 MB per year for 1M runs. The defaults (47 years) allocate about 384 MB. Age 18 through 120 (102 years) needs about 830 MB, which will likely crash the tab on mobile and some desktops.
-
-**Fix direction:** The quantile pass for year y needs only year y's and year y−1's balances, plus per-run totals. Options:
-
-- Loop years on the outside and runs on the inside, keeping per-run state (`bal`, `depleted`) in arrays, so only two year-arrays are alive at a time.
-- Store balances in a smaller type.
-
-Keep the integer-cents precision the file's header comment promises, and keep the seeded per-run RNG streams so results stay identical.
-
-**Done when:** Peak memory no longer grows with the number of years, and all existing tests pass with the same results.
 
 ## 11. The main chart doesn't respond to touch
 
