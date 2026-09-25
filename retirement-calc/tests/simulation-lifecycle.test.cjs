@@ -92,7 +92,7 @@ function harness(saved = {}) {
       `
     return {successColor, sim, simInputs: sim?.inputs, simCurrentAge: sim?.currentAge, running, solving, simulationError, solverError,
       currentSolverResult, balance, withdrawal, setWithdrawal, setTargetSuccessRate, setSolveFor,
-      upfrontYears, maxUpfrontYears, startingBucketSize, setUpfrontYears,
+      upfrontYears, maxUpfrontYears, startingBucketSize, startingBucketTodaySize, setUpfrontYears,
       solveForTarget, applySolverResult, undoSolverResult, setInflation, setBalance,
       inflationAdjustedBucket, setInflationAdjustedBucket,
       setCurrentAge, setPlanThroughAge,
@@ -693,6 +693,21 @@ test("sidebar bucket amounts match worker cents across bucket modes and delays",
             : result.lumpSum,
         );
         assert.equal(amount * 100, workerPlan.bucketPaidCents[upfrontYears]);
+        assert.equal(
+          state.startingBucketTodaySize(upfrontYears),
+          (amount * 1_000_000) / workerPlan.inflPow[retirementDelay],
+        );
+        if (retirementDelay === 0) {
+          assert.equal(state.startingBucketTodaySize(upfrontYears), amount);
+        }
+        if (!inflationAdjustedBucket && retirementDelay > 0) {
+          assert.ok(
+            Math.abs(
+              state.startingBucketTodaySize(upfrontYears) -
+                state.withdrawal * upfrontYears,
+            ) < 1,
+          );
+        }
         if (upfrontYears === 1) {
           assert.equal(result.lumpSum, 0);
           assert.ok(amount > 0);

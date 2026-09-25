@@ -68,6 +68,10 @@ function RetirementSimulator() {
   const retirementWithdrawal = spendingPlan.retirementWdCents / 100;
   const startingBucketSize = (bucketYears) =>
     spendingPlan.bucketPaidCents[Math.min(bucketYears, years)] / 100;
+  // Displayed in today's dollars, like Annual Spending.
+  const startingBucketTodaySize = (bucketYears) =>
+    (startingBucketSize(bucketYears) * 1_000_000) /
+    spendingPlan.inflPow[retirementDelay];
   const maxUpfrontYears = maxAffordableBucketYears(balance, spendingPlan);
   const upfrontYears = Math.min(savedUpfrontYears, maxUpfrontYears);
   useEffect(() => {
@@ -498,10 +502,15 @@ function RetirementSimulator() {
               sublabel="Lump-sum years of annual withdrawals upfront?"
               description={[
                 upfrontYears === 1
-                  ? "One year uses annual portfolio withdrawals, with no upfront bucket. The amount shown is the first year's spending; it increases with inflation each year. With a later Starting Age, inflation before withdrawals begin can make this amount exceed Invested Portfolio Today."
+                  ? "One year uses annual portfolio withdrawals, with no upfront bucket. The amount shown is the first year's spending in today's dollars; it increases with inflation each year."
                   : inflationAdjustedBucket
                     ? "First portfolio draw funds the bucket; spending increases with inflation each year"
                     : "First portfolio draw funds the bucket; spending stays fixed during bucket years, then catches up with inflation",
+                ...(retirementDelay > 0
+                  ? [
+                      `The amount shown is in today's dollars. When withdrawals begin, inflation makes it ${fmtMoney(startingBucketSize(upfrontYears))}, which can exceed Invested Portfolio Today.`,
+                    ]
+                  : []),
                 "A multi-year bucket withdraws the selected years of spending upfront when withdrawals begin. This money earns no interest and is spent each year. The bucket is not replenished; annual portfolio withdrawals resume after the selected years.",
                 "Multi-year buckets are limited to Invested Portfolio Today and the years of portfolio-funded spending. The limit includes inflation before withdrawals begin and, when enabled below, during bucket years. These limits apply even when withdrawals are delayed. Changing your plan may shorten the selected bucket to stay within them.",
               ]}
@@ -511,7 +520,7 @@ function RetirementSimulator() {
               step={1}
               onChange={setUpfrontYears}
               format={(v) => {
-                const bucket = startingBucketSize(v);
+                const bucket = startingBucketTodaySize(v);
                 return `${v} ${v === 1 ? "yr" : "yrs"} (${fmtMoney(bucket)})`;
               }}
             />
