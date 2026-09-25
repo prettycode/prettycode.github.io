@@ -434,7 +434,7 @@ function RetirementSimulator() {
             <Slider
               label={SETTING_LABELS.retirementAge}
               sublabel="At what age will your portfolio start funding your life?"
-              description="When your portfolio starts funding your life. No additional savings are modeled before withdrawals begin."
+              description="When your portfolio starts funding your life&mdash;the age when you will begin taking annual withdrawals from your Liquid Assets. The portfolio will grow or shrink until withdrawals begin. Delaying the start will increase your chances of success."
               value={retirementAge}
               min={currentAge}
               max={MAX_PERSON_AGE}
