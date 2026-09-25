@@ -83,7 +83,6 @@ function RetirementSimulator() {
   const [marketAssumptionsOpen, setMarketAssumptionsOpen] = usePersistedState(
     "marketAssumptionsOpen",
   );
-  const [advancedOpen, setAdvancedOpen] = usePersistedState("advancedOpen");
   const [showCalendarYears, setShowCalendarYears] =
     usePersistedState("showCalendarYears");
   const [showYearEndPercentiles, setShowYearEndPercentiles] = usePersistedState(
@@ -395,9 +394,9 @@ function RetirementSimulator() {
   // inflation adjustments, and cash-aware depletion milestones.
   const summary = sim?.summary;
   const successColor =
-    summary?.successRate >= 0.9
+    summary?.successRate >= targetSuccessRate / 100
       ? "#3a7d44"
-      : summary?.successRate >= 0.7
+      : summary?.successRate >= (targetSuccessRate - 5) / 100
         ? "#c89a3a"
         : "#a83232";
 
@@ -438,7 +437,7 @@ function RetirementSimulator() {
             />
             <Slider
               label={SETTING_LABELS.retirementAge}
-              sublabel="At what age will you start withdrawing from your portfolio?"
+              sublabel="When portfolio-funded spending begins. No additional savings are modeled before retirement."
               value={retirementAge}
               min={currentAge}
               max={MAX_PERSON_AGE}
@@ -453,7 +452,7 @@ function RetirementSimulator() {
             />
             <Slider
               label={SETTING_LABELS.planThroughAge}
-              sublabel={`${retirementDelay} years until retirement; ${years} years in retirement`}
+              sublabel={`${retirementDelay} years until retirement; ${years} years in retirement, ending at age ${planThroughAge}`}
               value={planThroughAge}
               min={retirementAge + 1}
               max={Math.max(MAX_PERSON_AGE, planThroughAge)}
@@ -465,7 +464,7 @@ function RetirementSimulator() {
 
             <Slider
               label={SETTING_LABELS.balance}
-              sublabel="Portfolio value today"
+              sublabel="Investments available today; the starting cash bucket comes out of this balance at retirement"
               value={balance}
               min={AMOUNT_LIMITS.balance.min}
               max={AMOUNT_LIMITS.balance.max}
@@ -481,8 +480,8 @@ function RetirementSimulator() {
               label={SETTING_LABELS.withdrawal}
               sublabel={
                 retirementDelay > 0
-                  ? `Today's dollars; starts at ${fmtMoney(retirementWithdrawal)} at retirement. Inflation increases follow the cash bucket setting below.`
-                  : "Today's dollars; inflation increases follow the cash bucket setting below"
+                  ? `Annual amount this portfolio must fund, in today's dollars; starts at ${fmtMoney(retirementWithdrawal)} at retirement. Inflation increases follow the cash bucket setting below.`
+                  : "Annual amount this portfolio must fund, in today's dollars. Inflation increases follow the cash bucket setting below."
               }
               value={withdrawal}
               min={AMOUNT_LIMITS.withdrawal.min}
@@ -514,6 +513,30 @@ function RetirementSimulator() {
               }}
             />
 
+            <p className="toggle-sub">
+              A multi-year bucket is a one-time cash reserve. It earns no
+              interest and is not replenished. Annual portfolio draws resume
+              after it ends.
+            </p>
+            <label className="setting-checkbox">
+              <input
+                type="checkbox"
+                checked={inflationAdjustedBucket}
+                onChange={(e) => setInflationAdjustedBucket(e.target.checked)}
+                disabled={solving || upfrontYears === 1}
+              />
+              <span>
+                <span className="toggle-label">
+                  {SETTING_LABELS.inflationAdjustedBucket}
+                </span>
+                <span className="toggle-sub">
+                  Funds larger annual bucket payments upfront; cash itself earns
+                  no interest. With one year selected, annual portfolio draws
+                  already increase with inflation.
+                </span>
+              </span>
+            </label>
+
             <details
               className="panel-section"
               open={marketAssumptionsOpen}
@@ -523,7 +546,7 @@ function RetirementSimulator() {
 
               <Slider
                 label={SETTING_LABELS.cagr}
-                sublabel="Portfolio's Compound annual growth rate"
+                sublabel="Assumed compounded investment return (CAGR) before inflation and spending; individual years vary"
                 value={cagr}
                 min={0.01}
                 max={0.12}
@@ -534,7 +557,7 @@ function RetirementSimulator() {
 
               <Slider
                 label={SETTING_LABELS.volatility}
-                sublabel="Portfolio's Standard deviation"
+                sublabel="How widely annual investment returns vary (standard deviation). Higher values produce larger swings."
                 value={volatility}
                 min={0.02}
                 max={0.3}
@@ -545,7 +568,7 @@ function RetirementSimulator() {
 
               <Slider
                 label={SETTING_LABELS.inflation}
-                sublabel="Cost-of-living growth"
+                sublabel="Annual cost-of-living increase; affects spending requirements and today's-dollar equivalents"
                 value={inflation}
                 min={0}
                 max={0.08}
@@ -555,15 +578,16 @@ function RetirementSimulator() {
               />
 
               <div style={{ marginBottom: 22 }}>
-                <div className="toggle-label">Historical Presets</div>
+                <div className="toggle-label">Market Presets</div>
                 <div className="toggle-sub" style={{ marginBottom: 8 }}>
                   Apply {SETTING_LABELS.cagr}, {SETTING_LABELS.volatility}, and{" "}
-                  {SETTING_LABELS.inflation} from historical data.{" "}
+                  {SETTING_LABELS.inflation} using historical averages or a
+                  combined stress case.{" "}
                   <button
                     type="button"
                     className="presets-source-inline"
                     aria-haspopup="dialog"
-                    aria-label="View historical data"
+                    aria-label="View preset assumptions"
                     onClick={() => setHistoricalDataOpen(true)}
                   >
                     ↗
@@ -602,33 +626,6 @@ function RetirementSimulator() {
                   </button>
                 </div>
               </div>
-            </details>
-
-            <details
-              className="panel-section"
-              open={advancedOpen}
-              onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
-            >
-              <summary className="panel-heading">Advanced</summary>
-
-              <label className="setting-checkbox">
-                <input
-                  type="checkbox"
-                  checked={inflationAdjustedBucket}
-                  onChange={(e) => setInflationAdjustedBucket(e.target.checked)}
-                  disabled={solving}
-                />
-                <span>
-                  <span className="toggle-label">
-                    {SETTING_LABELS.inflationAdjustedBucket}
-                  </span>
-                  <span className="toggle-sub">
-                    Each {SETTING_LABELS.upfrontYears.toLowerCase()} year pays
-                    that year's inflation-adjusted spending, instead of the same
-                    retirement-year amount every year.
-                  </span>
-                </span>
-              </label>
             </details>
 
             <div className="settings-mgmt">
@@ -771,7 +768,11 @@ function RetirementSimulator() {
                   today's dollars use inflation at each draw's date. Spending
                   occurs when that money is used, including later bucket
                   payments. Total balance, success, and depletion include
-                  investments and remaining cash.
+                  investments and remaining cash. Success requires money left at
+                  the ending age; paying the final year exactly and ending with
+                  $0 counts as failure. Green meets your selected success
+                  target; amber is below it by up to 5 percentage points; red is
+                  further below.
                 </p>
 
                 {/* CHART */}
@@ -860,10 +861,8 @@ function RetirementSimulator() {
                     <div className="solver-target">
                       <div className="solver-target-heading">
                         <label htmlFor="solver-target">
-                          <strong>Target success rate</strong> of money lasting{" "}
-                          {solvingDelay
-                            ? `through age ${planThroughAge}`
-                            : `from age ${retirementAge} through age ${planThroughAge}`}
+                          <strong>Target success rate</strong> of having money
+                          left {`at age ${planThroughAge}`}
                         </label>
                         <output htmlFor="solver-target">
                           {targetSuccessRate}%
@@ -876,7 +875,7 @@ function RetirementSimulator() {
                         max={TARGET_SUCCESS_LIMITS.max}
                         step={1}
                         value={targetSuccessRate}
-                        aria-valuetext={`${targetSuccessRate}% chance of money lasting`}
+                        aria-valuetext={`${targetSuccessRate}% chance of money left at the ending age`}
                         onChange={(e) => {
                           setTargetSuccessRate(parseInt(e.target.value, 10));
                           setSolverError(null);
@@ -1097,15 +1096,18 @@ function HistoricalDataModal({ onClose }) {
         className="historical-modal-close"
         onClick={onClose}
         autoFocus
-        aria-label="Close historical data"
+        aria-label="Close preset assumptions"
       >
         Close
       </button>
       <h2 id="historical-data-title">
-        Historical Stock Market &amp; Inflation Data
+        Historical Data &amp; Stress Assumptions
       </h2>
       <p className="subtitle">
-        Nominal total returns (including dividends). All figures annualized.
+        Nominal total returns (including dividends). All figures annualized. The
+        Stress Case combines low returns, high volatility, and high inflation
+        from different periods. It is a combined stress scenario, not a single
+        historical period.
       </p>
 
       <div className="table-wrap">
@@ -1115,7 +1117,7 @@ function HistoricalDataModal({ onClose }) {
               <th scope="col">Metric</th>
               <th scope="col">Time Frame</th>
               <th scope="col">Full-Period Value</th>
-              <th scope="col">{PRESET_LABELS.worst} Period</th>
+              <th scope="col">Stress Input Source Period</th>
               <th scope="col">{PRESET_LABELS.worst} Value</th>
             </tr>
           </thead>

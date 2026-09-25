@@ -58,7 +58,7 @@ function OutcomeOdds({ simulation }) {
   // Each rung states an exceedance probability, which is what a percentile
   // actually is — the 90th percentile is the 1-in-10 line, and the median is
   // just the 1-in-2 rung rather than a favoured value. A lower rung sitting
-  // at $0 is a rounded portfolio balance, not proof of total depletion.
+  // at $0 is a rounded total balance, not proof of total depletion.
   const balanceLadder = [
     {
       odds: "1 in 10",
@@ -95,7 +95,7 @@ function OutcomeOdds({ simulation }) {
     r.dir === "below" && r.value <= 0
       ? {
           odds: r.odds,
-          primary: "ends with a portfolio balance of $0 (rounded)",
+          primary: "ends with a total balance of $0 (rounded)",
           median: r.median,
         }
       : {
@@ -187,7 +187,7 @@ function OutcomeOdds({ simulation }) {
           {fmtMoney(ending.p75)}, and a 4-in-5 chance of finishing{" "}
           {ending.p10 > 0
             ? `between ${fmtMoney(ending.p10)} and ${fmtMoney(ending.p90)}`
-            : `below ${fmtMoney(ending.p90)}, with the bottom tenth at a rounded portfolio balance of $0`}
+            : `below ${fmtMoney(ending.p90)}, with the bottom tenth at a rounded total balance of $0`}
           . Dollar figures include investments and remaining bucket cash.
         </p>
       ) : (
@@ -203,7 +203,7 @@ function OutcomeOdds({ simulation }) {
         So the median is the middle outcome, not the most likely one — it is
         simply the line with half the futures above it and half below.
         {medianSurvives
-          ? ` No single dollar figure carries meaningful odds on its own.${upsideRatio >= 1.5 ? ` The spread is lopsided, too: the best tenth of futures finish above ${fmtMoney(ending.p90)}, roughly ${upsideRatio.toFixed(1)}× the median, while the worst tenth ${ending.p10 > 0 ? `finish below ${fmtMoney(ending.p10)}` : "finish with a rounded portfolio balance of $0"}. That long upside tail drags the average well above the typical result, which is why every headline figure here is a median rather than an average.` : ""}`
+          ? ` No single dollar figure carries meaningful odds on its own.${upsideRatio >= 1.5 ? ` The spread is lopsided, too: the best tenth of futures finish above ${fmtMoney(ending.p90)}, roughly ${upsideRatio.toFixed(1)}× the median, while the worst tenth ${ending.p10 > 0 ? `finish below ${fmtMoney(ending.p10)}` : "finish with a rounded total balance of $0"}. That long upside tail drags the average well above the typical result, which is why every headline figure here is a median rather than an average.` : ""}`
           : ` A median of $0 does not mean every future ends that way — ${inN(successRate)} still finish with money, some of it substantial. It means the middle of the range has fallen through the floor.`}
       </p>
     </section>

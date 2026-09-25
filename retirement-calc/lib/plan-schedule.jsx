@@ -50,7 +50,9 @@ function PlanSchedule({
               simulated outcomes unless labeled with another percentile, so they
               need not add up across columns. Growth / loss is the median of
               individual investment gains. Year and age identify the row's
-              start; depletion is measured at year-end.
+              start; depletion is measured at year-end. The chart labels the
+              ending boundary: a row starting in 2026 ends at the chart's 2027
+              tick.
             </p>
             <div className="plan-schedule-actions">
               <button
@@ -84,8 +86,18 @@ function PlanSchedule({
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Year</th>
-                  {currentAge !== undefined && <th scope="col">Age</th>}
+                  <th scope="col">
+                    Year
+                    <br />
+                    starting
+                  </th>
+                  {currentAge !== undefined && (
+                    <th scope="col">
+                      Age at
+                      <br />
+                      start
+                    </th>
+                  )}
                   <th scope="col" className="plan-schedule-phase">
                     Plan year
                   </th>

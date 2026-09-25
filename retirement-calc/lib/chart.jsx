@@ -321,9 +321,10 @@ function PortfolioChart({
           Each point counts simulations whose invested portfolio and upfront
           cash bucket were both exhausted by that year-end, including earlier
           exhaustion. A fully funded bucket covers spending through its final
-          year; if no investments remain, money runs out at that year-end. These
-          are modeled frequencies, not guarantees; 0% means no simulation ran
-          out of money by that point.
+          year; if no investments remain, money runs out at that year-end.
+          Calendar labels mark year boundaries: a schedule row starting in 2026
+          ends at the 2027 tick. These are modeled frequencies, not guarantees;
+          0% means no simulation ran out of money by that point.
         </p>
       </section>
 
@@ -883,7 +884,9 @@ function PortfolioChart({
           a multi-year cash bucket, the first draw transfers the full bucket
           amount out of investments. Later bucket payments fund spending without
           another portfolio draw, so those years show no mark. The Full Plan
-          Schedule shows spending and total balances including cash.
+          Schedule shows spending and total balances including cash. Its year
+          labels identify the start of each interval; the next chart tick marks
+          the end of that interval.
         </p>
       </section>
     </>

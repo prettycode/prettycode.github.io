@@ -4,19 +4,19 @@
 const SETTING_LABELS = Object.freeze({
   currentAge: "Current Age",
   retirementAge: "Retirement Start Age",
-  planThroughAge: "Retirement End Age",
-  balance: "Savings Portfolio",
+  planThroughAge: "Plan Through Age",
+  balance: "Invested Portfolio Today",
   withdrawal: "Annual Spending",
   upfrontYears: "Starting Cash Bucket",
-  cagr: "CAGR",
+  cagr: "Long-Term Annual Return",
   volatility: "Annual Volatility",
-  inflation: "Inflation Rate",
-  inflationAdjustedBucket: "Inflation-Adjusted Cash Bucket",
+  inflation: "Annual Inflation",
+  inflationAdjustedBucket: "Increase Bucket Spending with Inflation",
 });
 
 const PRESET_LABELS = Object.freeze({
   us: "U.S.",
   world: "World",
   historical: "Historical",
-  worst: "Apocalypse",
+  worst: "Stress Case",
 });

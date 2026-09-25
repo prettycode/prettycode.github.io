@@ -19,10 +19,7 @@ Suggested order, highest first. Within a level, earlier items matter more.
 | #   | Item                                                | Priority | Why                                                                                       | Status |
 | --- | --------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------- | ------ |
 | 6   | Adjusted inputs overwrite the user's saved settings | P1       | Silently loses input, and an applied solve can run a different plan than the one checked. | open   |
-| 2   | "Apocalypse" preset isn't a real 30-year window     | P2       | Presents a combined stress case as history, so users may over-save or under-spend.        | open   |
-| 7   | Success color ignores the user's target             | P2       | The at-a-glance color says "fine" (green) when the result misses the user's own target.   | open   |
 | 11  | The main chart doesn't respond to touch             | P2       | The main chart's tooltip is unusable on phones and tablets.                               | open   |
-| 12  | Small text problems                                 | P3       | Chart and schedule year-label consistency.                                                | open   |
 
 When you change an item's status, update it both in this table and in the item itself.
 
@@ -39,19 +36,6 @@ Project rules that apply to every item:
 - **The app is unreleased.** Don't add migrations or backward compatibility for saved settings. Just delete keys that are no longer used.
 
 ---
-
-## 2. "Apocalypse" preset isn't a real 30-year window
-
-- **Type:** Conceptual
-- **Priority:** P2
-- **Status:** open
-- **Touches:** `lib/monte-carlo.js` (`MARKET_PRESETS`), `lib/index.jsx` (`HistoricalDataModal`), `lib/labels.js` (`PRESET_LABELS.worst`)
-
-The preset combines the worst CAGR (1903–1932), the worst volatility (~1925–1955), and the worst inflation (~1950–1980), three different periods. For the U.S. that's a 4.7% nominal return with 4.6% inflation (about 0.1% real) and 28% volatility. That's much harsher than any single historical period, but the label presents it as history.
-
-**Fix direction:** Either take all three values from one real 30-year window, or rename the preset and table column to make clear it's a combined stress case (for example "Stress Case") and explain that in the modal.
-
-**Done when:** The preset's label and the modal's explanation match what the numbers actually are.
 
 ## 6. Adjusted inputs overwrite the user's saved settings
 
@@ -70,19 +54,6 @@ The code keeps inputs valid by adjusting them, then writes the adjusted value ba
 
 **Done when:** Moving any slider away and back restores every other slider's earlier value. A test covers this.
 
-## 7. Success color ignores the user's target
-
-- **Type:** Logic
-- **Priority:** P2
-- **Status:** open
-- **Touches:** `lib/index.jsx` (success color)
-
-The success color is hard-coded to green at ≥90% and amber at ≥70%. A 92% result shows green even when the target is 95%.
-
-**Fix direction:** Base the color on `targetSuccessRate`: green when at or above the target, amber within some margin below it, red otherwise.
-
-**Done when:** The color changes when the target slider crosses the current success rate.
-
 ## 11. The main chart doesn't respond to touch
 
 - **Type:** Programmatic
@@ -95,14 +66,3 @@ The portfolio chart uses `onMouseMove`/`onMouseLeave`, while the depletion chart
 **Fix direction:** Switch to `onPointerMove`/`onPointerLeave`, matching the depletion chart.
 
 **Done when:** Dragging a finger across the chart moves the tooltip.
-
-## 12. Small text problems
-
-- **Type:** Copy
-- **Priority:** P3
-- **Status:** open
-- **Touches:** `lib/chart.jsx`, `lib/plan-schedule.jsx` (~L118)
-
-- For the same depletion year, the chart labels the year by its end ("by 2027") and the schedule labels it by its start ("2026"). Pick one convention, or make the difference explicit in the labels.
-
-**Done when:** The chart and schedule use consistent year labels or explain their different conventions.

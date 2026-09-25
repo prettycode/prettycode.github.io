@@ -86,7 +86,7 @@ function harness(saved = {}) {
   vm.runInContext(
     source +
       `
-    return {sim, simInputs: sim?.inputs, simCurrentAge: sim?.currentAge, running, solving, simulationError, solverError,
+    return {successColor, sim, simInputs: sim?.inputs, simCurrentAge: sim?.currentAge, running, solving, simulationError, solverError,
       currentSolverResult, balance, withdrawal, setWithdrawal, setTargetSuccessRate, setSolveFor,
       upfrontYears, maxUpfrontYears, startingBucketSize, setUpfrontYears,
       solveForTarget, setInflation, setBalance,
@@ -721,5 +721,29 @@ test("sidebar allows exact bucket funding and rejects one cent short", () => {
     }).render();
     assert.equal(state.maxUpfrontYears, expectedYears);
     assert.equal(state.upfrontYears, expectedYears);
+  }
+});
+
+test("success color follows the target without rerunning the simulation", async () => {
+  const h = harness({ targetSuccessRate: 90 });
+  h.render();
+  h.workers.at(-1).done({ ...result, summary: { successRate: 0.92 } });
+  await flush();
+  let state = h.render();
+  assert.equal(state.successColor, "#3a7d44");
+  const workerCount = h.workers.length;
+  const snapshot = state.sim;
+  for (const [target, color] of [
+    [92, "#3a7d44"],
+    [95, "#c89a3a"],
+    [97, "#c89a3a"],
+    [98, "#a83232"],
+    [90, "#3a7d44"],
+  ]) {
+    state.setTargetSuccessRate(target);
+    state = h.render();
+    assert.equal(state.successColor, color);
+    assert.equal(state.sim, snapshot);
+    assert.equal(h.workers.length, workerCount);
   }
 });

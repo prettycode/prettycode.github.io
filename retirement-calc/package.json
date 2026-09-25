@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "Retirement simulator",
   "scripts": {
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "npm run lint:fix && prettier --write .",
-    "prestart": "npm run format",
+    "lint:ci": "eslint .",
+    "lint:fix": "npm run lint:ci -- --fix",
+    "format:ci": "prettier .",
+    "format:fix": "npm run format:ci -- --fix",
+    "prestart": "npm run lint:fix && npm run format:fix",
     "start": "npx serve .",
     "test": "node --test tests/*.test.cjs"
   },
