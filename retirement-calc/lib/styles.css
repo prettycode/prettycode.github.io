@@ -326,6 +326,14 @@
   text-wrap: pretty;
 }
 
+.slider-description p {
+  margin: 0;
+}
+
+.slider-description p + p {
+  margin-top: 6px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .slider-details,
   .slider-info,

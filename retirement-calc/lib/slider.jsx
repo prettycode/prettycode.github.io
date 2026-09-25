@@ -67,12 +67,7 @@ function Slider({
                   strokeWidth="1.6"
                   strokeLinecap="round"
                 />
-                <circle
-                  className="slider-info-dot"
-                  cx="10"
-                  cy="6.4"
-                  r="0.95"
-                />
+                <circle className="slider-info-dot" cx="10" cy="6.4" r="0.95" />
               </svg>
             </button>
           )}
@@ -129,9 +124,11 @@ function Slider({
           inert={detailsOpen ? undefined : ""}
         >
           <div className="slider-details-clip">
-            <p className="slider-description" id={descriptionId}>
-              {description}
-            </p>
+            <div className="slider-description" id={descriptionId}>
+              {[].concat(description).map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
+            </div>
           </div>
         </div>
       )}
