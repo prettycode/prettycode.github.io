@@ -216,7 +216,7 @@ test("cash bucket selection is capped to the retirement horizon and follows age 
   assert.equal(h.workers.at(-1).message.params.upfrontYears, 1);
 });
 
-test("cash bucket dollars keep increasing beyond five years when the plan allows it", () => {
+test("cash bucket dollars keep increasing beyond ten years when the plan allows it", () => {
   const h = harness({
     currentAge: 60,
     retirementAge: 60,
@@ -225,8 +225,8 @@ test("cash bucket dollars keep increasing beyond five years when the plan allows
     withdrawal: 150_000,
   });
   let state = h.render();
-  assert.equal(state.maxUpfrontYears, 10);
-  for (let years = 4; years <= 10; years++) {
+  assert.equal(state.maxUpfrontYears, 20);
+  for (let years = 4; years <= 20; years++) {
     state.setUpfrontYears(years);
     state = h.render();
     assert.equal(state.upfrontYears, years);

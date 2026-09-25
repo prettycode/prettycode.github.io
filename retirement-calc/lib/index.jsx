@@ -72,7 +72,7 @@ function RetirementSimulator() {
     }
     return total;
   };
-  let maxUpfrontYears = Math.min(10, years);
+  let maxUpfrontYears = years;
   while (maxUpfrontYears > 1 && startingBucketSize(maxUpfrontYears) > balance) {
     maxUpfrontYears--;
   }
